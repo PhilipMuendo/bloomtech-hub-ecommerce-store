@@ -57,20 +57,6 @@ The app will be available at `http://localhost:5173` by default.
 - `src/hooks/` — Custom React hooks
 - `src/lib/` — Utility functions
 
-## Customization
 
-You can easily extend the platform by adding new pages, components, or integrating with backend APIs for real product data, authentication, and order management.
 
-## Deployment
 
-You can deploy this project to any static hosting provider (e.g., Vercel, Netlify, GitHub Pages) or your own server. To build for production:
-
-```sh
-npm run build
-```
-
-The output will be in the `dist/` folder.
-
-## License
-
-This project is for educational and demonstration purposes. You may modify and use it as needed for your own projects.
