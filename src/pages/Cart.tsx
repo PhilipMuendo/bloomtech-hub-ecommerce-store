@@ -4,9 +4,45 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import { addDoc, collection } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
+import AuthModal from '@/components/AuthModal';
+import NewsletterForm from '@/components/NewsletterForm';
 
 const Cart = () => {
-  const { cartItems, updateQuantity, removeFromCart, getTotalPrice } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCart();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleCheckout = async () => {
+    if (!user) return;
+
+    try {
+      await addDoc(collection(db, 'orders'), {
+        userId: user.uid,
+        cart: cartItems.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity
+        })),
+        total: getTotalPrice(),
+        status: 'Pending',
+        createdAt: new Date()
+      });
+
+      clearCart();
+      toast({ title: "Order placed successfully!" });
+    } catch (error) {
+      toast({ 
+        title: "Error", 
+        description: "Failed to place order. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -86,7 +122,7 @@ const Cart = () => {
         </div>
 
         {/* Order Summary */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-6">
           <Card className="sticky top-4">
             <CardHeader>
               <CardTitle>Order Summary</CardTitle>
@@ -109,9 +145,17 @@ const Cart = () => {
               </div>
 
               <div className="space-y-3 pt-4">
-                <Button asChild className="w-full bg-accent hover:bg-accent/90" size="lg">
-                  <Link to="/checkout">Proceed to Checkout</Link>
-                </Button>
+                {user ? (
+                  <Button onClick={handleCheckout} className="w-full bg-accent hover:bg-accent/90" size="lg">
+                    Place Order
+                  </Button>
+                ) : (
+                  <AuthModal>
+                    <Button className="w-full bg-accent hover:bg-accent/90" size="lg">
+                      Login to Checkout
+                    </Button>
+                  </AuthModal>
+                )}
                 <Button asChild variant="outline" className="w-full">
                   <Link to="/shop">Continue Shopping</Link>
                 </Button>
@@ -122,6 +166,19 @@ const Cart = () => {
                 <p>• Secure payment processing</p>
                 <p>• 30-day return policy</p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Newsletter Signup */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Stay Updated</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Subscribe to get updates on new products and special offers.
+              </p>
+              <NewsletterForm />
             </CardContent>
           </Card>
         </div>

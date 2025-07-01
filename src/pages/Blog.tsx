@@ -3,6 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import NewsletterForm from '@/components/NewsletterForm';
 
 const Blog = () => {
   const blogPosts = [
@@ -75,15 +76,8 @@ const Blog = () => {
           <p className="text-muted-foreground mb-6">
             Get the latest tech tips, product updates, and industry insights delivered to your inbox.
           </p>
-          <div className="max-w-md mx-auto flex space-x-2">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <Button className="bg-accent hover:bg-accent/90">
-              Subscribe
-            </Button>
+          <div className="max-w-md mx-auto">
+            <NewsletterForm />
           </div>
         </div>
       </div>

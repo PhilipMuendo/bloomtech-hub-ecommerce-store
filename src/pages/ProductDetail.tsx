@@ -6,6 +6,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { getProductById } from '@/data/products';
 import { useCart } from '@/context/CartContext';
 import { ArrowLeft } from 'lucide-react';
+import WishlistButton from '@/components/WishlistButton';
+import ReviewForm from '@/components/ReviewForm';
+import ReviewsList from '@/components/ReviewsList';
+import BackInStockAlert from '@/components/BackInStockAlert';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -130,14 +134,17 @@ const ProductDetail = () => {
               </span>
             </div>
 
-            <Button
-              onClick={handleAddToCart}
-              disabled={!product.inStock}
-              size="lg"
-              className="w-full bg-accent hover:bg-accent/90"
-            >
-              {product.inStock ? 'Add to Cart' : 'Out of Stock'}
-            </Button>
+            <div className="flex space-x-2">
+              <Button
+                onClick={handleAddToCart}
+                disabled={!product.inStock}
+                size="lg"
+                className="flex-1 bg-accent hover:bg-accent/90"
+              >
+                {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+              </Button>
+              <WishlistButton productId={product.id} />
+            </div>
 
             <div className="text-sm text-muted-foreground space-y-1">
               <p>• Free delivery within Nairobi</p>
@@ -145,6 +152,22 @@ const ProductDetail = () => {
               <p>• Warranty included</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Back in Stock Alert */}
+      {!product.inStock && (
+        <div className="mt-8">
+          <BackInStockAlert productId={product.id} />
+        </div>
+      )}
+
+      {/* Reviews Section */}
+      <div className="mt-16 space-y-8">
+        <h2 className="text-2xl font-bold">Customer Reviews</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <ReviewForm productId={product.id} />
+          <ReviewsList productId={product.id} />
         </div>
       </div>
 

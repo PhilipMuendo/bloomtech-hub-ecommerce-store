@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Product } from '@/data/products';
 import { useCart } from '@/context/CartContext';
+import WishlistButton from './WishlistButton';
 
 interface ProductCardProps {
   product: Product;
@@ -69,14 +70,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </div>
         </CardContent>
       </Link>
-      <CardFooter className="p-4 pt-0">
-        <Button
-          onClick={handleAddToCart}
-          disabled={!product.inStock}
-          className="w-full bg-accent hover:bg-accent/90"
-        >
-          {product.inStock ? 'Add to Cart' : 'Out of Stock'}
-        </Button>
+      <CardFooter className="p-4 pt-0 space-y-2">
+        <div className="flex space-x-2 w-full">
+          <Button
+            onClick={handleAddToCart}
+            disabled={!product.inStock}
+            className="flex-1 bg-accent hover:bg-accent/90"
+          >
+            {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+          </Button>
+          <WishlistButton productId={product.id} />
+        </div>
       </CardFooter>
     </Card>
   );
