@@ -1,4 +1,3 @@
-
 export interface Product {
   id: string;
   name: string;
@@ -95,6 +94,151 @@ export const products: Product[] = [
     ],
     inStock: true
   },
+  {
+    id: '11',
+    name: 'MacBook Air M2',
+    price: 125000,
+    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500',
+    category: 'ict',
+    description: 'Latest Apple MacBook Air with M2 chip. Ultra-thin design with exceptional performance and battery life.',
+    specifications: [
+      'Apple M2 chip',
+      '8GB unified memory',
+      '256GB SSD storage',
+      '13.6" Liquid Retina display',
+      'macOS Ventura'
+    ],
+    inStock: true
+  },
+  {
+    id: '12',
+    name: 'HDMI Cable (3m)',
+    price: 1500,
+    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    category: 'ict',
+    description: 'High-speed HDMI cable supporting 4K resolution. Perfect for connecting displays and entertainment systems.',
+    specifications: [
+      '3 meter length',
+      '4K resolution support',
+      'High-speed with Ethernet',
+      'Gold-plated connectors',
+      'HDMI 2.0 compatible'
+    ],
+    inStock: true
+  },
+  // NEW ICT EQUIPMENT
+  {
+    id: '13',
+    name: 'Lenovo ThinkPad E15',
+    price: 85000,
+    image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500',
+    category: 'ict',
+    description: 'Business laptop with 8GB RAM, 512GB SSD. Reliable performance for professional work and productivity.',
+    specifications: [
+      'Intel Core i5 processor',
+      '8GB DDR4 RAM',
+      '512GB SSD storage',
+      '15.6" Full HD display',
+      'Windows 11 Pro'
+    ],
+    inStock: true
+  },
+  {
+    id: '14',
+    name: 'USB Type-C Multiport Hub',
+    price: 2500,
+    image: 'https://images.unsplash.com/photo-1591488320449-011701bb6704?w=500',
+    category: 'ict',
+    description: 'Includes HDMI, USB 3.0, and SD card reader. Perfect for expanding laptop connectivity options.',
+    specifications: [
+      'USB Type-C connector',
+      'HDMI 4K output',
+      '3x USB 3.0 ports',
+      'SD/MicroSD card reader',
+      'Compact aluminum design'
+    ],
+    inStock: true
+  },
+  {
+    id: '15',
+    name: 'Wireless Keyboard and Mouse Combo',
+    price: 2200,
+    image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500',
+    category: 'ict',
+    description: '2.4GHz wireless set with long battery life. Ergonomic design for comfortable daily use.',
+    specifications: [
+      '2.4GHz wireless technology',
+      'Up to 12 months battery life',
+      'Ergonomic design',
+      'Plug and play setup',
+      'Compatible with Windows/Mac'
+    ],
+    inStock: true
+  },
+  {
+    id: '16',
+    name: 'TP-Link Wi-Fi Router (AC1200)',
+    price: 4800,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    description: 'Dual-band router with parental controls. Reliable internet coverage for homes and small offices.',
+    specifications: [
+      'AC1200 dual-band speeds',
+      'Parental controls',
+      '4 Ethernet ports',
+      'WPA3 security',
+      'Easy mobile app setup'
+    ],
+    inStock: true
+  },
+  {
+    id: '17',
+    name: 'External SSD 500GB (SanDisk)',
+    price: 9500,
+    image: 'https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=500',
+    category: 'ict',
+    description: 'High-speed portable SSD for file transfers. Compact design with USB 3.2 connectivity.',
+    specifications: [
+      '500GB storage capacity',
+      'USB 3.2 Gen 2 interface',
+      'Up to 1,050MB/s read speed',
+      'Compact and durable',
+      'Password protection'
+    ],
+    inStock: true
+  },
+  {
+    id: '18',
+    name: 'HDMI to VGA Adapter',
+    price: 850,
+    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    category: 'ict',
+    description: 'Compatible with laptops, monitors, projectors. Convert HDMI signals to VGA for older displays.',
+    specifications: [
+      'HDMI input to VGA output',
+      'Supports 1080p resolution',
+      'Plug and play',
+      'Compatible with most devices',
+      'Compact portable design'
+    ],
+    inStock: true
+  },
+  {
+    id: '19',
+    name: 'RJ45 Network Crimping Tool',
+    price: 1400,
+    image: 'https://images.unsplash.com/photo-1581092335878-5b7f1b8e8e1f?w=500',
+    category: 'ict',
+    description: 'For Ethernet cable termination. Professional tool for network cable installation and repair.',
+    specifications: [
+      'RJ45/RJ11 compatibility',
+      'Wire stripping function',
+      'Durable steel construction',
+      'Ergonomic grip',
+      'Professional grade'
+    ],
+    inStock: true
+  },
 
   // Electrical Materials
   {
@@ -179,35 +323,116 @@ export const products: Product[] = [
     ],
     inStock: true
   },
+  // NEW ELECTRICAL MATERIALS
   {
-    id: '11',
-    name: 'MacBook Air M2',
-    price: 125000,
-    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500',
-    category: 'ict',
-    description: 'Latest Apple MacBook Air with M2 chip. Ultra-thin design with exceptional performance and battery life.',
+    id: '20',
+    name: 'Schneider 10A Circuit Breaker (MCB)',
+    price: 650,
+    image: 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=500',
+    category: 'electrical',
+    description: 'Compact breaker for residential use. Schneider Electric quality with reliable protection.',
     specifications: [
-      'Apple M2 chip',
-      '8GB unified memory',
-      '256GB SSD storage',
-      '13.6" Liquid Retina display',
-      'macOS Ventura'
+      '10A current rating',
+      'Single pole MCB',
+      'C-curve characteristic',
+      'Schneider Electric brand',
+      'DIN rail mounting'
     ],
     inStock: true
   },
   {
-    id: '12',
-    name: 'HDMI Cable (3m)',
-    price: 1500,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
-    category: 'ict',
-    description: 'High-speed HDMI cable supporting 4K resolution. Perfect for connecting displays and entertainment systems.',
+    id: '21',
+    name: '4-Way Power Extension Cable',
+    price: 1200,
+    image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=500',
+    category: 'electrical',
+    description: '3-meter cable with surge protection. Four outlets with individual switches for safe power distribution.',
     specifications: [
-      '3 meter length',
-      '4K resolution support',
-      'High-speed with Ethernet',
-      'Gold-plated connectors',
-      'HDMI 2.0 compatible'
+      '4 power outlets',
+      '3 meter cable length',
+      'Surge protection',
+      'Individual switches',
+      '13A rating per outlet'
+    ],
+    inStock: true
+  },
+  {
+    id: '22',
+    name: 'Double Wall Socket with USB Port',
+    price: 950,
+    image: 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=500',
+    category: 'electrical',
+    description: '2 AC outlets + 2 USB charging ports. Modern wall socket perfect for homes and offices.',
+    specifications: [
+      '2 AC power outlets',
+      '2 USB charging ports',
+      'Child safety shutters',
+      'Fire-resistant materials',
+      'Easy installation'
+    ],
+    inStock: true
+  },
+  {
+    id: '23',
+    name: 'LED Floodlight 50W',
+    price: 2000,
+    image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=500',
+    category: 'electrical',
+    description: 'Weatherproof outdoor lighting. High-efficiency LED floodlight for security and area lighting.',
+    specifications: [
+      '50W LED power',
+      'Weatherproof IP65 rating',
+      '5000K daylight color',
+      'Aluminum housing',
+      'Long lifespan 50,000 hours'
+    ],
+    inStock: true
+  },
+  {
+    id: '24',
+    name: 'Conduit PVC Pipe (25mm)',
+    price: 200,
+    image: 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=500',
+    category: 'electrical',
+    description: 'For secure cable installation. High-quality PVC conduit pipe sold per meter.',
+    specifications: [
+      '25mm diameter',
+      'PVC material',
+      'Fire retardant',
+      'UV resistant',
+      'Price per meter'
+    ],
+    inStock: true
+  },
+  {
+    id: '25',
+    name: 'Voltage Tester Screwdriver',
+    price: 250,
+    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    category: 'electrical',
+    description: 'Detects AC voltage safely. Essential tool for electrical work and troubleshooting.',
+    specifications: [
+      'AC voltage detection',
+      'LED and audio indicators',
+      'Insulated handle',
+      'Compact design',
+      'Safety rated'
+    ],
+    inStock: true
+  },
+  {
+    id: '26',
+    name: 'Rechargeable Emergency Light',
+    price: 2800,
+    image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=500',
+    category: 'electrical',
+    description: 'Dual-tube lamp with auto-on during blackout. Rechargeable emergency lighting solution.',
+    specifications: [
+      'Dual fluorescent tubes',
+      'Auto-on during power failure',
+      'Rechargeable battery',
+      '8-hour backup time',
+      'Wall mountable'
     ],
     inStock: true
   }
