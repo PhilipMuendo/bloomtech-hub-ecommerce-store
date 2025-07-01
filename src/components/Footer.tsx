@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Phone, Clock, Mail, MapPin } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -33,6 +34,9 @@ const Footer = () => {
               <Link to="/shop" className="block text-sm opacity-80 hover:opacity-100 transition-opacity">
                 Shop
               </Link>
+              <Link to="/blog" className="block text-sm opacity-80 hover:opacity-100 transition-opacity">
+                Blog
+              </Link>
               <Link to="/contact" className="block text-sm opacity-80 hover:opacity-100 transition-opacity">
                 Contact
               </Link>
@@ -58,10 +62,31 @@ const Footer = () => {
           {/* Contact Info */}
           <div>
             <h4 className="font-semibold mb-4">Contact Info</h4>
-            <div className="space-y-2 text-sm opacity-80">
-              <p>Email: info@bloomtechhub.com</p>
-              <p>Phone: +254 700 123 456</p>
-              <p>Address: Nairobi, Kenya</p>
+            <div className="space-y-3 text-sm opacity-80">
+              <div className="flex items-center space-x-2">
+                <Phone className="w-4 h-4" />
+                <span>0769 928 629</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Phone className="w-4 h-4" />
+                <span>0727 717 787 (WhatsApp)</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Clock className="w-4 h-4" />
+                <span>Mon–Fri: 8:00 AM – 5:00 PM</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Mail className="w-4 h-4" />
+                <span>info@keensellventures.com</span>
+              </div>
+              <div className="flex items-start space-x-2">
+                <MapPin className="w-4 h-4 mt-0.5" />
+                <div>
+                  <p>P.O. BOX 14294–00800</p>
+                  <p>Kanha Building, Lower Kabete Road,</p>
+                  <p>Opposite Sarit Centre, 3rd Floor, Nairobi</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

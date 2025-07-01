@@ -85,6 +85,9 @@ const Header = () => {
               <Link to="/shop?category=electrical" className="text-foreground hover:text-primary font-medium transition-colors">
                 Electrical Materials
               </Link>
+              <Link to="/blog" className="text-foreground hover:text-primary font-medium transition-colors">
+                Blog
+              </Link>
               <Link to="/about" className="text-foreground hover:text-primary font-medium transition-colors">
                 About Us
               </Link>
@@ -132,6 +135,9 @@ const Header = () => {
                 </Link>
                 <Link to="/shop?category=electrical" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   Electrical Materials
+                </Link>
+                <Link to="/blog" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                  Blog
                 </Link>
                 <Link to="/about" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   About Us
