@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Search, Cart, Search as SearchIcon } from 'lucide-react';
+import { Search, ShoppingCart, Search as SearchIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -58,7 +58,7 @@ const Header = () => {
           {/* Cart */}
           <Link to="/cart" className="relative">
             <Button variant="outline" size="sm" className="flex items-center space-x-2">
-              <Cart className="w-4 h-4" />
+              <ShoppingCart className="w-4 h-4" />
               <span className="hidden sm:inline">Cart</span>
             </Button>
             {totalItems > 0 && (
