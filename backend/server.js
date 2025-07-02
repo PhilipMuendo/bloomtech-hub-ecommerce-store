@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
 import authRoutes from './routes/authRoutes.js';
+import cartRoutes from './routes/cartRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
+import wishlistRoutes from './routes/wishlistRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -22,6 +25,9 @@ app.get('/', (req, res) => {
 // TODO: Add route imports here
 
 app.use('/api/auth', authRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 // MongoDB connection
 const PORT = process.env.PORT || 5000;
