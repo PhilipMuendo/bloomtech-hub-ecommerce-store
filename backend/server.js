@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
+import authRoutes from './routes/authRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -19,6 +20,8 @@ app.get('/', (req, res) => {
   res.json({ message: 'BLOOMTECH Hub API is running' });
 });
 // TODO: Add route imports here
+
+app.use('/api/auth', authRoutes);
 
 // MongoDB connection
 const PORT = process.env.PORT || 5000;
