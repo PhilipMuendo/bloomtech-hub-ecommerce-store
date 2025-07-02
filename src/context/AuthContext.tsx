@@ -6,6 +6,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
   logout: () => void;
   openLoginModal: (onSuccess?: () => void) => void;
 }
@@ -54,6 +55,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const register = async (email: string, password: string) => {
+    setLoading(true);
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: email, email, password })
+    });
+    if (!res.ok) {
+      setLoading(false);
+      throw new Error('Registration failed');
+    }
+    const data = await res.json();
+    setToken(data.token);
+    setUser(data);
+    localStorage.setItem('jwt', data.token);
+    localStorage.setItem('user', JSON.stringify(data));
+    setLoading(false);
+    setShowLoginModal(false);
+    if (loginModalCallback) {
+      loginModalCallback();
+      loginModalCallback = null;
+    }
+  };
+
   const logout = () => {
     setUser(null);
     setToken(null);
@@ -67,7 +92,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, openLoginModal }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, openLoginModal }}>
       {children}
       {showLoginModal && <AuthModal onClose={() => setShowLoginModal(false)} />}
     </AuthContext.Provider>
