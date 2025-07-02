@@ -87,6 +87,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const openLoginModal = useCallback((onSuccess?: () => void) => {
+    console.log('openLoginModal called');
     loginModalCallback = onSuccess || null;
     setShowLoginModal(true);
   }, []);
@@ -94,7 +95,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <AuthContext.Provider value={{ user, token, loading, login, register, logout, openLoginModal }}>
       {children}
-      {showLoginModal && <AuthModal onClose={() => setShowLoginModal(false)} />}
+      {showLoginModal && <AuthModal key={showLoginModal ? 'open' : 'closed'} onClose={() => setShowLoginModal(false)} />}
     </AuthContext.Provider>
   );
 };

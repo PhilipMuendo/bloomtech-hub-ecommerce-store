@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -113,11 +112,11 @@ const Contact = () => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium mb-2">
+                  <label htmlFor="contact-email" className="block text-sm font-medium mb-2">
                     Email Address
                   </label>
                   <Input
-                    id="email"
+                    id="contact-email"
                     name="email"
                     type="email"
                     value={formData.email}

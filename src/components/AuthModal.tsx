@@ -9,13 +9,13 @@ import { useToast } from '@/hooks/use-toast';
 interface AuthModalProps {
   children?: React.ReactNode;
   onClose?: () => void;
+  open?: boolean;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ children, onClose }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ children, onClose, open = true }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
   const { login, register } = useAuth();
   const { toast } = useToast();
 
@@ -29,7 +29,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ children, onClose }) => {
         await register(email, password);
         toast({ title: "Account created successfully!" });
       }
-      setIsOpen(false);
+      if (onClose) onClose();
       setEmail('');
       setPassword('');
     } catch (error: any) {
@@ -42,7 +42,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ children, onClose }) => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open && onClose) onClose(); }}>
+    <Dialog open={open} onOpenChange={(open) => { if (!open && onClose) onClose(); }}>
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
@@ -52,9 +52,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ children, onClose }) => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="auth-email">Email</Label>
             <Input
-              id="email"
+              id="auth-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

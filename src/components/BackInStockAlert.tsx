@@ -40,9 +40,9 @@ const BackInStockAlert: React.FC<BackInStockAlertProps> = ({ productId }) => {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="back-in-stock-email">Email</Label>
           <Input
-            id="email"
+            id="back-in-stock-email"
             type="email"
             placeholder="Enter your email"
             value={email}
