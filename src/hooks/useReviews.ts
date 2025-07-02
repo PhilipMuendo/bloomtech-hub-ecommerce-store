@@ -1,7 +1,4 @@
-
-import { useState, useEffect } from 'react';
-import { collection, addDoc, query, where, onSnapshot, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
 export interface Review {
@@ -16,38 +13,19 @@ export interface Review {
 export const useReviews = (productId: string) => {
   const { user } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const q = query(
-      collection(db, 'reviews'),
-      where('productId', '==', productId),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const reviewsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate() || new Date()
-      })) as Review[];
-      setReviews(reviewsData);
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, [productId]);
+  const [loading, setLoading] = useState(false);
 
   const addReview = async (rating: number, comment: string) => {
     if (!user) return;
-
-    await addDoc(collection(db, 'reviews'), {
-      userId: user.uid,
+    const newReview: Review = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId: user.email,
       productId,
       rating,
       comment,
-      createdAt: new Date()
-    });
+      createdAt: new Date(),
+    };
+    setReviews(prev => [newReview, ...prev]);
   };
 
   const averageRating = reviews.length > 0 

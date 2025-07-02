@@ -1,9 +1,6 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 const NewsletterForm: React.FC = () => {
@@ -14,13 +11,9 @@ const NewsletterForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      await addDoc(collection(db, 'subscribers'), {
-        email,
-        subscribedAt: new Date()
-      });
-      
+      // Mock newsletter subscription
+      await new Promise(res => setTimeout(res, 500));
       setEmail('');
       toast({ title: "Successfully subscribed to newsletter!" });
     } catch (error) {

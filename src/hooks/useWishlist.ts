@@ -1,7 +1,4 @@
-
-import { useState, useEffect } from 'react';
-import { collection, addDoc, deleteDoc, doc, query, where, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
 export interface WishlistItem {
@@ -14,45 +11,21 @@ export interface WishlistItem {
 export const useWishlist = () => {
   const { user } = useAuth();
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!user) {
-      setWishlistItems([]);
-      setLoading(false);
-      return;
-    }
-
-    const q = query(
-      collection(db, 'wishlists'),
-      where('userId', '==', user.uid)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        addedAt: doc.data().addedAt?.toDate() || new Date()
-      })) as WishlistItem[];
-      setWishlistItems(items);
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, [user]);
+  const [loading, setLoading] = useState(false);
 
   const addToWishlist = async (productId: string) => {
     if (!user) return;
-
-    await addDoc(collection(db, 'wishlists'), {
-      userId: user.uid,
+    const newItem: WishlistItem = {
+      id: Math.random().toString(36).substr(2, 9),
       productId,
-      addedAt: new Date()
-    });
+      userId: user.email,
+      addedAt: new Date(),
+    };
+    setWishlistItems(prev => [newItem, ...prev]);
   };
 
   const removeFromWishlist = async (wishlistItemId: string) => {
-    await deleteDoc(doc(db, 'wishlists', wishlistItemId));
+    setWishlistItems(prev => prev.filter(item => item.id !== wishlistItemId));
   };
 
   const isInWishlist = (productId: string) => {

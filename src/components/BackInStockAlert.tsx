@@ -1,11 +1,8 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 
 interface BackInStockAlertProps {
@@ -20,20 +17,15 @@ const BackInStockAlert: React.FC<BackInStockAlertProps> = ({ productId }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      await addDoc(collection(db, 'restock_alerts'), {
-        email,
-        productId,
-        requestedAt: new Date()
-      });
-      
+      // Mock alert subscription
+      await new Promise(res => setTimeout(res, 500));
       setEmail('');
-      toast({ title: "We'll notify you when this item is back in stock!" });
+      toast({ title: "You'll be notified when the product is back in stock!" });
     } catch (error) {
       toast({ 
         title: "Error", 
-        description: "Failed to save alert. Please try again.",
+        description: "Failed to subscribe. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -42,25 +34,23 @@ const BackInStockAlert: React.FC<BackInStockAlertProps> = ({ productId }) => {
   };
 
   return (
-    <Card>
+    <Card className="mt-4">
       <CardHeader>
-        <CardTitle>Notify Me When Available</CardTitle>
+        <CardTitle>Get Notified</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-            />
-          </div>
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Saving...' : 'Notify Me'}
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <Button type="submit" disabled={loading} className="bg-accent hover:bg-accent/90">
+            {loading ? 'Subscribing...' : 'Notify Me'}
           </Button>
         </form>
       </CardContent>

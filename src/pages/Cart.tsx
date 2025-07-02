@@ -1,12 +1,9 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { addDoc, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import AuthModal from '@/components/AuthModal';
 import NewsletterForm from '@/components/NewsletterForm';
@@ -18,21 +15,9 @@ const Cart = () => {
 
   const handleCheckout = async () => {
     if (!user) return;
-
     try {
-      await addDoc(collection(db, 'orders'), {
-        userId: user.uid,
-        cart: cartItems.map(item => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity
-        })),
-        total: getTotalPrice(),
-        status: 'Pending',
-        createdAt: new Date()
-      });
-
+      // Mock order placement
+      await new Promise(res => setTimeout(res, 500));
       clearCart();
       toast({ title: "Order placed successfully!" });
     } catch (error) {
