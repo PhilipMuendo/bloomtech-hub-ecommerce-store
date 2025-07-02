@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +20,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId }) => {
   const { addReview } = useReviews(productId);
   const { user } = useAuth();
   const { toast } = useToast();
+  const [showModal, setShowModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,9 +44,8 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId }) => {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground mb-4">Please log in to write a review</p>
-          <AuthModal>
-            <Button>Login to Review</Button>
-          </AuthModal>
+          <Button onClick={() => setShowModal(true)}>Login to Review</Button>
+          {showModal && <AuthModal onClose={() => setShowModal(false)} />}
         </CardContent>
       </Card>
     );
