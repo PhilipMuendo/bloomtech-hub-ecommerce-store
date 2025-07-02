@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,10 +7,11 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface AuthModalProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  onClose?: () => void;
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ children }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ children, onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,7 +42,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ children }) => {
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open && onClose) onClose(); }}>
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
