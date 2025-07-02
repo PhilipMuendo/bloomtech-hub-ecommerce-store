@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Product } from '@/data/products';
 import { useCart } from '@/context/CartContext';
 import WishlistButton from './WishlistButton';
+import { useToast } from '@/hooks/use-toast';
 
 interface ProductCardProps {
   product: Product;
@@ -13,6 +13,7 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
+  const { toast } = useToast();
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -23,6 +24,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       image: product.image,
       category: product.category
     });
+    toast({ title: 'Added to cart!', description: product.name });
   };
 
   const formatPrice = (price: number) => {
@@ -34,7 +36,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   return (
-    <Card className="group card-hover h-full flex flex-col">
+    <Card className="transition duration-300 ease-in-out hover:scale-105 hover:shadow-lg">
       <Link to={`/product/${product.id}`} className="flex-1">
         <div className="relative overflow-hidden rounded-t-lg">
           <img

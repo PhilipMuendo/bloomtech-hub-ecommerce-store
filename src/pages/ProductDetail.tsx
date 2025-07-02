@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,10 +9,12 @@ import WishlistButton from '@/components/WishlistButton';
 import ReviewForm from '@/components/ReviewForm';
 import ReviewsList from '@/components/ReviewsList';
 import BackInStockAlert from '@/components/BackInStockAlert';
+import { useToast } from '@/hooks/use-toast';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { addToCart } = useCart();
+  const { toast } = useToast();
   
   const product = id ? getProductById(id) : null;
 
@@ -39,6 +40,7 @@ const ProductDetail = () => {
       image: product.image,
       category: product.category
     });
+    toast({ title: 'Added to cart!', description: product.name });
   };
 
   const formatPrice = (price: number) => {
