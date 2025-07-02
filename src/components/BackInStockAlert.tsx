@@ -43,6 +43,7 @@ const BackInStockAlert: React.FC<BackInStockAlertProps> = ({ productId }) => {
           <Label htmlFor="back-in-stock-email">Email</Label>
           <Input
             id="back-in-stock-email"
+            name="email"
             type="email"
             placeholder="Enter your email"
             value={email}

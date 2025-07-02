@@ -31,6 +31,7 @@ const NewsletterForm: React.FC = () => {
     <form onSubmit={handleSubmit} className="flex space-x-2">
       <Input
         type="email"
+        name="email"
         placeholder="Enter your email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}

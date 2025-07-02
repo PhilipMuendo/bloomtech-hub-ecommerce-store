@@ -55,6 +55,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ children, onClose, open = true })
             <Label htmlFor="auth-email">Email</Label>
             <Input
               id="auth-email"
+              name="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -65,6 +66,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ children, onClose, open = true })
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
+              name="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
