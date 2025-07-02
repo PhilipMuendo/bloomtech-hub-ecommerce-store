@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ShoppingCart, Search as SearchIcon } from 'lucide-react';
+import { Search, ShoppingCart, Search as SearchIcon, User, List, Heart, LogOut, LogIn } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,8 +14,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const UserMenu = () => {
-  const { user, logout } = useAuth();
-  if (!user) return null;
+  const { user, logout, openLoginModal } = useAuth();
+  if (!user) {
+    return (
+      <Button variant="outline" size="sm" className="ml-2" onClick={() => openLoginModal()}>
+        <LogIn className="w-4 h-4 mr-2" /> Login
+      </Button>
+    );
+  }
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -26,17 +32,23 @@ const UserMenu = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuItem asChild>
-          <Link to="/account">My Account</Link>
+          <Link to="/account" className="flex items-center gap-2">
+            <User className="w-4 h-4" /> My Account
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link to="/orders">Orders</Link>
+          <Link to="/orders" className="flex items-center gap-2">
+            <List className="w-4 h-4" /> Orders
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link to="/wishlist">Wishlist</Link>
+          <Link to="/wishlist" className="flex items-center gap-2">
+            <Heart className="w-4 h-4" /> Wishlist
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer">
-          Logout
+        <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer flex items-center gap-2">
+          <LogOut className="w-4 h-4" /> Logout
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
