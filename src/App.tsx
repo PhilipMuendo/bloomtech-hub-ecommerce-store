@@ -16,6 +16,8 @@ import Contact from "./pages/Contact";
 import FAQs from "./pages/FAQs";
 import Blog from "./pages/Blog";
 import NotFound from "./pages/NotFound";
+import Wishlist from "./pages/Wishlist";
+import Orders from "./pages/Orders";
 import { AnimatePresence, motion } from 'framer-motion';
 
 const queryClient = new QueryClient();
@@ -104,6 +106,26 @@ const AnimatedRoutes = () => {
             transition={{ duration: 0.3 }}
           >
             <Blog />
+          </motion.div>
+        } />
+        <Route path="/wishlist" element={
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Wishlist />
+          </motion.div>
+        } />
+        <Route path="/orders" element={
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Orders />
           </motion.div>
         } />
         <Route path="*" element={
