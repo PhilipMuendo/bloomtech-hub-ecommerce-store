@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import ProductCard from '@/components/ProductCard';
 import { getFeaturedProducts } from '@/data/products';
 import { motion } from 'framer-motion';
+import AnimatedCounter from '../components/AnimatedCounter';
 
 // SectionReveal component for reusability
 const SectionReveal: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
