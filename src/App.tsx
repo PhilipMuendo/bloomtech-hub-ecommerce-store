@@ -159,6 +159,8 @@ const AnimatedRoutes = () => {
 };
 
 const App = () => {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith("/admin");
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -167,11 +169,11 @@ const App = () => {
             <Toaster />
             <Sonner />
             <div className="min-h-screen flex flex-col">
-              <Header />
+              {!isAdminRoute && <Header />}
               <main className="flex-1">
                 <AnimatedRoutes />
               </main>
-              <Footer />
+              {!isAdminRoute && <Footer />}
             </div>
           </CartProvider>
         </AuthProvider>
