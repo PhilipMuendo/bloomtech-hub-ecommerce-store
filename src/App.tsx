@@ -18,6 +18,13 @@ import Blog from "./pages/Blog";
 import NotFound from "./pages/NotFound";
 import Wishlist from "./pages/Wishlist";
 import Orders from "./pages/Orders";
+import AdminLayout from "./components/AdminLayout";
+import Dashboard from "./pages/admin/Dashboard";
+import Products from "./pages/admin/Products";
+import AdminOrders from "./pages/admin/AdminOrders";
+import Users from "./pages/admin/Users";
+import Reviews from "./pages/admin/Reviews";
+import Newsletter from "./pages/admin/Newsletter";
 import { AnimatePresence, motion } from 'framer-motion';
 
 const queryClient = new QueryClient();
@@ -128,6 +135,14 @@ const AnimatedRoutes = () => {
             <Orders />
           </motion.div>
         } />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="products" element={<Products />} />
+          <Route path="orders" element={<AdminOrders />} />
+          <Route path="users" element={<Users />} />
+          <Route path="reviews" element={<Reviews />} />
+          <Route path="newsletter" element={<Newsletter />} />
+        </Route>
         <Route path="*" element={
           <motion.div
             initial={{ opacity: 0, y: 20 }}

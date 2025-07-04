@@ -10,7 +10,7 @@ interface AnimatedCounterProps {
 const AnimatedCounter: React.FC<AnimatedCounterProps> = ({ value, label, duration = 1.5 }) => {
   const ref = React.useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: '-50px' });
-  const spring = useSpring(0, { duration, ease: [0.42, 0, 0.58, 1] });
+  const spring = useSpring(0, { duration });
   const [displayValue, setDisplayValue] = React.useState(0);
 
   useEffect(() => {
@@ -22,7 +22,7 @@ const AnimatedCounter: React.FC<AnimatedCounterProps> = ({ value, label, duratio
 
   useEffect(() => {
     return spring.on('change', (latest) => {
-      setDisplayValue(Math.floor(latest));
+      setDisplayValue(Math.floor(Number(latest)));
     });
   }, [spring]);
 
