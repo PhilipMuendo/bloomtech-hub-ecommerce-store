@@ -1,9 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, ShoppingCart, Users, MessageSquare, Mail, TrendingUp } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Package, ShoppingCart, Users, MessageSquare, Mail, TrendingUp, Calendar } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar, ResponsiveContainer } from 'recharts';
 import { products } from '@/data/products';
+import AnimatedCounter from '@/components/AnimatedCounter';
 
 const Dashboard = () => {
+  const [dateRange, setDateRange] = useState('last30days');
+
   // Mock data - in real app would come from API
   const stats = {
     totalProducts: products.length,
@@ -14,109 +20,274 @@ const Dashboard = () => {
     subscribers: 234
   };
 
-  const StatCard = ({ title, value, icon: Icon, description }: {
+  // Mock chart data
+  const revenueData = [
+    { month: 'Jan', revenue: 125000 },
+    { month: 'Feb', revenue: 158000 },
+    { month: 'Mar', revenue: 203000 },
+    { month: 'Apr', revenue: 187000 },
+    { month: 'May', revenue: 245000 },
+    { month: 'Jun', revenue: 298000 },
+  ];
+
+  const ordersByCategoryData = [
+    { category: 'Electronics', orders: 45, fill: 'hsl(var(--primary))' },
+    { category: 'Fashion', orders: 32, fill: 'hsl(var(--secondary))' },
+    { category: 'Home & Garden', orders: 28, fill: 'hsl(var(--accent))' },
+    { category: 'Beauty', orders: 22, fill: 'hsl(var(--muted))' },
+  ];
+
+  const userSignupsData = [
+    { month: 'Jan', signups: 12 },
+    { month: 'Feb', signups: 19 },
+    { month: 'Mar', signups: 15 },
+    { month: 'Apr', signups: 23 },
+    { month: 'May', signups: 18 },
+    { month: 'Jun', signups: 24 },
+  ];
+
+  const chartConfig = {
+    revenue: {
+      label: "Revenue (KES)",
+      color: "hsl(var(--primary))",
+    },
+    orders: {
+      label: "Orders",
+      color: "hsl(var(--secondary))",
+    },
+    signups: {
+      label: "New Users",
+      color: "hsl(var(--accent))",
+    },
+  };
+
+  const StatCard = ({ title, value, icon: Icon, description, color }: {
     title: string;
     value: string | number;
     icon: any;
     description: string;
+    color?: string;
   }) => (
-    <Card>
+    <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105 cursor-pointer">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <div className={`p-2 rounded-full ${color || 'bg-primary/10'}`}>
+          <Icon className={`h-4 w-4 ${color ? 'text-white' : 'text-primary'}`} />
+        </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <div className="text-2xl font-bold">
+          <AnimatedCounter value={typeof value === 'number' ? value : 0} label="" />
+          {typeof value === 'string' && value.includes('KES') && (
+            <span className="text-sm font-normal ml-1">KES</span>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
       </CardContent>
     </Card>
   );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to BLOOMTECH Hub Admin</p>
+    <div className="space-y-6 p-6">
+      {/* Header with Date Filter */}
+      <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome to BLOOMTECH Hub Admin</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="last7days">Last 7 Days</SelectItem>
+              <SelectItem value="last30days">Last 30 Days</SelectItem>
+              <SelectItem value="last3months">Last 3 Months</SelectItem>
+              <SelectItem value="thisyear">This Year</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Animated Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <StatCard
           title="Total Products"
           value={stats.totalProducts}
           icon={Package}
           description="Items in catalog"
+          color="bg-blue-500"
         />
         <StatCard
           title="Total Orders"
           value={stats.totalOrders}
           icon={ShoppingCart}
           description="Orders received"
+          color="bg-green-500"
         />
         <StatCard
           title="Total Users"
           value={stats.totalUsers}
           icon={Users}
           description="Registered users"
+          color="bg-purple-500"
         />
         <StatCard
           title="Reviews"
           value={stats.totalReviews}
           icon={MessageSquare}
           description="Customer reviews"
+          color="bg-orange-500"
         />
         <StatCard
           title="Revenue"
-          value={`KES ${stats.revenue.toLocaleString()}`}
+          value={stats.revenue}
           icon={TrendingUp}
-          description="Total revenue"
+          description="Total revenue (KES)"
+          color="bg-emerald-500"
         />
         <StatCard
           title="Newsletter"
           value={stats.subscribers}
           icon={Mail}
           description="Subscribers"
+          color="bg-pink-500"
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* Charts Section */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {/* Revenue Trend Chart */}
+        <Card className="col-span-full lg:col-span-2">
+          <CardHeader>
+            <CardTitle>Revenue Trend</CardTitle>
+            <CardDescription>Monthly revenue for the last 6 months</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="month" 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    tickFormatter={(value) => `${value / 1000}K`}
+                  />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent />}
+                    formatter={(value) => [`KES ${value.toLocaleString()}`, 'Revenue']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="var(--color-revenue)"
+                    strokeWidth={3}
+                    dot={{ fill: "var(--color-revenue)", strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: "var(--color-revenue)" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Orders by Category Pie Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Orders by Category</CardTitle>
+            <CardDescription>Distribution of orders</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={ordersByCategoryData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    dataKey="orders"
+                    nameKey="category"
+                  >
+                    {ordersByCategoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip 
+                    content={<ChartTooltipContent />}
+                    formatter={(value, name) => [`${value} orders`, name]}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* User Signups Chart */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>User Signups</CardTitle>
+            <CardDescription>Monthly new user registrations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig} className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={userSignupsData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="month" 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                  />
+                  <ChartTooltip 
+                    content={<ChartTooltipContent />}
+                    formatter={(value) => [`${value} users`, 'New Signups']}
+                  />
+                  <Bar
+                    dataKey="signups"
+                    fill="var(--color-signups)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Recent Orders */}
         <Card>
           <CardHeader>
             <CardTitle>Recent Orders</CardTitle>
             <CardDescription>Latest customer orders</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex justify-between items-center p-2 border rounded">
-                  <div>
-                    <p className="font-medium">Order #{1000 + i}</p>
-                    <p className="text-sm text-muted-foreground">Customer {i}</p>
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div>
+                      <p className="font-medium">Order #{1000 + i}</p>
+                      <p className="text-sm text-muted-foreground">Customer {i}</p>
+                    </div>
                   </div>
                   <div className="text-right">
                     <p className="font-medium">KES {(15000 + i * 5000).toLocaleString()}</p>
-                    <p className="text-sm text-muted-foreground">Pending</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Low Stock Items</CardTitle>
-            <CardDescription>Products running low</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {products.slice(0, 3).map((product) => (
-                <div key={product.id} className="flex justify-between items-center p-2 border rounded">
-                  <div>
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-sm text-muted-foreground">{product.category}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-orange-600">5 left</p>
+                    <p className="text-xs text-green-600">Completed</p>
                   </div>
                 </div>
               ))}
@@ -124,6 +295,32 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Low Stock Items */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Low Stock Alert</CardTitle>
+          <CardDescription>Products running low in inventory</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {products.slice(0, 6).map((product) => (
+              <div key={product.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                <div className="flex items-center space-x-3">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <div>
+                    <p className="font-medium text-sm">{product.name}</p>
+                    <p className="text-xs text-muted-foreground">{product.category}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-medium text-orange-600">5 left</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
