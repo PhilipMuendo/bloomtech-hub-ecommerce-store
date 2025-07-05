@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import securitySystemsImg from '@/assets/security-systems.jpg';
+import ictEquipmentImg from '@/assets/ict-equipment.jpg';
+import electricalMaterialsImg from '@/assets/electrical-materials.jpg';
+import powerSolutionsImg from '@/assets/power-solutions.jpg';
 
 const categories = [
   {
     id: 1,
     title: 'Security Systems',
     description: 'CCTV cameras, alarms, and access control systems',
-    image: '/lovable-uploads/8534e6a7-fa26-4261-afc5-f7710b5c4308.png',
+    image: securitySystemsImg,
     link: '/shop?category=security',
     bgColor: 'bg-red-500'
   },
@@ -16,7 +20,7 @@ const categories = [
     id: 2,
     title: 'ICT Equipment',
     description: 'Laptops, computers, networking gear and accessories',
-    image: '/placeholder.svg',
+    image: ictEquipmentImg,
     link: '/shop?category=ict',
     bgColor: 'bg-blue-500'
   },
@@ -24,7 +28,7 @@ const categories = [
     id: 3,
     title: 'Electrical Materials',
     description: 'Cables, circuit breakers, switches and electrical components',
-    image: '/placeholder.svg',
+    image: electricalMaterialsImg,
     link: '/shop?category=electrical',
     bgColor: 'bg-green-500'
   },
@@ -32,7 +36,7 @@ const categories = [
     id: 4,
     title: 'Power Solutions',
     description: 'UPS systems, generators, and power backup solutions',
-    image: '/placeholder.svg',
+    image: powerSolutionsImg,
     link: '/shop?category=power',
     bgColor: 'bg-purple-500'
   }
@@ -48,6 +52,15 @@ const CategoriesNavigation = () => {
   const prevCategory = () => {
     setActiveCategory((prev) => (prev - 1 + categories.length) % categories.length);
   };
+
+  // Auto-slide functionality
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveCategory((prev) => (prev + 1) % categories.length);
+    }, 4000); // Change slide every 4 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   const currentCategory = categories[activeCategory];
 
