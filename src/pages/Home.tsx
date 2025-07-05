@@ -6,6 +6,7 @@ import ProductCard from '@/components/ProductCard';
 import { getFeaturedProducts } from '@/data/products';
 import { motion } from 'framer-motion';
 import AnimatedCounter from '../components/AnimatedCounter';
+import CategoriesNavigation from '../components/CategoriesNavigation';
 
 // SectionReveal component for reusability
 const SectionReveal: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
@@ -50,59 +51,8 @@ const Home = () => {
         </section>
       </SectionReveal>
 
-      {/* Categories Section */}
-      <SectionReveal>
-        <section className="container mx-auto px-4">
-          <div className="text-center mb-12 animate-slide-up">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Shop by Category</h2>
-            <p className="text-muted-foreground text-lg">
-              Find exactly what you need for your technology and electrical projects
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-            <Card className="group card-hover overflow-hidden">
-              <div className="relative">
-                <img
-                  src="https://images.unsplash.com/photo-1518770660439-4636190af475?w=800"
-                  alt="ICT Equipment"
-                  className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                <CardContent className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                  <h3 className="text-2xl font-bold mb-2">ICT Equipment</h3>
-                  <p className="mb-4 opacity-90">
-                    Laptops, networking gear, cables, and computer accessories
-                  </p>
-                  <Button asChild className="bg-accent hover:bg-accent/90">
-                    <Link to="/shop?category=ict">Browse ICT</Link>
-                  </Button>
-                </CardContent>
-              </div>
-            </Card>
-
-            <Card className="group card-hover overflow-hidden">
-              <div className="relative">
-                <img
-                  src="https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=800"
-                  alt="Electrical Materials"
-                  className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                <CardContent className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                  <h3 className="text-2xl font-bold mb-2">Electrical Materials</h3>
-                  <p className="mb-4 opacity-90">
-                    Circuit breakers, cables, sockets, switches, and tools
-                  </p>
-                  <Button asChild className="bg-accent hover:bg-accent/90">
-                    <Link to="/shop?category=electrical">Browse Electrical</Link>
-                  </Button>
-                </CardContent>
-              </div>
-            </Card>
-          </div>
-        </section>
-      </SectionReveal>
+      {/* Categories Navigation */}
+      <CategoriesNavigation />
 
       {/* Stats Section (Animated Counters) */}
       <SectionReveal>
