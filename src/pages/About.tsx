@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import AnimatedCounter from '@/components/AnimatedCounter';
 
 const About = () => {
   return (
@@ -85,6 +86,16 @@ const About = () => {
                 </p>
               </CardContent>
             </Card>
+          </div>
+        </div>
+
+        {/* Stats Section (Animated Counters) */}
+        <div className="py-16 bg-muted rounded-lg mb-12">
+          <div className="container mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <AnimatedCounter value={1000} label="Happy Customers" />
+            <AnimatedCounter value={500} label="Products Sold" />
+            <AnimatedCounter value={50} label="Serving Cities" />
+            <AnimatedCounter value={120} label="Trusted by Businesses" />
           </div>
         </div>
 

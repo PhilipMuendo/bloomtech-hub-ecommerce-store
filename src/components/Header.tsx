@@ -125,34 +125,22 @@ const Header = () => {
         <nav className="border-t py-4">
           <div className="flex items-center justify-between">
             <div className="hidden md:flex items-center space-x-8">
-              <Link to="/" className="text-foreground hover:text-primary font-medium transition-colors">
+              <Link to="/" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                 Home
               </Link>
-              <Link to="/shop" className="text-foreground hover:text-primary font-medium transition-colors">
+              <Link to="/shop" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                 Shop
               </Link>
-              <Link to="/shop?category=security" className="text-foreground hover:text-primary font-medium transition-colors">
-                Security Systems
-              </Link>
-              <Link to="/shop?category=ict" className="text-foreground hover:text-primary font-medium transition-colors">
-                ICT Equipment
-              </Link>
-              <Link to="/shop?category=electrical" className="text-foreground hover:text-primary font-medium transition-colors">
-                Electrical Materials
-              </Link>
-              <Link to="/shop?category=power" className="text-foreground hover:text-primary font-medium transition-colors">
-                Power Solutions
-              </Link>
-              <Link to="/blog" className="text-foreground hover:text-primary font-medium transition-colors">
+              <Link to="/blog" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                 Blog
               </Link>
-              <Link to="/about" className="text-foreground hover:text-primary font-medium transition-colors">
+              <Link to="/about" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                 About Us
               </Link>
-              <Link to="/contact" className="text-foreground hover:text-primary font-medium transition-colors">
+              <Link to="/contact" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                 Contact
               </Link>
-              <Link to="/faqs" className="text-foreground hover:text-primary font-medium transition-colors">
+              <Link to="/faqs" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                 FAQs
               </Link>
             </div>
@@ -187,18 +175,6 @@ const Header = () => {
                 </Link>
                 <Link to="/shop" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   Shop
-                </Link>
-                <Link to="/shop?category=security" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
-                  Security Systems
-                </Link>
-                <Link to="/shop?category=ict" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
-                  ICT Equipment
-                </Link>
-                <Link to="/shop?category=electrical" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
-                  Electrical Materials
-                </Link>
-                <Link to="/shop?category=power" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
-                  Power Solutions
                 </Link>
                 <Link to="/blog" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   Blog

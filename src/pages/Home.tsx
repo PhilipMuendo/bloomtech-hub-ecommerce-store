@@ -42,7 +42,7 @@ const Home = () => {
                 <Button size="lg" asChild className="bg-white text-primary hover:bg-gray-100">
                   <Link to="/shop">Shop Now</Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild className="border-white text-white hover:bg-white hover:text-primary">
+                <Button size="lg" asChild className="bg-white text-primary hover:bg-gray-100">
                   <Link to="/about">Learn More</Link>
                 </Button>
               </div>
@@ -54,17 +54,6 @@ const Home = () => {
       {/* Categories Navigation */}
       <CategoriesNavigation />
 
-      {/* Stats Section (Animated Counters) */}
-      <SectionReveal>
-        <section className="py-16 bg-muted">
-          <div className="container mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <AnimatedCounter value={1000} label="Happy Customers" />
-            <AnimatedCounter value={500} label="Products Sold" />
-            <AnimatedCounter value={50} label="Serving Cities" />
-            <AnimatedCounter value={120} label="Trusted by Businesses" />
-          </div>
-        </section>
-      </SectionReveal>
 
       {/* Featured Products */}
       <SectionReveal>
