@@ -131,11 +131,17 @@ const Header = () => {
               <Link to="/shop" className="text-foreground hover:text-primary font-medium transition-colors">
                 Shop
               </Link>
+              <Link to="/shop?category=security" className="text-foreground hover:text-primary font-medium transition-colors">
+                Security Systems
+              </Link>
               <Link to="/shop?category=ict" className="text-foreground hover:text-primary font-medium transition-colors">
                 ICT Equipment
               </Link>
               <Link to="/shop?category=electrical" className="text-foreground hover:text-primary font-medium transition-colors">
                 Electrical Materials
+              </Link>
+              <Link to="/shop?category=power" className="text-foreground hover:text-primary font-medium transition-colors">
+                Power Solutions
               </Link>
               <Link to="/blog" className="text-foreground hover:text-primary font-medium transition-colors">
                 Blog
@@ -182,11 +188,17 @@ const Header = () => {
                 <Link to="/shop" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   Shop
                 </Link>
+                <Link to="/shop?category=security" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                  Security Systems
+                </Link>
                 <Link to="/shop?category=ict" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   ICT Equipment
                 </Link>
                 <Link to="/shop?category=electrical" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   Electrical Materials
+                </Link>
+                <Link to="/shop?category=power" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                  Power Solutions
                 </Link>
                 <Link to="/blog" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   Blog

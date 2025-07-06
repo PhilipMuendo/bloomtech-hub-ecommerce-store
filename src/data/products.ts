@@ -3,7 +3,7 @@ export interface Product {
   name: string;
   price: number;
   image: string;
-  category: 'ict' | 'electrical';
+  category: 'security' | 'ict' | 'electrical' | 'power';
   description: string;
   specifications: string[];
   inStock: boolean;
@@ -435,6 +435,140 @@ export const products: Product[] = [
       'Wall mountable'
     ],
     inStock: true
+  },
+
+  // Security Systems
+  {
+    id: '27',
+    name: 'CCTV Security Camera (4MP)',
+    price: 8500,
+    image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500',
+    category: 'security',
+    description: '4MP IP security camera with night vision and motion detection. Weatherproof design for indoor/outdoor use.',
+    specifications: [
+      '4MP resolution recording',
+      'Night vision up to 30m',
+      'Motion detection alerts',
+      'Weatherproof IP67 rating',
+      'Mobile app monitoring'
+    ],
+    inStock: true,
+    featured: true
+  },
+  {
+    id: '28',
+    name: 'Door Access Control System',
+    price: 15000,
+    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    category: 'security',
+    description: 'Electronic door lock with keypad and card reader access. Ideal for office and residential security.',
+    specifications: [
+      'Keypad and RFID card access',
+      'Remote control capability',
+      'Audit trail logging',
+      'Battery backup',
+      'Weather resistant'
+    ],
+    inStock: true
+  },
+  {
+    id: '29',
+    name: 'Wireless Alarm System Kit',
+    price: 12000,
+    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    category: 'security',
+    description: 'Complete wireless security alarm system with sensors and control panel. Easy DIY installation.',
+    specifications: [
+      'Wireless door/window sensors',
+      'Motion detector included',
+      'SMS and app notifications',
+      'Backup battery power',
+      '24/7 monitoring capability'
+    ],
+    inStock: true
+  },
+  {
+    id: '30',
+    name: 'Intercom Video Doorbell',
+    price: 6500,
+    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    category: 'security',
+    description: 'Smart video doorbell with two-way audio and mobile notifications. See who\'s at your door remotely.',
+    specifications: [
+      'HD video recording',
+      'Two-way audio communication',
+      'Mobile app integration',
+      'Motion detection',
+      'Night vision capability'
+    ],
+    inStock: true
+  },
+
+  // Power Solutions
+  {
+    id: '31',
+    name: 'UPS 1000VA Backup Power',
+    price: 18000,
+    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    category: 'power',
+    description: 'Uninterruptible Power Supply with 1000VA capacity. Protects computers and electronics during power outages.',
+    specifications: [
+      '1000VA/600W capacity',
+      'Battery backup protection',
+      'Surge protection',
+      'LCD display',
+      'USB monitoring port'
+    ],
+    inStock: true,
+    featured: true
+  },
+  {
+    id: '32',
+    name: 'Solar Power Inverter 1500W',
+    price: 25000,
+    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    category: 'power',
+    description: 'Pure sine wave solar inverter for converting DC to AC power. Perfect for solar power systems.',
+    specifications: [
+      '1500W continuous power',
+      'Pure sine wave output',
+      'MPPT solar charge controller',
+      'LCD display monitoring',
+      'Multiple protection features'
+    ],
+    inStock: true
+  },
+  {
+    id: '33',
+    name: 'Portable Generator 2500W',
+    price: 45000,
+    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    category: 'power',
+    description: 'Portable petrol generator for backup power. Reliable power source for homes and construction sites.',
+    specifications: [
+      '2500W maximum output',
+      '4-stroke petrol engine',
+      '12V DC output',
+      'Low oil shutdown',
+      'Portable wheel kit'
+    ],
+    inStock: true
+  },
+  {
+    id: '34',
+    name: 'Battery Charger 12V/24V',
+    price: 3200,
+    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    category: 'power',
+    description: 'Intelligent battery charger for 12V and 24V lead-acid batteries. Automatic charging with safety features.',
+    specifications: [
+      '12V/24V compatibility',
+      'Automatic charging cycles',
+      'Reverse polarity protection',
+      'LED status indicators',
+      'Compact portable design'
+    ],
+    inStock: true
   }
 ];
 
@@ -442,7 +576,7 @@ export const getProductById = (id: string): Product | undefined => {
   return products.find(product => product.id === id);
 };
 
-export const getProductsByCategory = (category: 'ict' | 'electrical'): Product[] => {
+export const getProductsByCategory = (category: 'security' | 'ict' | 'electrical' | 'power'): Product[] => {
   return products.filter(product => product.category === category);
 };
 
