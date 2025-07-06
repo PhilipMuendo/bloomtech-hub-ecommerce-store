@@ -90,7 +90,7 @@ const Shop = () => {
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold mb-4">Shop Our Products</h1>
         <p className="text-muted-foreground text-lg">
-          Discover our complete range of ICT equipment and electrical materials
+          Discover our complete range of security systems, ICT equipment, electrical materials, and power solutions
         </p>
       </div>
 
@@ -116,8 +116,10 @@ const Shop = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
+              <SelectItem value="security">Security Systems</SelectItem>
               <SelectItem value="ict">ICT Equipment</SelectItem>
               <SelectItem value="electrical">Electrical Materials</SelectItem>
+              <SelectItem value="power">Power Solutions</SelectItem>
             </SelectContent>
           </Select>
 

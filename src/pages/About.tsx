@@ -10,7 +10,7 @@ const About = () => {
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-6">About BLOOMTECH Hub</h1>
           <p className="text-xl text-muted-foreground leading-relaxed">
-            Your trusted partner for premium ICT equipment and electrical materials across Kenya
+            Your trusted partner for security systems, ICT equipment, electrical materials, and power solutions across Kenya
           </p>
         </div>
 
@@ -28,9 +28,9 @@ const About = () => {
               <h2 className="text-2xl font-bold mb-4">Our Story</h2>
               <p className="text-muted-foreground leading-relaxed">
                 Founded with a vision to bridge the technology gap in Kenya, BLOOMTECH Hub has grown 
-                to become a leading supplier of quality ICT equipment and electrical materials. We 
-                understand the unique challenges faced by businesses, professionals, and individuals 
-                in accessing reliable technology solutions.
+                to become a leading supplier of quality security systems, ICT equipment, electrical materials, 
+                and power solutions. We understand the unique challenges faced by businesses, professionals, 
+                and individuals in accessing reliable technology solutions.
               </p>
             </div>
             <div>
@@ -102,7 +102,20 @@ const About = () => {
         {/* What We Offer */}
         <div className="mb-12">
           <h2 className="text-3xl font-bold text-center mb-8">What We Offer</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-xl font-semibold mb-4 text-primary">Security Systems</h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li>• CCTV cameras and surveillance equipment</li>
+                  <li>• Access control and door locks</li>
+                  <li>• Alarm systems and sensors</li>
+                  <li>• Intercom and video doorbells</li>
+                  <li>• Security monitoring solutions</li>
+                </ul>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardContent className="p-6">
                 <h3 className="text-xl font-semibold mb-4 text-primary">ICT Equipment</h3>
@@ -125,6 +138,19 @@ const About = () => {
                   <li>• Switches, sockets, and outlets</li>
                   <li>• Professional electrical tools</li>
                   <li>• Safety equipment and accessories</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="text-xl font-semibold mb-4 text-accent">Power Solutions</h3>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li>• UPS and backup power systems</li>
+                  <li>• Solar inverters and controllers</li>
+                  <li>• Portable generators and equipment</li>
+                  <li>• Battery chargers and accessories</li>
+                  <li>• Power management solutions</li>
                 </ul>
               </CardContent>
             </Card>
