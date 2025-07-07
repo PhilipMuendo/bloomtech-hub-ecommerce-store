@@ -89,7 +89,10 @@ const ProductDetail = () => {
         <div className="space-y-6">
           <div>
             <span className="text-sm bg-muted px-3 py-1 rounded capitalize text-muted-foreground">
-              {product.category === 'ict' ? 'ICT Equipment' : 'Electrical Materials'}
+              {product.category === 'ict' ? 'ICT Equipment' : 
+               product.category === 'security' ? 'Security Systems' :
+               product.category === 'power' ? 'Power Solutions' : 
+               'Electrical Materials'}
             </span>
             <h1 className="text-3xl lg:text-4xl font-bold mt-4 mb-4">
               {product.name}
@@ -180,7 +183,10 @@ const ProductDetail = () => {
           <p>Explore more products in our shop</p>
           <Button asChild className="mt-4">
             <Link to={`/shop?category=${product.category}`}>
-              View More {product.category === 'ict' ? 'ICT Equipment' : 'Electrical Materials'}
+              View More {product.category === 'ict' ? 'ICT Equipment' : 
+                         product.category === 'security' ? 'Security Systems' :
+                         product.category === 'power' ? 'Power Solutions' : 
+                         'Electrical Materials'}
             </Link>
           </Button>
         </div>
