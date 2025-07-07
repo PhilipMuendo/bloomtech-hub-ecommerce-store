@@ -376,7 +376,7 @@ export const products: Product[] = [
     id: '23',
     name: 'LED Floodlight 50W',
     price: 2000,
-    image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=500',
+    image: 'https://www.google.com/imgres?q=led%20flood%20light%2050w&imgurl=https%3A%2F%2Fi0.wp.com%2Fstlight.solar%2Fwp-content%2Fuploads%2F2023%2F11%2F50W-FLOODLIGHT-PHILIPS-1.png%3Ffit%3D500%252C500%26ssl%3D1&imgrefurl=https%3A%2F%2Fstlight.solar%2Fproduct%2F50w-floodlight-philips%2F%3Fsrsltid%3DAfmBOook4iFaAfqNFpowSxvWGA844noIB9iwjv3gJUGdQDNSkx1qEia_&docid=-xhO2WnyxmEbUM&tbnid=7rCqmVtz1QzLVM&vet=12ahUKEwjxgNC9zaqOAxVeTaQEHbcPB1gQM3oECBwQAA..i&w=500&h=500&hcb=2&ved=2ahUKEwjxgNC9zaqOAxVeTaQEHbcPB1gQM3oECBwQAA',
     category: 'electrical',
     description: 'Weatherproof outdoor lighting. High-efficiency LED floodlight for security and area lighting.',
     specifications: [
@@ -491,7 +491,7 @@ export const products: Product[] = [
     id: '30',
     name: 'Intercom Video Doorbell',
     price: 6500,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://www.google.com/imgres?q=intercom%20video%20doorbell&imgurl=https%3A%2F%2Fbutterflymx.com%2Fwp-content%2Fuploads%2F2022%2F03%2Faccess-video-intercom-doorbell-700x466.webp&imgrefurl=https%3A%2F%2Fbutterflymx.com%2Fblog%2Fvideo-intercom-doorbell%2F&docid=OzqXcBvw0RhnoM&tbnid=rR8iWpzGqHC68M&vet=12ahUKEwiwgsWBzqqOAxVM8bsIHdk3ItkQM3oECHsQAA..i&w=700&h=466&hcb=2&ved=2ahUKEwiwgsWBzqqOAxVM8bsIHdk3ItkQM3oECHsQAA',
     category: 'security',
     description: 'Smart video doorbell with two-way audio and mobile notifications. See who\'s at your door remotely.',
     specifications: [
