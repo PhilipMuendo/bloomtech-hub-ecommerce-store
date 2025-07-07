@@ -114,7 +114,7 @@ export const products: Product[] = [
     id: '12',
     name: 'HDMI Cable (3m)',
     price: 1500,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?w=500',
     category: 'ict',
     description: 'High-speed HDMI cable supporting 4K resolution. Perfect for connecting displays and entertainment systems.',
     specifications: [
@@ -163,7 +163,7 @@ export const products: Product[] = [
     id: '15',
     name: 'Wireless Keyboard and Mouse Combo',
     price: 2200,
-    image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500',
+    image: 'https://images.unsplash.com/photo-1541348263662-e068662d82af?w=500',
     category: 'ict',
     description: '2.4GHz wireless set with long battery life. Ergonomic design for comfortable daily use.',
     specifications: [
@@ -211,7 +211,7 @@ export const products: Product[] = [
     id: '18',
     name: 'HDMI to VGA Adapter',
     price: 850,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=500',
     category: 'ict',
     description: 'Compatible with laptops, monitors, projectors. Convert HDMI signals to VGA for older displays.',
     specifications: [
@@ -262,7 +262,7 @@ export const products: Product[] = [
     id: '7',
     name: '4-Way Extension Cable (5m)',
     price: 2200,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1619641805634-4a9b6c943e7c?w=500',
     category: 'electrical',
     description: 'Heavy-duty 4-way extension cable with surge protection. 5-meter length with individual switches for each socket.',
     specifications: [
@@ -279,7 +279,7 @@ export const products: Product[] = [
     id: '8',
     name: 'Wall Socket (Double)',
     price: 800,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1614107151491-6876eecbff89?w=500',
     category: 'electrical',
     description: 'Modern double wall socket with child safety shutters. Suitable for residential and commercial installations.',
     specifications: [
@@ -295,7 +295,7 @@ export const products: Product[] = [
     id: '9',
     name: 'Light Switch (2-Gang)',
     price: 650,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=500',
     category: 'electrical',
     description: '2-gang light switch with modern design. Durable construction suitable for residential and office use.',
     specifications: [
@@ -311,7 +311,7 @@ export const products: Product[] = [
     id: '10',
     name: 'Electrical Wire Strippers',
     price: 1800,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1562408590-e32931084e23?w=500',
     category: 'electrical',
     description: 'Professional wire stripping tool for various cable sizes. Essential tool for electrical installations and repairs.',
     specifications: [
@@ -328,7 +328,7 @@ export const products: Product[] = [
     id: '20',
     name: 'Schneider 10A Circuit Breaker (MCB)',
     price: 650,
-    image: 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=500',
+    image: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=500',
     category: 'electrical',
     description: 'Compact breaker for residential use. Schneider Electric quality with reliable protection.',
     specifications: [
@@ -344,7 +344,7 @@ export const products: Product[] = [
     id: '21',
     name: '4-Way Power Extension Cable',
     price: 1200,
-    image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=500',
+    image: 'https://images.unsplash.com/photo-1573160813959-df05c1f39c2a?w=500',
     category: 'electrical',
     description: '3-meter cable with surge protection. Four outlets with individual switches for safe power distribution.',
     specifications: [
@@ -360,7 +360,7 @@ export const products: Product[] = [
     id: '22',
     name: 'Double Wall Socket with USB Port',
     price: 950,
-    image: 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=500',
+    image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=500',
     category: 'electrical',
     description: '2 AC outlets + 2 USB charging ports. Modern wall socket perfect for homes and offices.',
     specifications: [
@@ -376,7 +376,7 @@ export const products: Product[] = [
     id: '23',
     name: 'LED Floodlight 50W',
     price: 2000,
-    image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=500',
+    image: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=500',
     category: 'electrical',
     description: 'Weatherproof outdoor lighting. High-efficiency LED floodlight for security and area lighting.',
     specifications: [
@@ -392,7 +392,7 @@ export const products: Product[] = [
     id: '24',
     name: 'Conduit PVC Pipe (25mm)',
     price: 200,
-    image: 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=500',
+    image: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?w=500',
     category: 'electrical',
     description: 'For secure cable installation. High-quality PVC conduit pipe sold per meter.',
     specifications: [
@@ -408,7 +408,7 @@ export const products: Product[] = [
     id: '25',
     name: 'Voltage Tester Screwdriver',
     price: 250,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1503602642458-232111445657?w=500',
     category: 'electrical',
     description: 'Detects AC voltage safely. Essential tool for electrical work and troubleshooting.',
     specifications: [
@@ -424,7 +424,7 @@ export const products: Product[] = [
     id: '26',
     name: 'Rechargeable Emergency Light',
     price: 2800,
-    image: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=500',
+    image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500',
     category: 'electrical',
     description: 'Dual-tube lamp with auto-on during blackout. Rechargeable emergency lighting solution.',
     specifications: [
@@ -459,7 +459,7 @@ export const products: Product[] = [
     id: '28',
     name: 'Door Access Control System',
     price: 15000,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=500',
     category: 'security',
     description: 'Electronic door lock with keypad and card reader access. Ideal for office and residential security.',
     specifications: [
@@ -475,7 +475,7 @@ export const products: Product[] = [
     id: '29',
     name: 'Wireless Alarm System Kit',
     price: 12000,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1558002038-1055907df827?w=500',
     category: 'security',
     description: 'Complete wireless security alarm system with sensors and control panel. Easy DIY installation.',
     specifications: [
@@ -491,7 +491,7 @@ export const products: Product[] = [
     id: '30',
     name: 'Intercom Video Doorbell',
     price: 6500,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=500',
     category: 'security',
     description: 'Smart video doorbell with two-way audio and mobile notifications. See who\'s at your door remotely.',
     specifications: [
@@ -509,7 +509,7 @@ export const products: Product[] = [
     id: '31',
     name: 'UPS 1000VA Backup Power',
     price: 18000,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=500',
     category: 'power',
     description: 'Uninterruptible Power Supply with 1000VA capacity. Protects computers and electronics during power outages.',
     specifications: [
@@ -526,7 +526,7 @@ export const products: Product[] = [
     id: '32',
     name: 'Solar Power Inverter 1500W',
     price: 25000,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=500',
     category: 'power',
     description: 'Pure sine wave solar inverter for converting DC to AC power. Perfect for solar power systems.',
     specifications: [
@@ -542,7 +542,7 @@ export const products: Product[] = [
     id: '33',
     name: 'Portable Generator 2500W',
     price: 45000,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1593642532973-d31b6557fa68?w=500',
     category: 'power',
     description: 'Portable petrol generator for backup power. Reliable power source for homes and construction sites.',
     specifications: [
@@ -558,7 +558,7 @@ export const products: Product[] = [
     id: '34',
     name: 'Battery Charger 12V/24V',
     price: 3200,
-    image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500',
+    image: 'https://images.unsplash.com/photo-1609081219090-a6d81d3085bf?w=500',
     category: 'power',
     description: 'Intelligent battery charger for 12V and 24V lead-acid batteries. Automatic charging with safety features.',
     specifications: [

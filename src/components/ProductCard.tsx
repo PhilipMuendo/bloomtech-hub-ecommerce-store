@@ -67,7 +67,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               {formatPrice(product.price)}
             </span>
             <span className="text-xs bg-muted px-2 py-1 rounded capitalize">
-              {product.category === 'ict' ? 'ICT Equipment' : 'Electrical Materials'}
+              {product.category === 'ict' ? 'ICT Equipment' : 
+               product.category === 'security' ? 'Security Systems' :
+               product.category === 'power' ? 'Power Solutions' : 
+               'Electrical Materials'}
             </span>
           </div>
         </CardContent>
