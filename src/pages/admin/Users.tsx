@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,13 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Search, Eye, Shield, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
-  joinDate: string;
-  isAdmin: boolean;
+  createdAt: string;
+  role: 'user' | 'admin' | 'superadmin';
   status: 'active' | 'inactive' | 'suspended';
   totalOrders: number;
   totalSpent: number;
@@ -24,66 +25,48 @@ const Users = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user: currentUser, isSuperAdmin } = useAuth();
 
-  // Mock users data
-  const users: User[] = [
-    {
-      id: 'USR-001',
-      name: 'John Doe',
-      email: 'john@example.com',
-      joinDate: '2023-12-01',
-      isAdmin: false,
-      status: 'active',
-      totalOrders: 5,
-      totalSpent: 125000
-    },
-    {
-      id: 'USR-002',
-      name: 'Jane Smith',
-      email: 'jane@example.com',
-      joinDate: '2023-11-15',
-      isAdmin: false,
-      status: 'active',
-      totalOrders: 3,
-      totalSpent: 45000
-    },
-    {
-      id: 'USR-003',
-      name: 'Mike Johnson',
-      email: 'mike@example.com',
-      joinDate: '2023-10-20',
-      isAdmin: false,
-      status: 'inactive',
-      totalOrders: 1,
-      totalSpent: 8500
-    },
-    {
-      id: 'USR-004',
-      name: 'Sarah Wilson',
-      email: 'sarah@example.com',
-      joinDate: '2023-09-05',
-      isAdmin: true,
-      status: 'active',
-      totalOrders: 0,
-      totalSpent: 0
-    },
-    {
-      id: 'USR-005',
-      name: 'David Brown',
-      email: 'david@example.com',
-      joinDate: '2023-12-10',
-      isAdmin: false,
-      status: 'suspended',
-      totalOrders: 2,
-      totalSpent: 15000
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('/api/users', {
+        headers: {
+          Authorization: `Bearer ${currentUser?.token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to fetch users",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch users",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.id.toLowerCase().includes(searchTerm.toLowerCase());
+                         user._id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -97,20 +80,71 @@ const Users = () => {
     }
   };
 
-  const updateUserStatus = (userId: string, newStatus: string) => {
-    // In real app, would call API
-    toast({
-      title: "User Updated",
-      description: `User ${userId} status changed to ${newStatus}`,
-    });
+  const updateUserStatus = async (userId: string, newStatus: string) => {
+    try {
+      const response = await fetch(`/api/users/${userId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${currentUser?.token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        await fetchUsers();
+        toast({
+          title: "Success",
+          description: `User status changed to ${newStatus}`,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to update user status",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update user status",
+        variant: "destructive",
+      });
+    }
   };
 
-  const toggleAdminStatus = (userId: string, currentAdminStatus: boolean) => {
-    // In real app, would call API
-    toast({
-      title: "Admin Status Updated",
-      description: `User ${userId} ${currentAdminStatus ? 'removed from' : 'granted'} admin privileges`,
-    });
+  const updateUserRole = async (userId: string, newRole: string) => {
+    try {
+      const response = await fetch(`/api/users/${userId}/role`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${currentUser?.token}`
+        },
+        body: JSON.stringify({ role: newRole })
+      });
+
+      if (response.ok) {
+        await fetchUsers();
+        toast({
+          title: "Success",
+          description: `User role changed to ${newRole}`,
+        });
+      } else {
+        const data = await response.json();
+        toast({
+          title: "Error",
+          description: data.message || "Failed to update user role",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update user role",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -142,7 +176,7 @@ const Users = () => {
             <CardTitle className="text-sm font-medium">Admin Users</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{users.filter(u => u.isAdmin).length}</div>
+            <div className="text-2xl font-bold">{users.filter(u => u.role === 'admin' || u.role === 'superadmin').length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -200,12 +234,12 @@ const Users = () => {
             </TableHeader>
             <TableBody>
               {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
+                <TableRow key={user._id}>
                   <TableCell>
                     <div>
                       <div className="font-medium">{user.name}</div>
                       <div className="text-sm text-muted-foreground">{user.email}</div>
-                      <div className="text-xs text-muted-foreground">{user.id}</div>
+                      <div className="text-xs text-muted-foreground">{user._id}</div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -215,7 +249,12 @@ const Users = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {user.isAdmin ? (
+                      {user.role === 'superadmin' ? (
+                        <Badge variant="default" className="flex items-center gap-1">
+                          <ShieldCheck className="h-3 w-3" />
+                          Super Admin
+                        </Badge>
+                      ) : user.role === 'admin' ? (
                         <Badge variant="default" className="flex items-center gap-1">
                           <ShieldCheck className="h-3 w-3" />
                           Admin
@@ -230,7 +269,7 @@ const Users = () => {
                   </TableCell>
                   <TableCell>{user.totalOrders}</TableCell>
                   <TableCell>KES {user.totalSpent.toLocaleString()}</TableCell>
-                  <TableCell>{new Date(user.joinDate).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button
@@ -240,7 +279,7 @@ const Users = () => {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Select onValueChange={(value) => updateUserStatus(user.id, value)}>
+                      <Select onValueChange={(value) => updateUserStatus(user._id, value)}>
                         <SelectTrigger className="w-[100px] h-8">
                           <SelectValue placeholder="Status" />
                         </SelectTrigger>
@@ -250,13 +289,18 @@ const Users = () => {
                           <SelectItem value="suspended">Suspend</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Button
-                        variant={user.isAdmin ? "destructive" : "default"}
-                        size="sm"
-                        onClick={() => toggleAdminStatus(user.id, user.isAdmin)}
-                      >
-                        {user.isAdmin ? "Remove Admin" : "Make Admin"}
-                      </Button>
+                      {isSuperAdmin() && (
+                        <Select onValueChange={(value) => updateUserRole(user._id, value)}>
+                          <SelectTrigger className="w-[120px] h-8">
+                            <SelectValue placeholder="Role" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="superadmin">Super Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -281,15 +325,17 @@ const Users = () => {
                   <h4 className="font-semibold">Personal Information</h4>
                   <p><strong>Name:</strong> {selectedUser.name}</p>
                   <p><strong>Email:</strong> {selectedUser.email}</p>
-                  <p><strong>User ID:</strong> {selectedUser.id}</p>
-                  <p><strong>Join Date:</strong> {new Date(selectedUser.joinDate).toLocaleDateString()}</p>
+                  <p><strong>User ID:</strong> {selectedUser._id}</p>
+                  <p><strong>Join Date:</strong> {new Date(selectedUser.createdAt).toLocaleDateString()}</p>
                 </div>
                 <div>
                   <h4 className="font-semibold">Account Status</h4>
                   <p><strong>Status:</strong> <Badge variant={getStatusColor(selectedUser.status)}>
                     {selectedUser.status.charAt(0).toUpperCase() + selectedUser.status.slice(1)}
                   </Badge></p>
-                  <p><strong>Role:</strong> {selectedUser.isAdmin ? (
+                  <p><strong>Role:</strong> {selectedUser.role === 'superadmin' ? (
+                    <Badge variant="default" className="ml-1">Super Admin</Badge>
+                  ) : selectedUser.role === 'admin' ? (
                     <Badge variant="default" className="ml-1">Admin</Badge>
                   ) : (
                     <Badge variant="outline" className="ml-1">User</Badge>

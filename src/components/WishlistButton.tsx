@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
 import { useWishlist } from '@/hooks/useWishlist';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 interface WishlistButtonProps {
   productId: string;
@@ -11,6 +12,7 @@ interface WishlistButtonProps {
 const WishlistButton: React.FC<WishlistButtonProps> = ({ productId }) => {
   const { isInWishlist, addToWishlist, removeFromWishlist, wishlistItems } = useWishlist();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
 
   const inWishlist = isInWishlist(productId);

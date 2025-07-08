@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star } from 'lucide-react';
 import { useReviews } from '@/hooks/useReviews';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 interface ReviewFormProps {
   productId: string;
@@ -17,6 +18,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId }) => {
   const [hoveredRating, setHoveredRating] = useState(0);
   const { addReview } = useReviews(productId);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

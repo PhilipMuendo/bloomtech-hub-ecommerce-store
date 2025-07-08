@@ -13,6 +13,8 @@ const requireAuth = async (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ message: 'User not found. Please log in.' });
     }
+    // Add role to req.user for easy access
+    req.user.role = req.user.role || 'user';
     next();
   } catch (err) {
     return res.status(401).json({ message: 'Invalid or expired token. Please log in again.' });

@@ -35,8 +35,8 @@ const Products = () => {
 
   const [newProduct, setNewProduct] = useState({
     name: '',
-    price: '',
-    category: 'ict' as 'ict' | 'electrical',
+    price: 0,
+    category: 'ict' as 'ict' | 'electrical' | 'security' | 'power',
     description: '',
     image: '',
     specifications: '',
@@ -92,7 +92,7 @@ const Products = () => {
       if (!res.ok) throw new Error('Failed to add product');
       toast({ title: 'Product Added', description: `${newProduct.name} has been added to the catalog.` });
       setIsAddDialogOpen(false);
-      setNewProduct({ name: '', price: '', category: 'ict', description: '', image: '', specifications: '', inStock: true });
+      setNewProduct({ name: '', price: 0, category: 'ict', description: '', image: '', specifications: '', inStock: true });
       fetchProducts();
     } catch (err: any) {
       setError(err.message);
@@ -119,7 +119,7 @@ const Products = () => {
         body: JSON.stringify({
           ...editingProduct,
           price: Number(editingProduct.price),
-          specifications: typeof editingProduct.specifications === 'string' ? editingProduct.specifications.split('\n') : editingProduct.specifications
+          specifications: Array.isArray(editingProduct.specifications) ? editingProduct.specifications : (editingProduct.specifications as string).split('\n')
         })
       });
       if (!res.ok) throw new Error('Failed to update product');
@@ -198,7 +198,7 @@ const Products = () => {
               id="price"
               type="number"
               value={product ? product.price : newProduct.price}
-              onChange={(e) => product ? setEditingProduct({ ...product, price: e.target.value }) : setNewProduct({...newProduct, price: e.target.value})}
+              onChange={(e) => product ? setEditingProduct({ ...product, price: Number(e.target.value) }) : setNewProduct({...newProduct, price: Number(e.target.value)})}
               placeholder="0"
             />
           </div>
