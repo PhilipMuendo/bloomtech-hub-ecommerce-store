@@ -1,0 +1,274 @@
+[
+  {
+    "name": "HP EliteBook 840 G8 Laptop",
+    "description": "Professional business laptop with Intel Core i7 processor, 16GB RAM, and 512GB SSD. Perfect for business and development work.",
+    "price": 85000,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500"
+  },
+  {
+    "name": "TP-Link AC1200 Wi-Fi Router",
+    "description": "Dual-band wireless router with AC1200 speeds. Provides reliable internet coverage for homes and small offices.",
+    "price": 8500,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "name": "Cat6 Ethernet Cable (50m)",
+    "description": "High-quality Cat6 ethernet cable for reliable network connections. 50-meter length suitable for office installations.",
+    "price": 3500,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=500"
+  },
+  {
+    "name": "USB 3.0 Hub (7-Port)",
+    "description": "7-port USB 3.0 hub with individual power switches. Expand your connectivity options with high-speed data transfer.",
+    "price": 2800,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=500"
+  },
+  {
+    "name": "Wireless Mouse & Keyboard Combo",
+    "description": "Ergonomic wireless mouse and keyboard combo with long battery life. Perfect for office and home use.",
+    "price": 4500,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=500"
+  },
+  {
+    "name": "MacBook Air M2",
+    "description": "Latest Apple MacBook Air with M2 chip. Ultra-thin design with exceptional performance and battery life.",
+    "price": 125000,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500"
+  },
+  {
+    "name": "HDMI Cable (3m)",
+    "description": "High-speed HDMI cable supporting 4K resolution. Perfect for connecting displays and entertainment systems.",
+    "price": 1500,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1625842268584-8f3296236761?w=500"
+  },
+  {
+    "name": "Lenovo ThinkPad E15",
+    "description": "Business laptop with 8GB RAM, 512GB SSD. Reliable performance for professional work and productivity.",
+    "price": 85000,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500"
+  },
+  {
+    "name": "USB Type-C Multiport Hub",
+    "description": "Includes HDMI, USB 3.0, and SD card reader. Perfect for expanding laptop connectivity options.",
+    "price": 2500,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500"
+  },
+  {
+    "name": "Wireless Keyboard and Mouse Combo",
+    "description": "2.4GHz wireless set with long battery life. Ergonomic design for comfortable daily use.",
+    "price": 2200,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500"
+  },
+  {
+    "name": "TP-Link Wi-Fi Router (AC1200)",
+    "description": "Dual-band router with parental controls. Reliable internet coverage for homes and small offices.",
+    "price": 4800,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=500"
+  },
+  {
+    "name": "External SSD 500GB (SanDisk)",
+    "description": "High-speed portable SSD for file transfers. Compact design with USB 3.2 connectivity.",
+    "price": 9500,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1597872200969-2b65d56bd16b?w=500"
+  },
+  {
+    "name": "HDMI to VGA Adapter",
+    "description": "Compatible with laptops, monitors, projectors. Convert HDMI signals to VGA for older displays.",
+    "price": 850,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "name": "RJ45 Network Crimping Tool",
+    "description": "For Ethernet cable termination. Professional tool for network cable installation and repair.",
+    "price": 1400,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=500"
+  },
+  {
+    "name": "Circuit Breaker 32A MCB",
+    "description": "Single pole miniature circuit breaker, 32 Amp rating. Essential for electrical panel protection and safety.",
+    "price": 1200,
+    "category": "electrical",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500"
+  },
+  {
+    "name": "4-Way Extension Cable (5m)",
+    "description": "Heavy-duty 4-way extension cable with surge protection. 5-meter length with individual switches for each socket.",
+    "price": 2200,
+    "category": "electrical",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1588702547923-7ac93beecd5f?w=500"
+  },
+  {
+    "name": "Wall Socket (Double)",
+    "description": "Modern double wall socket with child safety shutters. Suitable for residential and commercial installations.",
+    "price": 800,
+    "category": "electrical",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1588702547923-7ac93beecd5f?w=500"
+  },
+  {
+    "name": "Light Switch (2-Gang)",
+    "description": "2-gang light switch with modern design. Durable construction suitable for residential and office use.",
+    "price": 650,
+    "category": "electrical",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500"
+  },
+  {
+    "name": "Electrical Wire Strippers",
+    "description": "Professional wire stripping tool for various cable sizes. Essential tool for electrical installations and repairs.",
+    "price": 1800,
+    "category": "electrical",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=500"
+  },
+  {
+    "name": "Schneider 10A Circuit Breaker (MCB)",
+    "description": "Compact breaker for residential use. Schneider Electric quality with reliable protection.",
+    "price": 650,
+    "category": "electrical",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=500"
+  },
+  {
+    "name": "4-Way Power Extension Cable",
+    "description": "3-meter cable with surge protection. Four outlets with individual switches for safe power distribution.",
+    "price": 1200,
+    "category": "electrical",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1619641805634-4a9b6c943e7c?w=500"
+  },
+  {
+    "name": "Double Wall Socket with USB Port",
+    "description": "2 AC outlets + 2 USB charging ports. Modern wall socket perfect for homes and offices.",
+    "price": 950,
+    "category": "electrical",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1588702547923-7ac93beecd5f?w=500"
+  },
+  {
+    "name": "LED Floodlight 50W",
+    "description": "Weatherproof outdoor lighting. High-efficiency LED floodlight for security and area lighting.",
+    "price": 2000,
+    "category": "electrical",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1509395176047-4a66953fd231?w=500"
+  },
+  {
+    "name": "Conduit PVC Pipe (25mm)",
+    "description": "For secure cable installation. High-quality PVC conduit pipe sold per meter.",
+    "price": 200,
+    "category": "electrical",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1464983953574-0892a716854b?w=500"
+  },
+  {
+    "name": "Voltage Tester Screwdriver",
+    "description": "Detects AC voltage safely. Essential tool for electrical work and troubleshooting.",
+    "price": 250,
+    "category": "electrical",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=500"
+  },
+  {
+    "name": "Rechargeable Emergency Light",
+    "description": "Dual-tube lamp with auto-on during blackout. Rechargeable emergency lighting solution.",
+    "price": 2800,
+    "category": "electrical",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=500"
+  },
+  {
+    "name": "CCTV Security Camera (4MP)",
+    "description": "4MP IP security camera with night vision and motion detection. Weatherproof design for indoor/outdoor use.",
+    "price": 8500,
+    "category": "security",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500"
+  },
+  {
+    "name": "Door Access Control System",
+    "description": "Electronic door lock with keypad and card reader access. Ideal for office and residential security.",
+    "price": 15000,
+    "category": "security",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=500"
+  },
+  {
+    "name": "Wireless Alarm System Kit",
+    "description": "Complete wireless security alarm system with sensors and control panel. Easy DIY installation.",
+    "price": 12000,
+    "category": "security",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1558002038-1055907df827?w=500"
+  },
+  {
+    "name": "Intercom Video Doorbell",
+    "description": "Smart video doorbell with two-way audio and mobile notifications. See who's at your door remotely.",
+    "price": 6500,
+    "category": "security",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=500"
+  },
+  {
+    "name": "UPS 1000VA Backup Power",
+    "description": "Uninterruptible Power Supply with 1000VA capacity. Protects computers and electronics during power outages.",
+    "price": 18000,
+    "category": "power",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=500"
+  },
+  {
+    "name": "Solar Power Inverter 1500W",
+    "description": "Pure sine wave solar inverter for converting DC to AC power. Perfect for solar power systems.",
+    "price": 25000,
+    "category": "power",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1464983953574-0892a716854b?w=500"
+  },
+  {
+    "name": "Portable Generator 2500W",
+    "description": "Portable petrol generator for backup power. Reliable power source for homes and construction sites.",
+    "price": 45000,
+    "category": "power",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500"
+  },
+  {
+    "name": "Battery Charger 12V/24V",
+    "description": "Intelligent battery charger for 12V and 24V lead-acid batteries. Automatic charging with safety features.",
+    "price": 3200,
+    "category": "power",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500"
+  }
+] 

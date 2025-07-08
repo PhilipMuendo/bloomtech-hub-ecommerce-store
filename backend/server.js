@@ -1,3 +1,7 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
@@ -7,6 +11,8 @@ import authRoutes from './routes/authRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
+import productRoutes from './routes/productRoutes.js';
 import connectDB from './config/db.js';
 
 // Load environment variables
@@ -16,11 +22,12 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:8080',
+  origin: 'http://localhost:8081',
   credentials: true
 }));
 app.use(express.json());
 app.use(morgan('dev'));
+app.use('/public', express.static(path.join(__dirname, '../public')));
 
 // Route placeholders
 app.get('/', (req, res) => {
@@ -32,6 +39,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/products', productRoutes);
 
 // MongoDB connection
 const PORT = process.env.PORT || 5000;
