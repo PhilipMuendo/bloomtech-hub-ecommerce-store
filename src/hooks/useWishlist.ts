@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
 
 export interface WishlistItem {
   id: string;
@@ -9,16 +8,14 @@ export interface WishlistItem {
 }
 
 export const useWishlist = () => {
-  const { user } = useAuth();
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(false);
 
   const addToWishlist = async (productId: string) => {
-    if (!user) return;
     const newItem: WishlistItem = {
       id: Math.random().toString(36).substr(2, 9),
       productId,
-      userId: user.email,
+      userId: '',
       addedAt: new Date(),
     };
     setWishlistItems(prev => [newItem, ...prev]);

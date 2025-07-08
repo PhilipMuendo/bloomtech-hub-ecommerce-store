@@ -5,9 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Star } from 'lucide-react';
 import { useReviews } from '@/hooks/useReviews';
-import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import AuthModal from './AuthModal';
 
 interface ReviewFormProps {
   productId: string;
@@ -18,9 +16,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId }) => {
   const [comment, setComment] = useState('');
   const [hoveredRating, setHoveredRating] = useState(0);
   const { addReview } = useReviews(productId);
-  const { user } = useAuth();
   const { toast } = useToast();
-  const [showModal, setShowModal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,8 +40,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId }) => {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground mb-4">Please log in to write a review</p>
-          <Button onClick={() => setShowModal(true)}>Login to Review</Button>
-          {showModal && <AuthModal onClose={() => setShowModal(false)} />}
+          <Button>Login to Review</Button>
         </CardContent>
       </Card>
     );

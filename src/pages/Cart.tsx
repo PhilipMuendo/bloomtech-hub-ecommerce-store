@@ -3,18 +3,14 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/context/CartContext';
-import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import AuthModal from '@/components/AuthModal';
 import NewsletterForm from '@/components/NewsletterForm';
 
 const Cart = () => {
   const { cartItems, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCart();
-  const { user } = useAuth();
   const { toast } = useToast();
 
   const handleCheckout = async () => {
-    if (!user) return;
     try {
       // Mock order placement
       await new Promise(res => setTimeout(res, 500));
@@ -130,17 +126,9 @@ const Cart = () => {
               </div>
 
               <div className="space-y-3 pt-4">
-                {user ? (
-                  <Button onClick={handleCheckout} className="w-full bg-accent hover:bg-accent/90" size="lg">
-                    Place Order
-                  </Button>
-                ) : (
-                  <AuthModal>
-                    <Button className="w-full bg-accent hover:bg-accent/90" size="lg">
-                      Login to Checkout
-                    </Button>
-                  </AuthModal>
-                )}
+                <Button onClick={handleCheckout} className="w-full bg-accent hover:bg-accent/90" size="lg">
+                  Place Order
+                </Button>
                 <Button asChild variant="outline" className="w-full">
                   <Link to="/shop">Continue Shopping</Link>
                 </Button>

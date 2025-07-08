@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
 
 export interface Review {
   id: string;
@@ -11,15 +10,13 @@ export interface Review {
 }
 
 export const useReviews = (productId: string) => {
-  const { user } = useAuth();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(false);
 
   const addReview = async (rating: number, comment: string) => {
-    if (!user) return;
     const newReview: Review = {
       id: Math.random().toString(36).substr(2, 9),
-      userId: user.email,
+      userId: '',
       productId,
       rating,
       comment,

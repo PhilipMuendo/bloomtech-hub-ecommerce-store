@@ -7,12 +7,12 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
-import authRoutes from './routes/authRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import productRoutes from './routes/productRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 import connectDB from './config/db.js';
 
 // Load environment variables
@@ -35,12 +35,12 @@ app.get('/', (req, res) => {
 });
 // TODO: Add route imports here
 
-app.use('/api/auth', authRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // MongoDB connection
 const PORT = process.env.PORT || 5000;

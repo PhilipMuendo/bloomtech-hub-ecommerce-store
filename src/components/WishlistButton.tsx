@@ -2,16 +2,13 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
 import { useWishlist } from '@/hooks/useWishlist';
-import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import AuthModal from './AuthModal';
 
 interface WishlistButtonProps {
   productId: string;
 }
 
 const WishlistButton: React.FC<WishlistButtonProps> = ({ productId }) => {
-  const { user } = useAuth();
   const { isInWishlist, addToWishlist, removeFromWishlist, wishlistItems } = useWishlist();
   const { toast } = useToast();
   const [showModal, setShowModal] = useState(false);
@@ -48,7 +45,6 @@ const WishlistButton: React.FC<WishlistButtonProps> = ({ productId }) => {
         <Heart className={`w-4 h-4 mr-2 ${inWishlist ? "fill-current" : ""}`} />
         {inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
       </Button>
-      {showModal && <AuthModal onClose={() => setShowModal(false)} />}
     </>
   );
 };

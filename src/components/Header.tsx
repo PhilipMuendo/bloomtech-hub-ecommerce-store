@@ -4,7 +4,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
-import { useAuth } from '@/context/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -14,44 +13,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const UserMenu = () => {
-  const { user, logout, openLoginModal } = useAuth();
-  if (!user) {
-    return (
-      <Button variant="outline" size="sm" className="ml-2" onClick={() => openLoginModal()}>
-        <LogIn className="w-4 h-4 mr-2" /> Login
-      </Button>
-    );
-  }
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 font-medium hover:underline">
-          <span>Hi, {user.name?.split(' ')[0] || user.email?.split('@')[0]}</span>
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7"/></svg>
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
-        <DropdownMenuItem asChild>
-          <Link to="/account" className="flex items-center gap-2">
-            <User className="w-4 h-4" /> My Account
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/orders" className="flex items-center gap-2">
-            <List className="w-4 h-4" /> Orders
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link to="/wishlist" className="flex items-center gap-2">
-            <Heart className="w-4 h-4" /> Wishlist
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer flex items-center gap-2">
-          <LogOut className="w-4 h-4" /> Logout
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center gap-4">
+      <div className="text-sm">
+        <span className="text-muted-foreground">Welcome back,</span>
+        <span className="font-medium ml-1">Admin</span>
+      </div>
+    </div>
   );
 };
 

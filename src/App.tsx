@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { CartProvider } from "@/context/CartContext";
-import { AuthProvider } from "@/context/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Home from "./pages/Home";
@@ -164,19 +163,17 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <CartProvider>
-            <Toaster />
-            <Sonner />
-            <div className="min-h-screen flex flex-col">
-              {!isAdminRoute && <Header />}
-              <main className="flex-1">
-                <AnimatedRoutes />
-              </main>
-              {!isAdminRoute && <Footer />}
-            </div>
-          </CartProvider>
-        </AuthProvider>
+        <CartProvider>
+          <Toaster />
+          <Sonner />
+          <div className="min-h-screen flex flex-col">
+            {!isAdminRoute && <Header />}
+            <main className="flex-1">
+              <AnimatedRoutes />
+            </main>
+            {!isAdminRoute && <Footer />}
+          </div>
+        </CartProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

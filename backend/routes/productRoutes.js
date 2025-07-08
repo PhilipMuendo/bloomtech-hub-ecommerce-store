@@ -6,6 +6,7 @@ import {
   updateProduct,
   deleteProduct
 } from '../controllers/productController.js';
+// import authMiddleware from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 

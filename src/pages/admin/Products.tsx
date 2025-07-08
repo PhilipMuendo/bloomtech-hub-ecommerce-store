@@ -10,7 +10,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthContext';
 
 export interface Product {
   id: string;
@@ -33,7 +32,6 @@ const Products = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const { token } = useAuth();
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -50,9 +48,7 @@ const Products = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/products', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch('/api/products');
       if (!res.ok) throw new Error('Failed to fetch products');
       const data = await res.json();
       setProducts(data);
@@ -85,8 +81,7 @@ const Products = () => {
       const res = await fetch('/api/products', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           ...newProduct,
@@ -119,8 +114,7 @@ const Products = () => {
       const res = await fetch(`/api/products/${editingProduct.id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           ...editingProduct,
@@ -145,8 +139,7 @@ const Products = () => {
     setError(null);
     try {
       const res = await fetch(`/api/products/${productId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
+        method: 'DELETE'
       });
       if (!res.ok) throw new Error('Failed to delete product');
       toast({ title: 'Product Deleted', description: 'Product has been removed from the catalog.', variant: 'destructive' });

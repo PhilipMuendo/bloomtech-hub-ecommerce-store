@@ -12,12 +12,10 @@ import {
   LogOut,
   ArrowLeft
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
 
 const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
 
   const menuItems = [
     { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
@@ -29,7 +27,6 @@ const AdminLayout = () => {
   ];
 
   const handleLogout = () => {
-    logout();
     navigate('/');
   };
 
@@ -103,12 +100,6 @@ const AdminLayout = () => {
                 <h1 className="text-xl font-semibold">
                   {menuItems.find(item => isActive(item.path))?.label || 'Admin Dashboard'}
                 </h1>
-              </div>
-              <div className="flex items-center gap-4">
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Welcome back,</span>
-                  <span className="font-medium ml-1">{user?.name || 'Admin'}</span>
-                </div>
               </div>
             </div>
           </header>
