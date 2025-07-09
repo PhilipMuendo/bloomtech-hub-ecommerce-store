@@ -10,9 +10,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 export interface Product {
-  id: string;
+  _id: string;
   name: string;
   price: number;
   image: string;
@@ -32,6 +33,7 @@ const Products = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -81,7 +83,8 @@ const Products = () => {
       const res = await fetch('/api/products', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${currentUser?.token}`
         },
         body: JSON.stringify({
           ...newProduct,
@@ -111,10 +114,11 @@ const Products = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/products/${editingProduct.id}`, {
+      const res = await fetch(`/api/products/${editingProduct._id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${currentUser?.token}`
         },
         body: JSON.stringify({
           ...editingProduct,
@@ -139,7 +143,10 @@ const Products = () => {
     setError(null);
     try {
       const res = await fetch(`/api/products/${productId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${currentUser?.token}`
+        }
       });
       if (!res.ok) throw new Error('Failed to delete product');
       toast({ title: 'Product Deleted', description: 'Product has been removed from the catalog.', variant: 'destructive' });
@@ -348,7 +355,7 @@ const Products = () => {
             </TableHeader>
             <TableBody>
               {filteredProducts.map((product) => (
-                <TableRow key={product.id}>
+                <TableRow key={product._id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <img
@@ -387,7 +394,7 @@ const Products = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDeleteProduct(product.id)}
+                        onClick={() => handleDeleteProduct(product._id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

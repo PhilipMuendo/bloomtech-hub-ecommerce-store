@@ -27,25 +27,29 @@ const Users = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user: currentUser, isSuperAdmin } = useAuth();
 
   useEffect(() => {
     fetchUsers();
+    // eslint-disable-next-line
   }, []);
 
   const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch('/api/users', {
         headers: {
           Authorization: `Bearer ${currentUser?.token}`
         }
       });
-      
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
       } else {
+        setError('Failed to fetch users');
         toast({
           title: "Error",
           description: "Failed to fetch users",
@@ -53,6 +57,7 @@ const Users = () => {
         });
       }
     } catch (error) {
+      setError('Failed to fetch users');
       toast({
         title: "Error",
         description: "Failed to fetch users",
@@ -154,161 +159,180 @@ const Users = () => {
         <p className="text-muted-foreground">Manage user accounts and permissions</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{users.filter(u => u.status === 'active').length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Admin Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{users.filter(u => u.role === 'admin' || u.role === 'superadmin').length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">New This Month</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">12</div>
-          </CardContent>
-        </Card>
-      </div>
+      {loading && (
+        <div className="flex justify-center items-center h-40">
+          <span>Loading users...</span>
+        </div>
+      )}
+      {error && (
+        <div className="flex justify-center items-center h-40 text-red-500">
+          <span>{error}</span>
+        </div>
+      )}
+      {!loading && !error && users.length === 0 && (
+        <div className="flex justify-center items-center h-40 text-muted-foreground">
+          <span>No users found.</span>
+        </div>
+      )}
+      {!loading && !error && users.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{users.length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{users.filter(u => u.status === 'active').length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Admin Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{users.filter(u => u.role === 'admin' || u.role === 'superadmin').length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">New This Month</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">12</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>User Management</CardTitle>
-          <CardDescription>
-            {filteredUsers.length} of {users.length} users
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-8"
-              />
+      {filteredUsers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>User Management</CardTitle>
+            <CardDescription>
+              {filteredUsers.length} of {users.length} users
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Orders</TableHead>
-                <TableHead>Total Spent</TableHead>
-                <TableHead>Join Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user._id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-muted-foreground">{user.email}</div>
-                      <div className="text-xs text-muted-foreground">{user._id}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusColor(user.status)}>
-                      {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {user.role === 'superadmin' ? (
-                        <Badge variant="default" className="flex items-center gap-1">
-                          <ShieldCheck className="h-3 w-3" />
-                          Super Admin
-                        </Badge>
-                      ) : user.role === 'admin' ? (
-                        <Badge variant="default" className="flex items-center gap-1">
-                          <ShieldCheck className="h-3 w-3" />
-                          Admin
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="flex items-center gap-1">
-                          <Shield className="h-3 w-3" />
-                          User
-                        </Badge>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{user.totalOrders}</TableCell>
-                  <TableCell>KES {user.totalSpent.toLocaleString()}</TableCell>
-                  <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedUser(user)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Select onValueChange={(value) => updateUserStatus(user._id, value)}>
-                        <SelectTrigger className="w-[100px] h-8">
-                          <SelectValue placeholder="Status" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="inactive">Inactive</SelectItem>
-                          <SelectItem value="suspended">Suspend</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {isSuperAdmin() && (
-                        <Select onValueChange={(value) => updateUserRole(user._id, value)}>
-                          <SelectTrigger className="w-[120px] h-8">
-                            <SelectValue placeholder="Role" />
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Orders</TableHead>
+                  <TableHead>Total Spent</TableHead>
+                  <TableHead>Join Date</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user._id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{user.name}</div>
+                        <div className="text-sm text-muted-foreground">{user.email}</div>
+                        <div className="text-xs text-muted-foreground">{user._id}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusColor(user.status)}>
+                        {(user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : 'Unknown')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {user.role === 'superadmin' ? (
+                          <Badge variant="default" className="flex items-center gap-1">
+                            <ShieldCheck className="h-3 w-3" />
+                            Super Admin
+                          </Badge>
+                        ) : user.role === 'admin' ? (
+                          <Badge variant="default" className="flex items-center gap-1">
+                            <ShieldCheck className="h-3 w-3" />
+                            Admin
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            <Shield className="h-3 w-3" />
+                            User
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{typeof user.totalOrders === 'number' ? user.totalOrders : 0}</TableCell>
+                    <TableCell>KES {typeof user.totalSpent === 'number' ? user.totalSpent.toLocaleString() : '0'}</TableCell>
+                    <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedUser(user)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Select onValueChange={(value) => updateUserStatus(user._id, value)}>
+                          <SelectTrigger className="w-[100px] h-8">
+                            <SelectValue placeholder="Status" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="user">User</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="superadmin">Super Admin</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                            <SelectItem value="suspended">Suspend</SelectItem>
                           </SelectContent>
                         </Select>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                        {isSuperAdmin() && (
+                          <Select onValueChange={(value) => updateUserRole(user._id, value)}>
+                            <SelectTrigger className="w-[120px] h-8">
+                              <SelectValue placeholder="Role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="user">User</SelectItem>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="superadmin">Super Admin</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {selectedUser && (
         <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
@@ -331,7 +355,7 @@ const Users = () => {
                 <div>
                   <h4 className="font-semibold">Account Status</h4>
                   <p><strong>Status:</strong> <Badge variant={getStatusColor(selectedUser.status)}>
-                    {selectedUser.status.charAt(0).toUpperCase() + selectedUser.status.slice(1)}
+                    {(selectedUser.status ? selectedUser.status.charAt(0).toUpperCase() + selectedUser.status.slice(1) : 'Unknown')}
                   </Badge></p>
                   <p><strong>Role:</strong> {selectedUser.role === 'superadmin' ? (
                     <Badge variant="default" className="ml-1">Super Admin</Badge>
@@ -354,7 +378,7 @@ const Users = () => {
                   </Card>
                   <Card>
                     <CardContent className="pt-4">
-                      <div className="text-2xl font-bold">KES {selectedUser.totalSpent.toLocaleString()}</div>
+                      <div className="text-2xl font-bold">KES {typeof selectedUser.totalSpent === 'number' ? selectedUser.totalSpent.toLocaleString() : '0'}</div>
                       <p className="text-sm text-muted-foreground">Total Spent</p>
                     </CardContent>
                   </Card>
