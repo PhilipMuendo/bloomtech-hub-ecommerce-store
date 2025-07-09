@@ -4,25 +4,64 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 import NewsletterForm from '@/components/NewsletterForm';
+import MpesaPaymentModal from '@/components/MpesaPaymentModal';
 
 const Cart = () => {
   const { cartItems, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCart();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [showMpesaModal, setShowMpesaModal] = React.useState(false);
+  const [currentOrderId, setCurrentOrderId] = React.useState('');
 
   const handleCheckout = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to place an order",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
-      // Mock order placement
-      await new Promise(res => setTimeout(res, 500));
-      clearCart();
-      toast({ title: "Order placed successfully!" });
+      // Create order first
+      const orderResponse = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`
+        },
+        body: JSON.stringify({
+          items: cartItems.map(item => ({
+            productId: item.id,
+            quantity: item.quantity
+          })),
+          total: getTotalPrice()
+        })
+      });
+
+      const orderData = await orderResponse.json();
+      
+      if (orderData._id) {
+        setCurrentOrderId(orderData._id);
+        setShowMpesaModal(true);
+      } else {
+        throw new Error('Failed to create order');
+      }
     } catch (error) {
       toast({ 
         title: "Error", 
-        description: "Failed to place order. Please try again.",
+        description: "Failed to create order. Please try again.",
         variant: "destructive"
       });
     }
+  };
+
+  const handlePaymentSuccess = () => {
+    clearCart();
+    toast({ title: "Order placed and paid successfully!" });
   };
 
   const formatPrice = (price: number) => {
@@ -126,8 +165,8 @@ const Cart = () => {
               </div>
 
               <div className="space-y-3 pt-4">
-                <Button onClick={handleCheckout} className="w-full bg-accent hover:bg-accent/90" size="lg">
-                  Place Order
+                <Button onClick={handleCheckout} className="w-full bg-green-600 hover:bg-green-700 text-white" size="lg">
+                  Pay with M-Pesa
                 </Button>
                 <Button asChild variant="outline" className="w-full">
                   <Link to="/shop">Continue Shopping</Link>
@@ -156,6 +195,14 @@ const Cart = () => {
           </Card>
         </div>
       </div>
+
+      <MpesaPaymentModal
+        isOpen={showMpesaModal}
+        onClose={() => setShowMpesaModal(false)}
+        orderId={currentOrderId}
+        amount={getTotalPrice()}
+        onSuccess={handlePaymentSuccess}
+      />
     </div>
   );
 };
