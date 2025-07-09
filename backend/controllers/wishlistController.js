@@ -1,4 +1,5 @@
 import Wishlist from '../models/Wishlist.js';
+import mongoose from 'mongoose';
 
 // Get current user's wishlist
 export const getWishlist = async (req, res) => {
@@ -10,6 +11,9 @@ export const getWishlist = async (req, res) => {
 export const addToWishlist = async (req, res) => {
   const { productId } = req.body;
   if (!productId) return res.status(400).json({ message: 'Product required' });
+  if (!mongoose.Types.ObjectId.isValid(productId)) {
+    return res.status(400).json({ message: 'Invalid productId. Must be a valid MongoDB ObjectId.' });
+  }
   const exists = await Wishlist.findOne({ userId: req.user._id, productId });
   if (exists) return res.status(400).json({ message: 'Already in wishlist' });
   const item = await Wishlist.create({ userId: req.user._id, productId });

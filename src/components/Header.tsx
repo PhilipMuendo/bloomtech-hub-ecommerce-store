@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Search, ShoppingCart, Search as SearchIcon, User, List, Heart, LogOut, LogIn } from 'lucide-react';
+import { Search, ShoppingCart, Search as SearchIcon, User, List, Heart, LogOut, ChevronDown } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -12,15 +13,66 @@ import {
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 
-const UserMenu = () => {
+const UserDropdown = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  if (!user) return null;
+  const firstName = user.name?.split(' ')[0] || user.email?.split('@')[0] || 'User';
   return (
-    <div className="flex items-center gap-4">
-      <div className="text-sm">
-        <span className="text-muted-foreground">Welcome back,</span>
-        <span className="font-medium ml-1">Admin</span>
-      </div>
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="flex items-center gap-2 px-3">
+          <User className="w-4 h-4" />
+          <span>Hi, {firstName}</span>
+          <ChevronDown className="w-4 h-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem asChild>
+          <Link to="/account" className="flex items-center gap-2">
+            <User className="w-4 h-4" /> My Account
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/orders" className="flex items-center gap-2">
+            <List className="w-4 h-4" /> Orders
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/wishlist" className="flex items-center gap-2">
+            <Heart className="w-4 h-4" /> Wishlist
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => {
+            logout();
+            navigate('/');
+          }}
+          className="text-red-600 cursor-pointer flex items-center gap-2"
+        >
+          <LogOut className="w-4 h-4" /> Logout
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
+};
+
+const UserMenu = () => {
+  const { user } = useAuth();
+  if (!user) {
+    return (
+      <div className="flex items-center gap-4 ml-auto">
+        <Link to="/login">
+          <Button variant="outline" className="mx-1">Login</Button>
+        </Link>
+        <Link to="/register">
+          <Button variant="default" className="mx-1">Register</Button>
+        </Link>
+      </div>
+    );
+  }
+  return <UserDropdown />;
 };
 
 const Header = () => {

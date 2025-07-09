@@ -27,6 +27,7 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import Users from "./pages/admin/Users";
 import Reviews from "./pages/admin/Reviews";
 import Newsletter from "./pages/admin/Newsletter";
+import Account from './pages/Account';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const queryClient = new QueryClient();
@@ -157,6 +158,16 @@ const AnimatedRoutes = () => {
             transition={{ duration: 0.3 }}
           >
             <Register />
+          </motion.div>
+        } />
+        <Route path="/account" element={
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Account />
           </motion.div>
         } />
         <Route path="/admin" element={

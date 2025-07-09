@@ -1,5 +1,6 @@
 [
   {
+    "id": "64e4b2c8e1b2a3f4c5d6e7f1",
     "name": "HP EliteBook 840 G8 Laptop",
     "description": "Professional business laptop with Intel Core i7 processor, 16GB RAM, and 512GB SSD. Perfect for business and development work.",
     "price": 85000,
@@ -8,6 +9,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500"
   },
   {
+    "id": "64e4b2c8e1b2a3f4c5d6e7f2",
     "name": "TP-Link AC1200 Wi-Fi Router",
     "description": "Dual-band wireless router with AC1200 speeds. Provides reliable internet coverage for homes and small offices.",
     "price": 8500,
@@ -16,6 +18,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
   },
   {
+    "id": "64e4b2c8e1b2a3f4c5d6e7f3",
     "name": "Cat6 Ethernet Cable (50m)",
     "description": "High-quality Cat6 ethernet cable for reliable network connections. 50-meter length suitable for office installations.",
     "price": 3500,

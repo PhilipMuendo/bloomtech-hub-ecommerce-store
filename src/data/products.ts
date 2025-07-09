@@ -13,7 +13,7 @@ export interface Product {
 export const products: Product[] = [
   // ICT Equipment
   {
-    id: '1',
+    id: '64e4b2c8e1b2a3f4c5d6e7f1',
     name: 'HP EliteBook 840 G8 Laptop',
     price: 85000,
     image: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=500',
@@ -30,7 +30,7 @@ export const products: Product[] = [
     featured: true
   },
   {
-    id: '2',
+    id: '64e4b2c8e1b2a3f4c5d6e7f2',
     name: 'TP-Link AC1200 Wi-Fi Router',
     price: 8500,
     image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
@@ -47,7 +47,7 @@ export const products: Product[] = [
     featured: true
   },
   {
-    id: '3',
+    id: '64e4b2c8e1b2a3f4c5d6e7f3',
     name: 'Cat6 Ethernet Cable (50m)',
     price: 3500,
     image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=500',

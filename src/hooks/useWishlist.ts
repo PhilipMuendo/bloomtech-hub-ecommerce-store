@@ -1,33 +1,65 @@
-import { useState } from 'react';
-
-export interface WishlistItem {
-  id: string;
-  productId: string;
-  userId: string;
-  addedAt: Date;
-}
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/context/AuthContext';
 
 export const useWishlist = () => {
-  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const token = user?.token;
+  const queryClient = useQueryClient();
 
-  const addToWishlist = async (productId: string) => {
-    const newItem: WishlistItem = {
-      id: Math.random().toString(36).substr(2, 9),
-      productId,
-      userId: '',
-      addedAt: new Date(),
-    };
-    setWishlistItems(prev => [newItem, ...prev]);
-  };
+  const { data: wishlist = [], isLoading } = useQuery({
+    queryKey: ['wishlist'],
+    queryFn: async () => {
+      if (!token) return [];
+      const res = await fetch('/api/wishlist', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to fetch wishlist');
+      return res.json();
+    },
+    enabled: !!token,
+  });
 
-  const removeFromWishlist = async (wishlistItemId: string) => {
-    setWishlistItems(prev => prev.filter(item => item.id !== wishlistItemId));
-  };
+  const addMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      const res = await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ productId }),
+      });
+      if (!res.ok) throw new Error('Failed to add to wishlist');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wishlist'] });
+    },
+  });
+
+  const removeMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      const res = await fetch(`/api/wishlist/${productId}`, {
+        method: 'DELETE',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('Failed to remove from wishlist');
+      return productId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['wishlist'] });
+    },
+  });
 
   const isInWishlist = (productId: string) => {
-    return wishlistItems.some(item => item.productId === productId);
+    return wishlist.some((item: any) => item.productId === productId || item.product?._id === productId);
   };
 
-  return { wishlistItems, loading, addToWishlist, removeFromWishlist, isInWishlist };
+  return {
+    wishlistItems: wishlist,
+    loading: isLoading,
+    addToWishlist: addMutation.mutateAsync,
+    removeFromWishlist: removeMutation.mutateAsync,
+    isInWishlist,
+  };
 };
