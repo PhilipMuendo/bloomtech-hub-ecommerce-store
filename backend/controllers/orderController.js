@@ -1,4 +1,5 @@
 import Order from '../models/Order.js';
+import mongoose from 'mongoose';
 
 // Get current user's orders
 export const getOrders = async (req, res) => {
@@ -17,6 +18,16 @@ export const getOrderById = async (req, res) => {
 export const createOrder = async (req, res) => {
   const { items, total } = req.body;
   if (!items || !total) return res.status(400).json({ message: 'Items and total required' });
-  const order = await Order.create({ userId: req.user._id, items, total });
+  // Validate and convert productId
+  for (const item of items) {
+    if (!mongoose.Types.ObjectId.isValid(item.productId)) {
+      return res.status(400).json({ message: `Invalid productId: ${item.productId}` });
+    }
+  }
+  const normalizedItems = items.map(item => ({
+    ...item,
+    productId: new mongoose.Types.ObjectId(item.productId)
+  }));
+  const order = await Order.create({ userId: req.user._id, items: normalizedItems, total });
   res.status(201).json(order);
 }; 

@@ -1,27 +1,38 @@
 // Usage: node scripts/importProducts.js
-import { fileURLToPath } from 'url';
-import path from 'path';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import fs from 'fs';
+import path from 'path';
 import dotenv from 'dotenv';
+dotenv.config();
 
-dotenv.config({ path: path.join(__dirname, '../.env') });
+const productsPath = path.resolve(process.cwd(), 'src/data/products.json');
+const productsData = JSON.parse(fs.readFileSync(productsPath, 'utf-8'));
 
-const productsFile = path.join(__dirname, '../../src/data/products.json');
-const products = JSON.parse(fs.readFileSync(productsFile, 'utf-8'));
-
-async function importProducts() {
+const syncProducts = async () => {
   await mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
-  await Product.deleteMany({});
-  await Product.insertMany(products);
-  console.log('Products imported!');
-  await mongoose.disconnect();
-}
+  console.log('Connected to MongoDB');
 
-importProducts().catch(err => {
-  console.error(err);
-  process.exit(1);
+  // Upsert products from JSON
+  for (const prod of productsData) {
+    const {_id, id, ...rest} = prod;
+    await Product.findOneAndUpdate(
+      { _id: id },
+      { $set: { ...rest, _id: id } },
+      { upsert: true, new: true }
+    );
+  }
+
+  // Remove products not in JSON
+  const jsonIds = productsData.map(p => p.id);
+  await Product.deleteMany({ _id: { $nin: jsonIds } });
+
+  console.log('Products synced successfully');
+  await mongoose.disconnect();
+  console.log('Disconnected from MongoDB');
+};
+
+syncProducts().catch(err => {
+  console.error('Error syncing products:', err);
+  mongoose.disconnect();
 }); 
