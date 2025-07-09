@@ -4,9 +4,13 @@ import Product from '../models/Product.js';
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
-dotenv.config();
+import { fileURLToPath } from 'url';
 
-const productsPath = path.resolve(process.cwd(), 'src/data/products.json');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
+const productsPath = path.resolve(__dirname, '../../src/data/products.json');
 const productsData = JSON.parse(fs.readFileSync(productsPath, 'utf-8'));
 
 const syncProducts = async () => {

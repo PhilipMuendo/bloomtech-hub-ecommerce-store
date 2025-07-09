@@ -10,6 +10,14 @@ export interface Product {
   featured?: boolean;
 }
 
+// Helper to generate a random ObjectId
+function generateObjectId() {
+  const hex = '0123456789abcdef';
+  let str = '';
+  for (let i = 0; i < 24; i++) str += hex[Math.floor(Math.random() * 16)];
+  return str;
+}
+
 export const products: Product[] = [
   // ICT Equipment
   {
@@ -376,7 +384,7 @@ export const products: Product[] = [
     id: '23',
     name: 'LED Floodlight 50W',
     price: 2000,
-    image: 'https://images.unsplash.com/photo-1509395176047-4a66953fd231?w=500',
+     image: 'https://images.unsplash.com/photo-1509395176047-4a66953fd231?w=500',
     category: 'electrical',
     description: 'Weatherproof outdoor lighting. High-efficiency LED floodlight for security and area lighting.',
     specifications: [
@@ -571,6 +579,13 @@ export const products: Product[] = [
     inStock: true
   }
 ];
+
+// Patch all product IDs to valid ObjectIds
+products.forEach(product => {
+  if (!/^[a-f\d]{24}$/i.test(product.id)) {
+    product.id = generateObjectId();
+  }
+});
 
 export const getProductById = (id: string): Product | undefined => {
   return products.find(product => product.id === id);

@@ -76,27 +76,28 @@ const Wishlist: React.FC = () => {
       {console.log('Wishlist data:', wishlist)}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {(wishlist as any[]).map((item: any, idx: number) => {
-          if (!item || !item.product) return null;
+          const product = item.product || item.productId;
+          if (!product) return null;
           return (
-            <Card key={item.product._id || idx} className="flex flex-col h-full">
-              <Link to={`/product/${item.product._id}`} className="flex-1">
+            <Card key={product._id || idx} className="flex flex-col h-full">
+              <Link to={`/product/${product._id}`} className="flex-1">
                 <img
-                  src={item.product.image}
-                  alt={item.product.name}
+                  src={product.image}
+                  alt={product.name}
                   className="w-full h-48 object-cover rounded-t-md"
                 />
                 <CardContent className="p-4">
-                  <h3 className="font-semibold text-lg mb-2">{item.product.name}</h3>
-                  <p className="text-muted-foreground text-sm mb-2 line-clamp-2">{item.product.description}</p>
+                  <h3 className="font-semibold text-lg mb-2">{product.name}</h3>
+                  <p className="text-muted-foreground text-sm mb-2 line-clamp-2">{product.description}</p>
                   <div className="text-xl font-bold text-primary mb-2">
-                    KES {item.product.price.toLocaleString()}
+                    KES {product.price?.toLocaleString()}
                   </div>
                 </CardContent>
               </Link>
               <div className="flex gap-2 p-4 pt-0">
                 <Button
                   variant="outline"
-                  onClick={() => item.product._id && removeMutation.mutate({ productId: item.product._id, token: token! })}
+                  onClick={() => product._id && removeMutation.mutate({ productId: product._id, token: token! })}
                   disabled={removeMutation.status === 'pending'}
                 >
                   Remove
@@ -104,15 +105,15 @@ const Wishlist: React.FC = () => {
                 <Button
                   onClick={() => {
                     addToCart({
-                      id: item.product._id,
-                      name: item.product.name,
-                      price: item.product.price,
-                      image: item.product.image,
-                      category: item.product.category,
+                      id: product._id,
+                      name: product.name,
+                      price: product.price,
+                      image: product.image,
+                      category: product.category,
                     });
-                    toast({ title: 'Added to cart!', description: item.product.name });
+                    toast({ title: 'Added to cart!', description: product.name });
                   }}
-                  disabled={!item.product._id}
+                  disabled={!product._id}
                 >
                   Add to Cart
                 </Button>
