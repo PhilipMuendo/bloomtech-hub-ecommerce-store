@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Mail, Send, Users, TrendingUp, Search, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
 
 interface Subscriber {
   id: string;
@@ -27,6 +28,32 @@ interface Campaign {
   recipients: number;
   openRate: number;
   clickRate: number;
+}
+
+// Utility function to convert subscribers to CSV
+function subscribersToCSV(subscribers: Subscriber[]): string {
+  const header = ['ID', 'Email', 'Name', 'Subscribe Date', 'Status', 'Source'];
+  const rows = subscribers.map(s => [
+    s.id,
+    s.email,
+    s.name || '',
+    s.subscribeDate,
+    s.status,
+    s.source
+  ]);
+  return [header, ...rows].map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+}
+
+function downloadCSV(csv: string, filename: string) {
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 const Newsletter = () => {
@@ -113,8 +140,10 @@ const Newsletter = () => {
     }
   ];
 
-  const activeSubscribers = subscribers.filter(s => s.status === 'active');
-  const filteredSubscribers = subscribers.filter(subscriber =>
+  const [subscribersState, setSubscribersState] = useState<Subscriber[]>(subscribers);
+
+  const activeSubscribers = subscribersState.filter(s => s.status === 'active');
+  const filteredSubscribers = subscribersState.filter(subscriber =>
     subscriber.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (subscriber.name && subscriber.name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -129,13 +158,29 @@ const Newsletter = () => {
     setNewCampaign({ subject: '', content: '' });
   };
 
+  const handleExportExcel = () => {
+    const ws = XLSX.utils.json_to_sheet(filteredSubscribers.map(s => ({
+      ID: s.id,
+      Email: s.email,
+      Name: s.name || '',
+      'Subscribe Date': s.subscribeDate,
+      Status: s.status,
+      Source: s.source
+    })));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Subscribers');
+    XLSX.writeFile(wb, 'subscribers.xlsx');
+  };
+
   const handleRemoveSubscriber = (subscriberId: string) => {
-    // In real app, would call API
-    toast({
-      title: "Subscriber Removed",
-      description: "Subscriber has been removed from the newsletter",
-      variant: "destructive"
-    });
+    if (window.confirm('Are you sure you want to remove this subscriber?')) {
+      setSubscribersState(prev => prev.filter(s => s.id !== subscriberId));
+      toast({
+        title: "Subscriber Removed",
+        description: "Subscriber has been removed from the newsletter",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -202,7 +247,7 @@ const Newsletter = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{subscribers.length}</div>
+            <div className="text-2xl font-bold">{subscribersState.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -243,19 +288,29 @@ const Newsletter = () => {
       </div>
 
       <div className="space-y-4">
-        <div className="flex gap-2">
-          <Button
-            variant={activeTab === 'subscribers' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('subscribers')}
-          >
-            Subscribers
-          </Button>
-          <Button
-            variant={activeTab === 'campaigns' ? 'default' : 'outline'}
-            onClick={() => setActiveTab('campaigns')}
-          >
-            Campaigns
-          </Button>
+        <div className="flex gap-2 items-center justify-between mb-4">
+          <div className="flex gap-2">
+            <Button
+              variant={activeTab === 'subscribers' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('subscribers')}
+            >
+              Subscribers
+            </Button>
+            <Button
+              variant={activeTab === 'campaigns' ? 'default' : 'outline'}
+              onClick={() => setActiveTab('campaigns')}
+            >
+              Campaigns
+            </Button>
+          </div>
+          {activeTab === 'subscribers' && (
+            <Button
+              variant="outline"
+              onClick={handleExportExcel}
+            >
+              Export to Excel
+            </Button>
+          )}
         </div>
 
         {activeTab === 'subscribers' && (
@@ -263,7 +318,7 @@ const Newsletter = () => {
             <CardHeader>
               <CardTitle>Subscriber Management</CardTitle>
               <CardDescription>
-                {filteredSubscribers.length} of {subscribers.length} subscribers
+                {filteredSubscribers.length} of {subscribersState.length} subscribers
               </CardDescription>
             </CardHeader>
             <CardContent>
