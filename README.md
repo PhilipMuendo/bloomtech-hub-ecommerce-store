@@ -98,7 +98,7 @@ npm run dev
 ```sh
 npm run dev
 ```
-- The frontend app will be available at `http://localhost:5173` by default.
+- The frontend app will be available at `http://localhost:8081` by default.
 
 ---
 

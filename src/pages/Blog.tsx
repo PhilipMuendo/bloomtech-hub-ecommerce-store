@@ -5,28 +5,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import NewsletterForm from '@/components/NewsletterForm';
 
-const Blog = () => {
-  const blogPosts = [
-    {
-      id: 1,
-      title: "Top 5 Tools Every Technician Should Own",
-      excerpt: "Discover the essential tools that every ICT and electrical technician needs in their toolkit for efficient and professional work.",
-      date: "January 15, 2024",
-      readTime: "5 min read",
-      image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=250&fit=crop",
-      slug: "top-5-tools-every-technician-should-own"
-    },
-    {
-      id: 2,
-      title: "Choosing the Right Router for Your Office Setup",
-      excerpt: "Learn how to select the perfect router for your business needs, from small offices to enterprise-level installations.",
-      date: "January 10, 2024",
-      readTime: "7 min read",
-      image: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&h=250&fit=crop",
-      slug: "choosing-the-right-router-for-your-office-setup"
-    }
-  ];
+export const blogPosts = [
+  {
+    id: 1,
+    title: "Top 5 Tools Every Technician Should Own",
+    excerpt: "Discover the essential tools that every ICT and electrical technician needs in their toolkit for efficient and professional work.",
+    date: "January 15, 2024",
+    readTime: "5 min read",
+    image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=250&fit=crop",
+    slug: "top-5-tools-every-technician-should-own"
+  },
+  {
+    id: 2,
+    title: "Choosing the Right Router for Your Office Setup",
+    excerpt: "Learn how to select the perfect router for your business needs, from small offices to enterprise-level installations.",
+    date: "January 10, 2024",
+    readTime: "7 min read",
+    image: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&h=250&fit=crop",
+    slug: "choosing-the-right-router-for-your-office-setup"
+  }
+];
 
+const Blog = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">

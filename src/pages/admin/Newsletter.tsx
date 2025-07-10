@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Mail, Send, Users, TrendingUp, Search, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
+import { useAuth } from '@/context/AuthContext';
 
 interface Subscriber {
   id: string;
@@ -28,6 +29,7 @@ interface Campaign {
   recipients: number;
   openRate: number;
   clickRate: number;
+  _id?: string; // Added for backend compatibility
 }
 
 // Utility function to convert subscribers to CSV
@@ -61,86 +63,58 @@ const Newsletter = () => {
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'subscribers' | 'campaigns'>('subscribers');
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
 
   const [newCampaign, setNewCampaign] = useState({
     subject: '',
     content: ''
   });
 
-  // Mock subscribers data
-  const subscribers: Subscriber[] = [
-    {
-      id: 'SUB-001',
-      email: 'john@example.com',
-      name: 'John Doe',
-      subscribeDate: '2024-01-15',
-      status: 'active',
-      source: 'website'
-    },
-    {
-      id: 'SUB-002',
-      email: 'jane@example.com',
-      name: 'Jane Smith',
-      subscribeDate: '2024-01-14',
-      status: 'active',
-      source: 'website'
-    },
-    {
-      id: 'SUB-003',
-      email: 'mike@example.com',
-      subscribeDate: '2024-01-13',
-      status: 'unsubscribed',
-      source: 'manual'
-    },
-    {
-      id: 'SUB-004',
-      email: 'sarah@example.com',
-      name: 'Sarah Wilson',
-      subscribeDate: '2024-01-12',
-      status: 'active',
-      source: 'website'
-    },
-    {
-      id: 'SUB-005',
-      email: 'david@example.com',
-      subscribeDate: '2024-01-11',
-      status: 'active',
-      source: 'import'
-    }
-  ];
+  const [subscribersState, setSubscribersState] = useState<Subscriber[]>([]);
+  const [subscribersLoading, setSubscribersLoading] = useState(false);
+  const [subscribersError, setSubscribersError] = useState<string | null>(null);
 
-  // Mock campaigns data
-  const campaigns: Campaign[] = [
-    {
-      id: 'CAM-001',
-      subject: 'New ICT Equipment Arrivals - January 2024',
-      content: 'Check out our latest collection of laptops and networking equipment...',
-      sentDate: '2024-01-15',
-      recipients: 234,
-      openRate: 24.5,
-      clickRate: 3.2
-    },
-    {
-      id: 'CAM-002',
-      subject: 'Electrical Materials Sale - 20% Off',
-      content: 'Limited time offer on all electrical components and tools...',
-      sentDate: '2024-01-10',
-      recipients: 221,
-      openRate: 31.2,
-      clickRate: 5.8
-    },
-    {
-      id: 'CAM-003',
-      subject: 'BLOOMTECH Hub Newsletter - December 2023',
-      content: 'Year-end recap and upcoming product launches...',
-      sentDate: '2023-12-30',
-      recipients: 198,
-      openRate: 18.7,
-      clickRate: 2.1
-    }
-  ];
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(false);
+  const [campaignsError, setCampaignsError] = useState<string | null>(null);
 
-  const [subscribersState, setSubscribersState] = useState<Subscriber[]>(subscribers);
+  // Fetch subscribers from backend
+  const fetchSubscribers = async () => {
+    setSubscribersLoading(true);
+    setSubscribersError(null);
+    try {
+      const res = await fetch('/api/subscribers', {
+        headers: { Authorization: `Bearer ${currentUser?.token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch subscribers');
+      const data = await res.json();
+      setSubscribersState(data);
+    } catch (err: any) {
+      setSubscribersError(err.message);
+    } finally {
+      setSubscribersLoading(false);
+    }
+  };
+  useEffect(() => { fetchSubscribers(); /* eslint-disable-line */ }, []);
+
+  // Fetch campaigns from backend
+  const fetchCampaigns = async () => {
+    setCampaignsLoading(true);
+    setCampaignsError(null);
+    try {
+      const res = await fetch('/api/campaigns', {
+        headers: { Authorization: `Bearer ${currentUser?.token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch campaigns');
+      const data = await res.json();
+      setCampaigns(data);
+    } catch (err: any) {
+      setCampaignsError(err.message);
+    } finally {
+      setCampaignsLoading(false);
+    }
+  };
+  useEffect(() => { fetchCampaigns(); /* eslint-disable-line */ }, []);
 
   const activeSubscribers = subscribersState.filter(s => s.status === 'active');
   const filteredSubscribers = subscribersState.filter(subscriber =>
@@ -148,14 +122,31 @@ const Newsletter = () => {
     (subscriber.name && subscriber.name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  const handleSendCampaign = () => {
-    // In real app, would call API
-    toast({
-      title: "Campaign Sent",
-      description: `Newsletter "${newCampaign.subject}" sent to ${activeSubscribers.length} subscribers`,
-    });
-    setIsComposeOpen(false);
-    setNewCampaign({ subject: '', content: '' });
+  const handleSendCampaign = async () => {
+    if (!newCampaign.subject || !newCampaign.content) {
+      toast({ title: 'Error', description: 'Subject and content are required.', variant: 'destructive' });
+      return;
+    }
+    try {
+      const res = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${currentUser?.token}`
+        },
+        body: JSON.stringify({ subject: newCampaign.subject, content: newCampaign.content })
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to send campaign');
+      }
+      toast({ title: 'Campaign Sent', description: `Newsletter "${newCampaign.subject}" sent successfully.` });
+      setIsComposeOpen(false);
+      setNewCampaign({ subject: '', content: '' });
+      fetchCampaigns();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    }
   };
 
   const handleExportExcel = () => {
@@ -272,19 +263,6 @@ const Newsletter = () => {
             <div className="text-2xl font-bold">{campaigns.length}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Avg. Open Rate
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {(campaigns.reduce((sum, c) => sum + c.openRate, 0) / campaigns.length).toFixed(1)}%
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       <div className="space-y-4">
@@ -383,47 +361,34 @@ const Newsletter = () => {
             <CardHeader>
               <CardTitle>Campaign History</CardTitle>
               <CardDescription>
-                Previous newsletter campaigns and their performance
+                Previous newsletter campaigns
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Subject</TableHead>
-                    <TableHead>Sent Date</TableHead>
-                    <TableHead>Recipients</TableHead>
-                    <TableHead>Open Rate</TableHead>
-                    <TableHead>Click Rate</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {campaigns.map((campaign) => (
-                    <TableRow key={campaign.id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{campaign.subject}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {campaign.content.substring(0, 50)}...
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{new Date(campaign.sentDate).toLocaleDateString()}</TableCell>
-                      <TableCell>{campaign.recipients}</TableCell>
-                      <TableCell>
-                        <Badge variant={campaign.openRate > 25 ? 'default' : 'secondary'}>
-                          {campaign.openRate}%
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={campaign.clickRate > 3 ? 'default' : 'secondary'}>
-                          {campaign.clickRate}%
-                        </Badge>
-                      </TableCell>
+              {campaignsLoading ? (
+                <div>Loading campaigns...</div>
+              ) : campaignsError ? (
+                <div className="text-red-500">{campaignsError}</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Subject</TableHead>
+                      <TableHead>Sent Date</TableHead>
+                      <TableHead>Recipients</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {campaigns.map((c) => (
+                      <TableRow key={c._id || c.id}>
+                        <TableCell>{c.subject}</TableCell>
+                        <TableCell>{new Date(c.sentDate).toLocaleDateString()}</TableCell>
+                        <TableCell>{c.recipients.length}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         )}

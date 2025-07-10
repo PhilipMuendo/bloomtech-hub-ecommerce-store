@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Phone, Clock, Mail, MapPin } from 'lucide-react';
+import { Phone, Clock, Mail, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -85,6 +85,21 @@ const Contact = () => {
                     Opposite Sarit Centre, 3rd Floor, Nairobi
                   </p>
                 </div>
+              </div>
+              {/* Social Media Icons */}
+              <div className="flex items-center space-x-4 pt-4">
+                <a href="https://www.facebook.com/keensellventures/" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+                  <Facebook className="w-6 h-6 text-accent hover:text-blue-600 transition-colors" />
+                </a>
+                <a href="https://x.com/Keensell" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+                  <Twitter className="w-6 h-6 text-accent hover:text-blue-400 transition-colors" />
+                </a>
+                <a href="https://www.instagram.com/keensellventures/?hl=en" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                  <Instagram className="w-6 h-6 text-accent hover:text-pink-500 transition-colors" />
+                </a>
+                <a href="https://ke.linkedin.com/company/keensell-ventures" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                  <Linkedin className="w-6 h-6 text-accent hover:text-blue-700 transition-colors" />
+                </a>
               </div>
             </CardContent>
           </Card>

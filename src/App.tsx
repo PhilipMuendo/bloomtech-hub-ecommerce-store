@@ -29,6 +29,8 @@ import Reviews from "./pages/admin/Reviews";
 import Newsletter from "./pages/admin/Newsletter";
 import Account from './pages/Account';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect } from "react";
+import BlogPost from "./pages/BlogPost";
 
 const queryClient = new QueryClient();
 
@@ -118,6 +120,16 @@ const AnimatedRoutes = () => {
             <Blog />
           </motion.div>
         } />
+        <Route path="/blog/:slug" element={
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <BlogPost />
+          </motion.div>
+        } />
         <Route path="/wishlist" element={
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -200,6 +212,12 @@ const AnimatedRoutes = () => {
 const App = () => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
+
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
