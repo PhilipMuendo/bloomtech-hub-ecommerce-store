@@ -40,7 +40,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       <Link to={`/product/${product.id}`} className="flex-1">
         <div className="relative overflow-hidden rounded-t-lg">
           <img
-            src={product.image}
+            src={product.imageUrl || product.image}
             alt={product.name}
             className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
           />
@@ -49,7 +49,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               Featured
             </div>
           )}
-          {!product.inStock && (
+          {product.stock <= 0 && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
               <span className="text-white font-medium">Out of Stock</span>
             </div>
@@ -76,15 +76,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </CardContent>
       </Link>
       <CardFooter className="p-4 pt-0 space-y-2">
-        <div className="flex space-x-2 w-full">
+        <div className="flex items-center space-x-2 w-full">
           <Button
             onClick={handleAddToCart}
-            disabled={!product.inStock}
-            className="flex-1 bg-accent hover:bg-accent/90"
+            disabled={product.stock <= 0}
+            className="flex-grow bg-accent hover:bg-accent/90 min-w-0"
           >
-            {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+            {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
           </Button>
-          <WishlistButton productId={product.id} />
+          <WishlistButton productId={product._id || product.id} iconOnly />
         </div>
       </CardFooter>
     </Card>

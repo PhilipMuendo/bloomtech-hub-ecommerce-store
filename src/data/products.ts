@@ -3,6 +3,8 @@ export interface Product {
   name: string;
   price: number;
   image: string;
+  imageUrl?: string; // optional for backend compatibility
+  stock?: number; // optional for backend compatibility
   category: 'security' | 'ict' | 'electrical' | 'power';
   description: string;
   specifications: string[];

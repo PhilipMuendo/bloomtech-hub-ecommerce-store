@@ -41,8 +41,12 @@ export const login = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (user && (await user.matchPassword(password))) {
+      if (user.status !== 'active') {
+        return res.status(403).json({
+          message: `Your account is currently '${user.status}'. Please contact support if you believe this is a mistake.`
+        });
+      }
       const token = generateToken(user._id, user.role);
-
       res.json({
         _id: user._id,
         name: user.name,

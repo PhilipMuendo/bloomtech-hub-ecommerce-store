@@ -6,41 +6,15 @@ import securitySystemsImg from '@/assets/security-systems.jpg';
 import ictEquipmentImg from '@/assets/ict-equipment.jpg';
 import electricalMaterialsImg from '@/assets/electrical-materials.jpg';
 import powerSolutionsImg from '@/assets/power-solutions.jpg';
+import { categories } from '@/data/categories';
 
-const categories = [
-  {
-    id: 1,
-    title: 'Security Systems',
-    description: 'CCTV cameras, alarms, and access control systems',
-    image: securitySystemsImg,
-    link: '/shop?category=security',
-    bgColor: 'bg-red-500'
-  },
-  {
-    id: 2,
-    title: 'ICT Equipment',
-    description: 'Laptops, computers, networking gear and accessories',
-    image: ictEquipmentImg,
-    link: '/shop?category=ict',
-    bgColor: 'bg-blue-500'
-  },
-  {
-    id: 3,
-    title: 'Electrical Materials',
-    description: 'Cables, circuit breakers, switches and electrical components',
-    image: electricalMaterialsImg,
-    link: '/shop?category=electrical',
-    bgColor: 'bg-green-500'
-  },
-  {
-    id: 4,
-    title: 'Power Solutions',
-    description: 'UPS systems, generators, and power backup solutions',
-    image: powerSolutionsImg,
-    link: '/shop?category=power',
-    bgColor: 'bg-purple-500'
-  }
-];
+// Add this mapping for bgColor
+const categoryBgColors: Record<string, string> = {
+  security: 'bg-red-500',
+  ict: 'bg-blue-500',
+  electrical: 'bg-green-500',
+  power: 'bg-purple-500',
+};
 
 const CategoriesNavigation = () => {
   const [activeCategory, setActiveCategory] = useState(0);
@@ -74,12 +48,12 @@ const CategoriesNavigation = () => {
 
         <div className="relative">
           {/* Main Category Display */}
-          <div className={`${currentCategory.bgColor} rounded-lg p-8 text-white relative overflow-hidden`}>
+          <div className={`${categoryBgColors[currentCategory.value]} rounded-lg p-8 text-white relative overflow-hidden`}>
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <h3 className="text-3xl font-bold mb-3">{currentCategory.title}</h3>
+                <h3 className="text-3xl font-bold mb-3">{currentCategory.display}</h3>
                 <p className="text-white/90 mb-6 max-w-md">{currentCategory.description}</p>
-                <Link to={currentCategory.link}>
+                <Link to={`/shop?category=${currentCategory.value}`}>
                   <Button variant="secondary" className="bg-white/20 text-white border-white/30 hover:bg-white/30">
                     Shop Now
                   </Button>
@@ -89,7 +63,7 @@ const CategoriesNavigation = () => {
               <div className="flex-shrink-0 ml-8">
                 <img 
                   src={currentCategory.image} 
-                  alt={currentCategory.title}
+                  alt={currentCategory.display}
                   className="w-48 h-32 object-cover rounded-lg opacity-90"
                 />
               </div>
@@ -136,8 +110,8 @@ const CategoriesNavigation = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
           {categories.map((category, index) => (
             <Link
-              key={category.id}
-              to={category.link}
+              key={category.value}
+              to={`/shop?category=${category.value}`}
               className={`p-4 rounded-lg border transition-all duration-200 hover:shadow-md ${
                 index === activeCategory 
                   ? 'border-primary bg-primary/5' 
@@ -145,7 +119,7 @@ const CategoriesNavigation = () => {
               }`}
             >
               <div className="text-center">
-                <h4 className="font-semibold text-sm text-foreground mb-1">{category.title}</h4>
+                <h4 className="font-semibold text-sm text-foreground mb-1">{category.display}</h4>
                 <p className="text-xs text-muted-foreground line-clamp-2">{category.description}</p>
               </div>
             </Link>

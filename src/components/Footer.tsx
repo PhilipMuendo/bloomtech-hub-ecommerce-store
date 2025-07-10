@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Clock, Mail, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
+import { categories } from '@/data/categories';
 
 const Footer = () => {
   return (
@@ -50,12 +51,11 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4">Categories</h4>
             <div className="space-y-2">
-              <Link to="/shop?category=ict" className="block text-sm opacity-80 hover:opacity-100 transition-opacity">
-                ICT Equipment
-              </Link>
-              <Link to="/shop?category=electrical" className="block text-sm opacity-80 hover:opacity-100 transition-opacity">
-                Electrical Materials
-              </Link>
+              {categories.map(cat => (
+                <Link key={cat.value} to={`/shop?category=${cat.value}`} className="block text-sm opacity-80 hover:opacity-100 transition-opacity">
+                  {cat.display}
+                </Link>
+              ))}
             </div>
           </div>
 

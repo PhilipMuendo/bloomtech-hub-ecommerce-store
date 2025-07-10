@@ -44,7 +44,13 @@ const Wishlist: React.FC = () => {
   const removeMutation = useMutation({
     mutationFn: ({ productId, token }: { productId: string; token: string }) => removeFromWishlist({ productId, token }),
     onSuccess: (productId) => {
-      queryClient.setQueryData(['wishlist'], (old: any) => old.filter((item: any) => item.product._id !== productId));
+      queryClient.setQueryData(['wishlist'], (old: any) =>
+        old.filter((item: any) =>
+          (item.product?._id !== productId) &&
+          (item.productId !== productId) &&
+          (item.productId?._id !== productId)
+        )
+      );
       toast({ title: 'Removed from wishlist' });
     },
     onError: () => {
@@ -59,10 +65,11 @@ const Wishlist: React.FC = () => {
     return <div className="container mx-auto py-16 text-center text-red-500">Failed to load wishlist.</div>;
   }
   if (!wishlist || (wishlist as any[]).length === 0) {
+    console.log('EMPTY WISHLIST STATE TRIGGERED', wishlist);
     return (
       <div className="container mx-auto py-16 text-center">
         <h1 className="text-3xl font-bold mb-4">Your Wishlist</h1>
-        <p className="text-muted-foreground mb-4">Your wishlist is empty.</p>
+        <p className="text-muted-foreground mb-4">No items in your wishlist. Browse our shop and add products you love!</p>
         <Link to="/shop">
           <Button>Browse Products</Button>
         </Link>
@@ -73,7 +80,6 @@ const Wishlist: React.FC = () => {
   return (
     <div className="container mx-auto py-16">
       <h1 className="text-3xl font-bold mb-8 text-center">Your Wishlist</h1>
-      {console.log('Wishlist data:', wishlist)}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {(wishlist as any[]).map((item: any, idx: number) => {
           const product = item.product || item.productId;
@@ -82,7 +88,7 @@ const Wishlist: React.FC = () => {
             <Card key={product._id || idx} className="flex flex-col h-full">
               <Link to={`/product/${product._id}`} className="flex-1">
                 <img
-                  src={product.image}
+                  src={product.imageUrl || product.image}
                   alt={product.name}
                   className="w-full h-48 object-cover rounded-t-md"
                 />
@@ -97,7 +103,7 @@ const Wishlist: React.FC = () => {
               <div className="flex gap-2 p-4 pt-0">
                 <Button
                   variant="outline"
-                  onClick={() => product._id && removeMutation.mutate({ productId: product._id, token: token! })}
+                  onClick={() => (product._id || product.id) && removeMutation.mutate({ productId: product._id || product.id, token: token! })}
                   disabled={removeMutation.status === 'pending'}
                 >
                   Remove

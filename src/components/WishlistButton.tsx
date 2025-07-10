@@ -7,9 +7,11 @@ import { useAuth } from '@/context/AuthContext';
 
 interface WishlistButtonProps {
   productId: string;
+  className?: string;
+  iconOnly?: boolean;
 }
 
-const WishlistButton: React.FC<WishlistButtonProps> = ({ productId }) => {
+const WishlistButton: React.FC<WishlistButtonProps> = ({ productId, className, iconOnly }) => {
   const { isInWishlist, addToWishlist, removeFromWishlist, wishlistItems } = useWishlist();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -24,10 +26,10 @@ const WishlistButton: React.FC<WishlistButtonProps> = ({ productId }) => {
       return;
     }
     try {
-      if (inWishlist && wishlistItem) {
-        await removeFromWishlist(wishlistItem.id);
+      if (inWishlist && productId) {
+        await removeFromWishlist(productId);
         toast({ title: "Removed from wishlist" });
-      } else {
+      } else if (!inWishlist) {
         await addToWishlist(productId);
         toast({ title: "Added to wishlist" });
       }
@@ -40,12 +42,14 @@ const WishlistButton: React.FC<WishlistButtonProps> = ({ productId }) => {
     <>
       <Button
         variant="outline"
-        size="sm"
+        size={iconOnly ? "icon" : "sm"}
         onClick={handleWishlistClick}
-        className={inWishlist ? "text-red-500 border-red-500" : ""}
+        className={`${inWishlist ? "text-red-500 border-red-500" : ""} ${className || ''}`}
+        aria-label={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+        title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
       >
-        <Heart className={`w-4 h-4 mr-2 ${inWishlist ? "fill-current" : ""}`} />
-        {inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
+        <Heart className={`w-4 h-4 ${iconOnly ? '' : 'mr-2'} ${inWishlist ? "fill-current" : ""}`} />
+        {!iconOnly && (inWishlist ? "Remove from Wishlist" : "Add to Wishlist")}
       </Button>
     </>
   );

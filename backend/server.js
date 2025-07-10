@@ -19,6 +19,7 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import campaignRoutes from './routes/campaignRoutes.js';
 import blogRoutes from './routes/blogRoutes.js';
 import connectDB from './config/db.js';
+import fs from 'fs';
 
 // Load environment variables
 dotenv.config();
@@ -32,7 +33,14 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(morgan('dev'));
-app.use('/public', express.static(path.join(__dirname, '../public')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
+console.log('Static files served from:', path.join(__dirname, '../public'));
+const staticDir = path.join(__dirname, '../public/lovable-uploads');
+if (fs.existsSync(staticDir)) {
+  console.log('Files in lovable-uploads:', fs.readdirSync(staticDir));
+} else {
+  console.log('lovable-uploads directory does not exist:', staticDir);
+}
 
 // Route placeholders
 app.get('/', (req, res) => {

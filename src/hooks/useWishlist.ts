@@ -52,7 +52,11 @@ export const useWishlist = () => {
   });
 
   const isInWishlist = (productId: string) => {
-    return wishlist.some((item: any) => item.productId === productId || item.product?._id === productId);
+    return wishlist.some((item: any) =>
+      (typeof item.productId === 'string' && item.productId === productId) ||
+      (typeof item.productId === 'object' && item.productId?._id === productId) ||
+      (item.product?._id === productId)
+    );
   };
 
   return {

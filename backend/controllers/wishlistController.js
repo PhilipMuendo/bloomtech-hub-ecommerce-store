@@ -3,8 +3,13 @@ import mongoose from 'mongoose';
 
 // Get current user's wishlist
 export const getWishlist = async (req, res) => {
-  const wishlist = await Wishlist.find({ userId: req.user._id }).populate('productId');
-  res.json(wishlist);
+  try {
+    const wishlist = await Wishlist.find({ userId: req.user._id }).populate('productId');
+    res.json(wishlist);
+  } catch (err) {
+    console.error('Wishlist fetch error:', err);
+    res.status(500).json({ message: 'Failed to fetch wishlist', error: err.message });
+  }
 };
 
 // Add to wishlist
@@ -30,8 +35,16 @@ export const addToWishlist = async (req, res) => {
 
 // Remove from wishlist
 export const removeFromWishlist = async (req, res) => {
-  const { itemId } = req.params;
-  const item = await Wishlist.findOneAndDelete({ _id: itemId, userId: req.user._id });
-  if (!item) return res.status(404).json({ message: 'Wishlist item not found' });
-  res.json({ message: 'Item removed' });
+  const { productId } = req.params;
+  if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+    return res.status(400).json({ message: 'Invalid or missing productId' });
+  }
+  try {
+    const item = await Wishlist.findOneAndDelete({ productId, userId: req.user._id });
+    if (!item) return res.status(404).json({ message: 'Wishlist item not found for this product' });
+    res.json({ message: 'Item removed' });
+  } catch (err) {
+    console.error('Wishlist remove error:', err);
+    res.status(500).json({ message: 'Failed to remove from wishlist', error: err.message });
+  }
 }; 

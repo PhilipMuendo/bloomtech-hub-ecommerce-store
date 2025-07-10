@@ -11,6 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { categories, categoryDisplayMap } from '@/data/categories';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import { useCallback, useRef } from 'react';
+import { useDropzone } from 'react-dropzone';
 
 export interface Product {
   _id: string;
@@ -23,6 +29,23 @@ export interface Product {
   inStock: boolean;
   featured?: boolean;
 }
+
+const productSchema = yup.object().shape({
+  name: yup.string().required('Product name is required'),
+  price: yup.number().typeError('Price must be a number').positive('Price must be positive').required('Price is required'),
+  category: yup.string().oneOf(categories.map(c => c.value), 'Select a valid category').required('Category is required'),
+  image: yup.string().required('Image is required'),
+  description: yup.string().required('Description is required'),
+  specifications: yup.array().of(yup.string().required('Specification cannot be empty')).min(1, 'At least one specification is required'),
+  stock: yup.number().typeError('Stock must be a number').integer('Stock must be an integer').min(0, 'Stock cannot be negative').required('Stock is required'),
+  featured: yup.boolean(),
+});
+
+const getImageUrl = (url: string) => {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `http://localhost:5000${url}`;
+};
 
 const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -76,7 +99,7 @@ const Products = () => {
   // Extract unique categories from products
   const uniqueCategories = Array.from(new Set(products.map(p => p.category)));
 
-  const handleAddProduct = async () => {
+  const handleAddProduct = async (formData?: any) => {
     setLoading(true);
     setError(null);
     try {
@@ -87,15 +110,16 @@ const Products = () => {
           Authorization: `Bearer ${currentUser?.token}`
         },
         body: JSON.stringify({
-          ...newProduct,
-          price: Number(newProduct.price),
-          specifications: newProduct.specifications.split('\n')
+          ...formData,
+          imageUrl: formData.image, // map image to imageUrl
+          price: Number(formData.price),
+          specifications: formData.specifications,
+          inStock: formData.stock > 0,
         })
       });
       if (!res.ok) throw new Error('Failed to add product');
-      toast({ title: 'Product Added', description: `${newProduct.name} has been added to the catalog.` });
+      toast({ title: 'Product Added', description: `${formData.name} has been added to the catalog.` });
       setIsAddDialogOpen(false);
-      setNewProduct({ name: '', price: 0, category: 'ict', description: '', image: '', specifications: '', inStock: true });
       fetchProducts();
     } catch (err: any) {
       setError(err.message);
@@ -183,104 +207,228 @@ const Products = () => {
 
   const ProductForm = ({ product, onSave, onCancel }: {
     product?: Product;
-    onSave: () => void;
+    onSave: (data?: any) => void;
     onCancel: () => void;
   }) => {
-    const [localImage, setLocalImage] = useState(product ? product.image : newProduct.image);
+    const isEdit = !!product;
+    const defaultValues = product ? {
+      name: product.name,
+      price: product.price,
+      category: product.category,
+      image: product.image,
+      description: product.description,
+      specifications: product.specifications,
+      stock: product.inStock ? 1 : 0, // fallback
+      featured: product.featured || false,
+    } : {
+      name: '',
+      price: 0,
+      category: categories[0].value,
+      image: '',
+      description: '',
+      specifications: [''] as string[], // Ensure default value is an array
+      stock: 1,
+      featured: false,
+    };
+
+    const { control, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm({
+      defaultValues,
+      resolver: yupResolver(productSchema),
+      mode: 'onBlur',
+    });
+    const { fields, append, remove } = useFieldArray({
+      control,
+      name: 'specifications',
+    });
+    const imageValue = watch('image');
+    const dropzoneRef = useRef(null);
+
+    // Drag-and-drop image upload
+    const onDrop = useCallback(async (acceptedFiles: File[]) => {
+      if (acceptedFiles.length > 0) {
+        setValue('image', '');
+        setValue('image', await uploadImage(acceptedFiles[0]));
+      }
+    }, [setValue]);
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'image/*': [] } });
+
+    async function uploadImage(file: File): Promise<string> {
+      setValue('image', '');
+      setValue('image', 'uploading');
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!res.ok) throw new Error('Image upload failed');
+        const data = await res.json();
+        return data.url;
+      } catch (err) {
+        return '';
+      }
+    }
+
+    const onSubmit = async (data: any) => {
+      await onSave(data);
+    };
+
+    // Live preview data
+    const previewData = watch();
+
     return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-4 md:p-8 min-w-[350px] w-full max-w-2xl mx-auto" aria-label="Add Product Form">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <Label htmlFor="name">Product Name</Label>
-            <Input
-              id="name"
-              value={product ? product.name : newProduct.name}
-              onChange={(e) => product ? setEditingProduct({ ...product, name: e.target.value }) : setNewProduct({...newProduct, name: e.target.value})}
-              placeholder="Enter product name"
+            <Controller
+              name="name"
+              control={control}
+              render={({ field }) => (
+                <Input id="name" {...field} placeholder="Enter product name" aria-invalid={!!errors.name} />
+              )}
             />
+            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
           </div>
           <div>
             <Label htmlFor="price">Price (KES)</Label>
-            <Input
-              id="price"
-              type="number"
-              value={product ? product.price : newProduct.price}
-              onChange={(e) => product ? setEditingProduct({ ...product, price: Number(e.target.value) }) : setNewProduct({...newProduct, price: Number(e.target.value)})}
-              placeholder="0"
+            <Controller
+              name="price"
+              control={control}
+              render={({ field }) => (
+                <Input id="price" type="number" {...field} placeholder="0" aria-invalid={!!errors.price} />
+              )}
             />
+            {errors.price && <p className="text-red-500 text-xs mt-1">{errors.price.message}</p>}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <Label htmlFor="category">Category</Label>
+            <Controller
+              name="category"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="category">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map(cat => (
+                      <SelectItem key={cat.value} value={cat.value}>{cat.display}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
+          </div>
+          <div>
+            <Label htmlFor="stock">Stock</Label>
+            <Controller
+              name="stock"
+              control={control}
+              render={({ field }) => (
+                <Input id="stock" type="number" min={0} {...field} placeholder="Stock quantity" aria-invalid={!!errors.stock} />
+              )}
+            />
+            {errors.stock && <p className="text-red-500 text-xs mt-1">{errors.stock.message}</p>}
           </div>
         </div>
         <div>
-          <Label htmlFor="category">Category</Label>
-          <Select value={product ? product.category : newProduct.category} onValueChange={(value) => product ? setEditingProduct({ ...product, category: value as Product["category"] }) : setNewProduct({ ...newProduct, category: value as 'ict' | 'electrical' })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ict">ICT Equipment</SelectItem>
-              <SelectItem value="electrical">Electrical Materials</SelectItem>
-            </SelectContent>
-          </Select>
+          <Label htmlFor="featured" className="flex items-center gap-2">
+            <Controller
+              name="featured"
+              control={control}
+              render={({ field }) => (
+                <input id="featured" type="checkbox" checked={field.value} onChange={e => field.onChange(e.target.checked)} />
+              )}
+            />
+            Featured Product
+          </Label>
         </div>
         <div>
-          <Label htmlFor="image">Image URL</Label>
-          <Input
-            id="image"
-            value={localImage}
-            onChange={(e) => {
-              setLocalImage(e.target.value);
-              if (product) {
-                setEditingProduct({ ...product, image: e.target.value });
-              } else {
-                setNewProduct({ ...newProduct, image: e.target.value });
-              }
-            }}
-            placeholder="https://example.com/image.jpg"
-          />
-          <input
-            type="file"
-            accept="image/*"
-            onChange={async (e) => {
-              if (e.target.files && e.target.files[0]) {
-                await handleImageUpload(e.target.files[0], (url) => {
-                  setLocalImage(url);
-                  if (product) {
-                    setEditingProduct({ ...product, image: url });
-                  } else {
-                    setNewProduct({ ...newProduct, image: url });
-                  }
-                });
-              }
-            }}
-            style={{ marginTop: 8 }}
-          />
-          {localImage && (
-            <img src={localImage} alt="Preview" style={{ width: 80, height: 80, objectFit: 'cover', marginTop: 8, borderRadius: 8 }} />
+          <Label>Product Image</Label>
+          <div {...getRootProps()} className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}
+            aria-label="Image Upload Dropzone">
+            <input {...getInputProps()} />
+            {isDragActive ? (
+              <p>Drop the image here ...</p>
+            ) : (
+              <p>Drag 'n' drop an image here, or click to select</p>
+            )}
+          </div>
+          {imageValue === 'uploading' && <p className="text-blue-500 text-xs mt-1">Uploading image...</p>}
+          {imageValue && imageValue !== 'uploading' && (
+            <img src={getImageUrl(imageValue)} alt="Preview" className="w-32 h-32 object-cover rounded-lg mt-2 mx-auto" />
           )}
+          {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image.message}</p>}
         </div>
         <div>
           <Label htmlFor="description">Description</Label>
-          <Textarea
-            id="description"
-            value={product ? product.description : newProduct.description}
-            onChange={(e) => product ? setEditingProduct({ ...product, description: e.target.value }) : setNewProduct({...newProduct, description: e.target.value})}
-            placeholder="Enter product description"
+          <Controller
+            name="description"
+            control={control}
+            render={({ field }) => (
+              <Textarea id="description" {...field} placeholder="Enter product description" aria-invalid={!!errors.description} />
+            )}
           />
+          {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
         </div>
         <div>
-          <Label htmlFor="specifications">Specifications (one per line)</Label>
-          <Textarea
-            id="specifications"
-            value={product ? (product.specifications?.join('\n') || '') : newProduct.specifications}
-            onChange={(e) => product ? setEditingProduct({ ...product, specifications: e.target.value.split('\n') }) : setNewProduct({...newProduct, specifications: e.target.value})}
-            placeholder="Enter specifications, one per line"
-          />
+          <Label>Specifications</Label>
+          {fields.map((item, idx) => (
+            <div key={item.id} className="flex gap-2 mb-2">
+              <Controller
+                name={`specifications.${idx}`}
+                control={control}
+                render={({ field }) => (
+                  <Input {...field} placeholder={`Specification #${idx + 1}`} aria-invalid={!!errors.specifications?.[idx]} />
+                )}
+              />
+              <Button type="button" variant="outline" onClick={() => remove(idx)} aria-label={`Remove specification ${idx + 1}`}>Remove</Button>
+            </div>
+          ))}
+          <Button type="button" onClick={() => append('')} variant="secondary" className="mt-2">Add Specification</Button>
+          {errors.specifications && typeof errors.specifications.message === 'string' && (
+            <p className="text-red-500 text-xs mt-1">{errors.specifications.message}</p>
+          )}
         </div>
         <div className="flex justify-end space-x-2">
-          <Button variant="outline" onClick={onCancel}>Cancel</Button>
-          <Button onClick={onSave}>Save Product</Button>
+          <Button variant="outline" type="button" onClick={onCancel}>Cancel</Button>
+          <Button type="submit" disabled={isSubmitting}>{isEdit ? 'Update Product' : 'Save Product'}</Button>
         </div>
-      </div>
+        {/* Live Preview */}
+        <div className="mt-8">
+          <h4 className="font-semibold mb-2">Live Preview</h4>
+          <div className="max-w-xs mx-auto">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex flex-col items-center">
+                  {previewData.image && previewData.image !== 'uploading' && (
+                    <img src={getImageUrl(previewData.image)} alt="Preview" className="w-32 h-32 object-cover rounded-lg mb-2" />
+                  )}
+                  <div className="font-bold text-lg mb-1">{previewData.name || 'Product Name'}</div>
+                  <div className="text-muted-foreground mb-1">{categoryDisplayMap[previewData.category] || 'Category'}</div>
+                  <div className="text-primary font-semibold mb-1">KES {previewData.price || 0}</div>
+                  <div className="text-xs text-muted-foreground mb-1">{previewData.description || 'Description...'}</div>
+                  <ul className="text-xs text-muted-foreground list-disc pl-4">
+                    {previewData.specifications && previewData.specifications.map((spec: string, idx: number) => (
+                      <li key={idx}>{spec}</li>
+                    ))}
+                  </ul>
+                  <div className="mt-2">
+                    <Badge variant={previewData.featured ? 'default' : 'secondary'}>
+                      {previewData.featured ? 'Featured' : 'Standard'}
+                    </Badge>
+                    <Badge variant={previewData.stock > 0 ? 'default' : 'destructive'} className="ml-2">
+                      {previewData.stock > 0 ? 'In Stock' : 'Out of Stock'}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </form>
     );
   };
 
@@ -298,7 +446,7 @@ const Products = () => {
               Add Product
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Product</DialogTitle>
               <DialogDescription>
@@ -334,10 +482,8 @@ const Products = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {uniqueCategories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </SelectItem>
+                {categories.map(cat => (
+                  <SelectItem key={cat.value} value={cat.value}>{cat.display}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -350,6 +496,7 @@ const Products = () => {
                 <TableHead>Category</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Stock</TableHead>
+                <TableHead>Featured</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -359,7 +506,7 @@ const Products = () => {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <img
-                        src={product.image}
+                        src={getImageUrl(product.image)}
                         alt={product.name}
                         className="w-10 h-10 rounded object-cover"
                       />
@@ -372,14 +519,19 @@ const Products = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={product.category === 'ict' ? 'default' : 'secondary'}>
-                      {product.category === 'ict' ? 'ICT Equipment' : 'Electrical Materials'}
+                    <Badge variant="default">
+                      {categoryDisplayMap[product.category] || product.category}
                     </Badge>
                   </TableCell>
                   <TableCell>KES {product.price.toLocaleString()}</TableCell>
                   <TableCell>
                     <Badge variant={product.inStock ? 'default' : 'destructive'}>
-                      {product.inStock ? 'In Stock' : 'Out of Stock'}
+                      {typeof product['stock'] === 'number' ? product['stock'] : (product.inStock ? 'In Stock' : 'Out of Stock')}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={product.featured ? 'default' : 'secondary'}>
+                      {product.featured ? 'Yes' : 'No'}
                     </Badge>
                   </TableCell>
                   <TableCell>

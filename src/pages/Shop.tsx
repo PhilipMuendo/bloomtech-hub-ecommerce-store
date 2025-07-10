@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProductCard from '@/components/ProductCard';
-import { products, searchProducts, getProductsByCategory } from '@/data/products';
 import { Search } from 'lucide-react';
+import { categories, categoryDisplayMap } from '@/data/categories';
 
 const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -14,21 +14,42 @@ const Shop = () => {
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || 'all');
   const [priceRange, setPriceRange] = useState('all');
   const [sortBy, setSortBy] = useState('name');
-  const [filteredProducts, setFilteredProducts] = useState(products);
+  const [products, setProducts] = useState<any[]>([]); // Changed from Product[] to any[] to avoid conflict
+  const [filteredProducts, setFilteredProducts] = useState<any[]>([]); // Changed from Product[] to any[]
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let result = products;
+    const fetchProducts = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/products');
+        if (!res.ok) throw new Error('Failed to fetch products');
+        const data = await res.json();
+        setProducts(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
 
+  useEffect(() => {
+    let result = [...products];
     // Apply search filter
     if (searchQuery) {
-      result = searchProducts(searchQuery);
+      result = result.filter(product =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
-
     // Apply category filter
     if (categoryFilter && categoryFilter !== 'all') {
       result = result.filter(product => product.category === categoryFilter);
     }
-
     // Apply price range filter
     if (priceRange !== 'all') {
       switch (priceRange) {
@@ -46,7 +67,6 @@ const Shop = () => {
           break;
       }
     }
-
     // Apply sorting
     result.sort((a, b) => {
       switch (sortBy) {
@@ -59,9 +79,8 @@ const Shop = () => {
           return a.name.localeCompare(b.name);
       }
     });
-
     setFilteredProducts(result);
-  }, [searchQuery, categoryFilter, priceRange, sortBy]);
+  }, [products, searchQuery, categoryFilter, priceRange, sortBy]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +112,6 @@ const Shop = () => {
           Discover our complete range of security systems, ICT equipment, electrical materials, and power solutions
         </p>
       </div>
-
       {/* Filters */}
       <div className="bg-white p-6 rounded-lg shadow-sm border mb-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -108,7 +126,6 @@ const Shop = () => {
               className="pl-10"
             />
           </form>
-
           {/* Category Filter */}
           <Select value={categoryFilter} onValueChange={handleCategoryChange}>
             <SelectTrigger>
@@ -116,13 +133,11 @@ const Shop = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="security">Security Systems</SelectItem>
-              <SelectItem value="ict">ICT Equipment</SelectItem>
-              <SelectItem value="electrical">Electrical Materials</SelectItem>
-              <SelectItem value="power">Power Solutions</SelectItem>
+              {categories.map(cat => (
+                <SelectItem key={cat.value} value={cat.value}>{cat.display}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
-
           {/* Price Range */}
           <Select value={priceRange} onValueChange={setPriceRange}>
             <SelectTrigger>
@@ -136,7 +151,6 @@ const Shop = () => {
               <SelectItem value="over-50000">Over KES 50,000</SelectItem>
             </SelectContent>
           </Select>
-
           {/* Sort By */}
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger>
@@ -150,19 +164,21 @@ const Shop = () => {
           </Select>
         </div>
       </div>
-
       {/* Results Count */}
       <div className="mb-6">
         <p className="text-muted-foreground">
           Showing {filteredProducts.length} of {products.length} products
         </p>
       </div>
-
       {/* Products Grid */}
-      {filteredProducts.length > 0 ? (
+      {loading ? (
+        <div className="text-center py-16">Loading products...</div>
+      ) : error ? (
+        <div className="text-center py-16 text-red-500">{error}</div>
+      ) : filteredProducts.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard key={product._id} product={product} />
           ))}
         </div>
       ) : (
