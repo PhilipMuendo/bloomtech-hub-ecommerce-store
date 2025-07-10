@@ -10,7 +10,8 @@ import {
   MessageSquare, 
   Mail,
   LogOut,
-  ArrowLeft
+  ArrowLeft,
+  BookOpen
 } from 'lucide-react';
 
 const AdminLayout = () => {
@@ -24,6 +25,7 @@ const AdminLayout = () => {
     { path: '/admin/users', icon: Users, label: 'Users' },
     { path: '/admin/reviews', icon: MessageSquare, label: 'Reviews' },
     { path: '/admin/newsletter', icon: Mail, label: 'Newsletter' },
+    { path: '/admin/blogs', icon: BookOpen, label: 'Blogs' },
   ];
 
   const handleLogout = () => {

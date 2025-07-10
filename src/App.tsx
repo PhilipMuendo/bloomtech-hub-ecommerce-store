@@ -31,6 +31,10 @@ import Account from './pages/Account';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from "react";
 import BlogPost from "./pages/BlogPost";
+import AdminBlogs from './pages/admin/AdminBlogs';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import ReturnsRefunds from './pages/ReturnsRefunds';
 
 const queryClient = new QueryClient();
 
@@ -182,6 +186,9 @@ const AnimatedRoutes = () => {
             <Account />
           </motion.div>
         } />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        <Route path="/returns-refunds" element={<ReturnsRefunds />} />
         <Route path="/admin" element={
           <ProtectedRoute requireAdmin>
             <AdminLayout />
@@ -193,6 +200,7 @@ const AnimatedRoutes = () => {
           <Route path="users" element={<Users />} />
           <Route path="reviews" element={<Reviews />} />
           <Route path="newsletter" element={<Newsletter />} />
+          <Route path="blogs" element={<AdminBlogs />} />
         </Route>
         <Route path="*" element={
           <motion.div

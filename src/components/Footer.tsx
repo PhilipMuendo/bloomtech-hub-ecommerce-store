@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Phone, Clock, Mail, MapPin } from 'lucide-react';
+import { Phone, Clock, Mail, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -96,15 +96,30 @@ const Footer = () => {
             © 2024 BLOOMTECH Hub. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <Link to="/privacy" className="text-sm opacity-80 hover:opacity-100 transition-opacity">
+            <Link to="/privacy-policy" className="text-sm opacity-80 hover:opacity-100 transition-opacity">
               Privacy Policy
             </Link>
-            <Link to="/terms" className="text-sm opacity-80 hover:opacity-100 transition-opacity">
+            <Link to="/terms-of-service" className="text-sm opacity-80 hover:opacity-100 transition-opacity">
               Terms of Service
             </Link>
-            <Link to="/returns" className="text-sm opacity-80 hover:opacity-100 transition-opacity">
+            <Link to="/returns-refunds" className="text-sm opacity-80 hover:opacity-100 transition-opacity">
               Returns & Refunds
             </Link>
+          </div>
+          {/* Social Media Icons */}
+          <div className="flex space-x-4 mt-4 md:mt-0">
+            <a href="https://www.facebook.com/keensellventures/" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+              <Facebook className="w-6 h-6 text-accent hover:text-blue-600 transition-colors" />
+            </a>
+            <a href="https://x.com/Keensell" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+              <Twitter className="w-6 h-6 text-accent hover:text-blue-400 transition-colors" />
+            </a>
+            <a href="https://www.instagram.com/keensellventures/?hl=en" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+              <Instagram className="w-6 h-6 text-accent hover:text-pink-500 transition-colors" />
+            </a>
+            <a href="https://ke.linkedin.com/company/keensell-ventures" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+              <Linkedin className="w-6 h-6 text-accent hover:text-blue-700 transition-colors" />
+            </a>
           </div>
         </div>
       </div>

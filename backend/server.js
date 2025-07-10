@@ -17,6 +17,7 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import campaignRoutes from './routes/campaignRoutes.js';
+import blogRoutes from './routes/blogRoutes.js';
 import connectDB from './config/db.js';
 
 // Load environment variables
@@ -49,6 +50,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/campaigns', campaignRoutes);
+app.use('/api/blogs', blogRoutes);
 
 // MongoDB connection
 const PORT = process.env.PORT || 5000;

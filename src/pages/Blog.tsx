@@ -1,32 +1,45 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import NewsletterForm from '@/components/NewsletterForm';
 
-export const blogPosts = [
-  {
-    id: 1,
-    title: "Top 5 Tools Every Technician Should Own",
-    excerpt: "Discover the essential tools that every ICT and electrical technician needs in their toolkit for efficient and professional work.",
-    date: "January 15, 2024",
-    readTime: "5 min read",
-    image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=250&fit=crop",
-    slug: "top-5-tools-every-technician-should-own"
-  },
-  {
-    id: 2,
-    title: "Choosing the Right Router for Your Office Setup",
-    excerpt: "Learn how to select the perfect router for your business needs, from small offices to enterprise-level installations.",
-    date: "January 10, 2024",
-    readTime: "7 min read",
-    image: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&h=250&fit=crop",
-    slug: "choosing-the-right-router-for-your-office-setup"
-  }
-];
+interface Blog {
+  _id: string;
+  title: string;
+  content: string;
+  image?: string;
+  author: string;
+  slug: string;
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const Blog = () => {
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/blogs');
+        if (!res.ok) throw new Error('Failed to fetch blogs');
+        const data = await res.json();
+        setBlogs(data.filter((b: Blog) => b.published));
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBlogs();
+  }, []);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -35,22 +48,25 @@ const Blog = () => {
           Stay updated with the latest trends, tips, and insights in ICT equipment and electrical materials.
         </p>
       </div>
-
+      {loading && <div>Loading blogs...</div>}
+      {error && <div className="text-red-500">{error}</div>}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {blogPosts.map((post) => (
-          <Card key={post.id} className="group card-hover">
+        {blogs.map((post) => (
+          <Card key={post._id} className="group card-hover">
             <div className="relative overflow-hidden rounded-t-lg">
-              <img
-                src={post.image}
-                alt={post.title}
-                className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-              />
+              {post.image && (
+                <img
+                  src={post.image}
+                  alt={post.title}
+                  className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+              )}
             </div>
             <CardHeader>
               <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-2">
-                <span>{post.date}</span>
+                <span>{new Date(post.createdAt).toLocaleDateString()}</span>
                 <span>•</span>
-                <span>{post.readTime}</span>
+                <span>{post.author}</span>
               </div>
               <CardTitle className="group-hover:text-primary transition-colors">
                 {post.title}
@@ -58,7 +74,7 @@ const Blog = () => {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground mb-4 line-clamp-3">
-                {post.excerpt}
+                {post.content.slice(0, 120)}{post.content.length > 120 ? '...' : ''}
               </p>
               <Button variant="outline" asChild>
                 <Link to={`/blog/${post.slug}`}>
@@ -69,7 +85,6 @@ const Blog = () => {
           </Card>
         ))}
       </div>
-
       <div className="mt-12 text-center">
         <div className="bg-muted rounded-lg p-8">
           <h2 className="text-2xl font-bold mb-4">Subscribe to Our Newsletter</h2>
