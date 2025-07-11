@@ -1,4 +1,5 @@
 import Product from '../models/Product.js';
+import { Parser as Json2csvParser } from 'json2csv';
 
 // GET /api/products
 export const getAllProducts = async (req, res, next) => {
@@ -83,6 +84,28 @@ export const getLowStockProducts = async (req, res, next) => {
     const threshold = parseInt(req.query.threshold) || 10;
     const products = await Product.find({ stock: { $lt: threshold, $gt: 0 } }).lean();
     res.json(products);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Export products as CSV
+export const exportProductsCSV = async (req, res, next) => {
+  try {
+    const products = await Product.find({}).lean();
+    if (!products || products.length === 0) {
+      return res.status(404).json({ error: 'No products found to export.' });
+    }
+    // Define fields to export
+    const fields = [
+      'name', 'description', 'price', 'category', 'brand', 'stock', 'image', 'createdAt', 'updatedAt'
+    ];
+    const opts = { fields };
+    const parser = new Json2csvParser(opts);
+    const csv = parser.parse(products);
+    res.header('Content-Type', 'text/csv');
+    res.attachment('products.csv');
+    res.send(csv);
   } catch (err) {
     next(err);
   }

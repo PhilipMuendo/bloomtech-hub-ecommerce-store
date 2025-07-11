@@ -37,7 +37,7 @@ const productSchema = yup.object().shape({
     .min(2, 'Product name must be at least 2 characters')
     .max(100, 'Product name must be at most 100 characters')
     .matches(/[a-zA-Z]/, 'Product name must contain letters')
-    .notOneOf([/^[0-9]+$/], 'Product name cannot be only digits'),
+    .test('not-only-digits', 'Product name cannot be only digits', value => !/^[0-9]+$/.test(value || '')),
   price: yup.number()
     .typeError('Price must be a number')
     .moreThan(1, 'Price must be greater than 1 KES')
@@ -465,28 +465,19 @@ const Products = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Products</h1>
           <p className="text-muted-foreground">Manage your product catalog</p>
         </div>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Product
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
-              <DialogDescription>
-                Create a new product for the catalog
-              </DialogDescription>
-            </DialogHeader>
-            <ProductForm onSave={handleAddProduct} onCancel={() => setIsAddDialogOpen(false)} />
-          </DialogContent>
-        </Dialog>
+        <Button
+          onClick={() => {
+            window.open('/api/products/export/csv', '_blank');
+          }}
+          variant="outline"
+        >
+          Export Products (CSV)
+        </Button>
       </div>
 
       <Card>
