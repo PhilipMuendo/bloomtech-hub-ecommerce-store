@@ -21,6 +21,9 @@ const userSchema = new mongoose.Schema({
     default: 'user' 
   },
   isAdmin: { type: Boolean, default: false },
+  verified: { type: Boolean, default: false },
+  verificationToken: { type: String, default: null },
+  verificationTokenExpires: { type: Date, default: null },
 }, { timestamps: true });
 
 const User = mongoose.model('User', userSchema);
@@ -40,6 +43,29 @@ async function createSuperAdmin() {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       console.log('Superadmin user already exists with this email.');
+      // Update fields if missing or incorrect
+      existingUser.verified = true;
+      existingUser.status = 'active';
+      await existingUser.save();
+      console.log('Updated fields:', {
+        verified: existingUser.verified,
+        status: existingUser.status,
+        password: existingUser.password
+      });
+      // List all users
+      const allUsers = await User.find({});
+      console.log('All users:');
+      allUsers.forEach(u => {
+        console.log({ _id: u._id, name: u.name, email: u.email, role: u.role });
+      });
+      // Delete all users except superadmin
+      await User.deleteMany({ email: { $ne: email } });
+      console.log('Deleted all users except superadmin.');
+      const remainingUsers = await User.find({});
+      console.log('Remaining users:');
+      remainingUsers.forEach(u => {
+        console.log({ _id: u._id, name: u.name, email: u.email, role: u.role });
+      });
       await mongoose.disconnect();
       return;
     }
@@ -53,7 +79,10 @@ async function createSuperAdmin() {
       email: email,
       password: hashedPassword,
       role: 'superadmin',
-      isAdmin: true
+      isAdmin: true,
+      verified: true, // Bypass email verification
+      verificationToken: null,
+      verificationTokenExpires: null
     });
 
     await superadmin.save();

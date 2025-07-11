@@ -159,8 +159,8 @@ const AdminLayout = () => {
                 <Menu className="h-6 w-6" />
               </Button>
               <h1 className="text-lg md:text-xl font-semibold">
-                {menuItems.find(item => isActive(item.path))?.label || 'Admin Dashboard'}
-              </h1>
+                  {menuItems.find(item => isActive(item.path))?.label || 'Admin Dashboard'}
+                </h1>
               {/* Notification bell for low stock */}
               {(user && (user.role === 'admin' || user.role === 'superadmin')) && (
                 <div className="relative ml-4">
@@ -202,7 +202,7 @@ const AdminLayout = () => {
                     </div>,
                     document.body
                   )}
-                </div>
+              </div>
               )}
             </div>
           </header>

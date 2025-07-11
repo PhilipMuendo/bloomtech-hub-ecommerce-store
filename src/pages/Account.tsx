@@ -50,9 +50,14 @@ const Account = () => {
       if (!res.ok) throw new Error('Failed to update profile');
       const updated = await res.json();
       toast({ title: 'Success', description: 'Profile updated successfully!' });
-      setTimeout(() => navigate('/shop'), 2000);
-      // Optionally update context/localStorage
-      // await login(updated.email, undefined); // re-login to update context (if needed)
+      // Update context/localStorage with new user info
+      if (updated && updated.name && updated.email) {
+        const newUser = { ...user, name: updated.name, email: updated.email };
+        localStorage.setItem('user', JSON.stringify(newUser));
+        // If you have a setUser or dispatch function in AuthContext, call it here to update context immediately
+        // Example: dispatch({ type: 'LOGIN_SUCCESS', payload: newUser });
+      }
+      setTimeout(() => navigate('/shop'), 1000);
     } catch (err: any) {
       toast({ title: 'Error', description: err.message || 'Update failed', variant: 'destructive' });
     } finally {

@@ -34,6 +34,9 @@ const userSchema = new mongoose.Schema({
   },
   status: { type: String, enum: ['active', 'suspended'], default: 'active' },
   isAdmin: { type: Boolean, default: false },
+  verified: { type: Boolean, default: false },
+  verificationToken: { type: String },
+  verificationTokenExpires: { type: Date },
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

@@ -12,6 +12,7 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; password?: string }>({});
+  const [successMessage, setSuccessMessage] = useState('');
   const { register, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -28,12 +29,13 @@ const Register = () => {
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
     try {
-      await register(name, email, password);
-      toast({
-        title: "Success",
-        description: "Account created successfully",
-      });
-      navigate('/');
+      const res = await register(name, email, password);
+      if (res && res.message) {
+        setSuccessMessage(res.message);
+      } else {
+        setSuccessMessage('Registration successful. Please check your email to verify your account.');
+      }
+      // Do not navigate to home/login yet
     } catch (error: any) {
       toast({
         title: "Error",
@@ -42,6 +44,22 @@ const Register = () => {
       });
     }
   };
+
+  if (successMessage) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Registration Successful</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">{successMessage}</p>
+            <p className="text-muted-foreground text-sm mb-4">Didn't receive the email? Check your spam folder or <a href="/resend-verification" className="text-primary underline">resend verification</a>.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

@@ -151,30 +151,30 @@ const AdminBlogs = () => {
         <CardContent>
           <div className="w-full overflow-x-auto">
             <Table className="min-w-[600px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Author</TableHead>
-                  <TableHead>Slug</TableHead>
-                  <TableHead>Published</TableHead>
-                  <TableHead>Actions</TableHead>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Title</TableHead>
+                <TableHead>Author</TableHead>
+                <TableHead>Slug</TableHead>
+                <TableHead>Published</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {blogs.map((blog) => (
+                <TableRow key={blog._id}>
+                  <TableCell>{blog.title}</TableCell>
+                  <TableCell>{blog.author}</TableCell>
+                  <TableCell>{blog.slug}</TableCell>
+                  <TableCell>{blog.published ? 'Yes' : 'No'}</TableCell>
+                  <TableCell>
+                    <Button size="sm" variant="outline" onClick={() => handleOpenDialog(blog)}>Edit</Button>
+                    <Button size="sm" variant="destructive" className="ml-2" onClick={() => handleDelete(blog._id)}>Delete</Button>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {blogs.map((blog) => (
-                  <TableRow key={blog._id}>
-                    <TableCell>{blog.title}</TableCell>
-                    <TableCell>{blog.author}</TableCell>
-                    <TableCell>{blog.slug}</TableCell>
-                    <TableCell>{blog.published ? 'Yes' : 'No'}</TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="outline" onClick={() => handleOpenDialog(blog)}>Edit</Button>
-                      <Button size="sm" variant="destructive" className="ml-2" onClick={() => handleDelete(blog._id)}>Delete</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+              ))}
+            </TableBody>
+          </Table>
           </div>
         </CardContent>
       </Card>
