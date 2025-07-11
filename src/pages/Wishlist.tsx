@@ -62,7 +62,8 @@ const Wishlist: React.FC = () => {
     return <div className="container mx-auto py-16 text-center">Loading your wishlist...</div>;
   }
   if (isError) {
-    return <div className="container mx-auto py-16 text-center text-red-500">Failed to load wishlist.</div>;
+    toast({ title: 'Error', description: 'Failed to load wishlist.', variant: 'destructive' });
+    return null;
   }
   if (!wishlist || (wishlist as any[]).length === 0) {
     console.log('EMPTY WISHLIST STATE TRIGGERED', wishlist);

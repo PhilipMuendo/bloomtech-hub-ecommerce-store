@@ -33,14 +33,18 @@ const ProductDetail = () => {
   }
 
   const handleAddToCart = () => {
-    addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.image,
-      category: product.category
-    });
-    toast({ title: 'Added to cart!', description: product.name });
+    try {
+      addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        category: product.category
+      });
+      toast({ title: 'Added to cart!', description: product.name });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error?.message || 'Failed to add to cart', variant: 'destructive' });
+    }
   };
 
   const formatPrice = (price: number) => {
@@ -138,6 +142,12 @@ const ProductDetail = () => {
                 {product.inStock ? 'In Stock' : 'Out of Stock'}
               </span>
             </div>
+            {/* Low stock alert for users */}
+            {product.inStock && typeof product.stock === 'number' && product.stock < 10 && product.stock > 0 && (
+              <div className="text-sm text-red-600 font-semibold mt-1">
+                Only {product.stock} left in stock!
+              </div>
+            )}
 
             <div className="flex space-x-2">
               <Button
@@ -148,7 +158,7 @@ const ProductDetail = () => {
               >
                 {product.inStock ? 'Add to Cart' : 'Out of Stock'}
               </Button>
-              <WishlistButton productId={product.id} />
+              <WishlistButton productId={product.id} onError={(err) => toast({ title: 'Error', description: err?.message || 'Failed to update wishlist', variant: 'destructive' })} />
             </div>
 
             <div className="text-sm text-muted-foreground space-y-1">

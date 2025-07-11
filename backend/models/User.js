@@ -2,9 +2,31 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+  name: {
+    type: String,
+    required: true,
+    minlength: 2,
+    maxlength: 50,
+    validate: {
+      validator: v => /[a-zA-Z]{2,}/.test(v) && !/^\d+$/.test(v),
+      message: 'Name must contain at least 2 letters and not be only digits.'
+    }
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    match: [/^[^@\s]+@[^@\s]+\.[^@\s]+$/, 'Invalid email format']
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: [6, 'Password must be at least 6 characters'],
+    validate: {
+      validator: v => !['123456', 'password', 'qwerty'].includes(v),
+      message: 'Password is too simple.'
+    }
+  },
   role: { 
     type: String, 
     enum: ['user', 'admin', 'superadmin'], 

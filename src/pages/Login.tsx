@@ -10,12 +10,20 @@ import { useToast } from '@/hooks/use-toast';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const { login, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Inline validation
+    const errors: { email?: string; password?: string } = {};
+    if (!email) errors.email = 'Email is required';
+    else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) errors.email = 'Invalid email address';
+    if (!password) errors.password = 'Password is required';
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
     try {
       await login(email, password);
       toast({
@@ -49,7 +57,9 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                aria-invalid={!!fieldErrors.email}
               />
+              {fieldErrors.email && <p className="text-destructive text-xs mt-1">{fieldErrors.email}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
@@ -59,7 +69,9 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                aria-invalid={!!fieldErrors.password}
               />
+              {fieldErrors.password && <p className="text-destructive text-xs mt-1">{fieldErrors.password}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Logging in...' : 'Login'}

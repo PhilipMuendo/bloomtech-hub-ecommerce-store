@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Search, ShoppingCart, Search as SearchIcon, User, List, Heart, LogOut, ChevronDown } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Search, ShoppingCart, Search as SearchIcon, User, List, Heart, LogOut, ChevronDown, Shield } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { motion } from 'framer-motion';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -43,6 +44,14 @@ const UserDropdown = () => {
             <Heart className="w-4 h-4" /> Wishlist
           </Link>
         </DropdownMenuItem>
+        {/* Admin Panel link for admin/superadmin */}
+        {(user.role === 'admin' || user.role === 'superadmin') && (
+          <DropdownMenuItem asChild>
+            <Link to="/admin" className="flex items-center gap-2 text-blue-600 font-semibold">
+              <Shield className="w-4 h-4" /> Admin Panel
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem
           onClick={() => {
@@ -79,6 +88,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
   const { cartItems } = useCart();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -90,6 +100,7 @@ const Header = () => {
   };
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const isHomePage = location.pathname === '/';
 
   return (
     <header className="bg-white shadow-lg sticky top-0 z-50">
@@ -98,13 +109,31 @@ const Header = () => {
         <div className="flex items-center justify-between py-4">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
+            <motion.div 
+              className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center"
+              initial={isHomePage ? { scale: 0 } : { scale: 1 }}
+              animate={isHomePage ? { scale: 1 } : { scale: 1 }}
+              transition={isHomePage ? { 
+                type: "spring", 
+                stiffness: 260, 
+                damping: 20,
+                duration: 0.8 
+              } : { duration: 0 }}
+            >
               <span className="text-white font-bold text-lg">BT</span>
-            </div>
-            <div>
+            </motion.div>
+            <motion.div
+              initial={isHomePage ? { opacity: 0, x: -20 } : { opacity: 1, x: 0 }}
+              animate={isHomePage ? { opacity: 1, x: 0 } : { opacity: 1, x: 0 }}
+              transition={isHomePage ? { 
+                delay: 0.3, 
+                duration: 0.6,
+                ease: "easeOut"
+              } : { duration: 0 }}
+            >
               <h1 className="text-2xl font-bold text-primary">BLOOMTECH</h1>
               <p className="text-sm text-accent -mt-1">Hub</p>
-            </div>
+            </motion.div>
           </Link>
 
           {/* Search Bar */}

@@ -6,6 +6,9 @@ import { Package, ShoppingCart, Users, MessageSquare, Mail, TrendingUp, Calendar
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar, ResponsiveContainer } from 'recharts';
 import { products } from '@/data/products';
 import AnimatedCounter from '@/components/AnimatedCounter';
+import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 const Dashboard = () => {
   const [dateRange, setDateRange] = useState('last30days');
@@ -15,6 +18,7 @@ const Dashboard = () => {
   const [userSignupsData, setUserSignupsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,6 +63,7 @@ const Dashboard = () => {
         setUserSignupsData(signups);
       } catch (err) {
         setError(err.message || 'Error loading dashboard');
+        toast({ title: 'Error', description: err.message || 'Error loading dashboard', variant: 'destructive' });
       } finally {
         setLoading(false);
       }
@@ -108,23 +113,33 @@ const Dashboard = () => {
   );
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-2 sm:p-4 md:p-6">
       {loading ? (
         <div className="text-center py-20 text-lg">Loading dashboard...</div>
-      ) : error ? (
-        <div className="text-center py-20 text-red-500">{error}</div>
+      ) : error && !loading ? (
+        <Dialog open>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Critical Error</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">{error}</div>
+            <DialogFooter>
+              <Button onClick={() => window.location.reload()}>Reload</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       ) : (
         <>
           {/* Header with Date Filter */}
-          <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-              <p className="text-muted-foreground">Welcome to BLOOMTECH Hub Admin</p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">Welcome to BLOOMTECH Hub Admin</p>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 mt-2 sm:mt-0">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <Select value={dateRange} onValueChange={setDateRange}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-32 sm:w-40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -138,7 +153,7 @@ const Dashboard = () => {
           </div>
 
           {/* Animated Stats Cards */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <StatCard
               title="Total Products"
               value={stats?.totalProducts || 0}
@@ -184,7 +199,7 @@ const Dashboard = () => {
           </div>
 
           {/* Charts Section */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {/* Revenue Trend Chart */}
             <Card className="col-span-full lg:col-span-2">
               <CardHeader>
@@ -258,8 +273,8 @@ const Dashboard = () => {
             </Card>
           </div>
 
-          {/* User Signups Chart */}
-          <div className="grid gap-6 md:grid-cols-2">
+          {/* User Signups Chart & Recent Orders */}
+          <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>User Signups</CardTitle>
@@ -329,7 +344,7 @@ const Dashboard = () => {
               <CardDescription>Products running low in inventory</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 {products.slice(0, 6).map((product) => (
                   <div key={product.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                     <div className="flex items-center space-x-3">

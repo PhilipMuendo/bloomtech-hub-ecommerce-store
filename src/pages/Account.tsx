@@ -19,6 +19,7 @@ const Account = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; password?: string; newPassword?: string; confirmPassword?: string }>({});
   const navigate = useNavigate();
 
   const token = user?.token || (typeof window !== 'undefined' && localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).token);
@@ -30,14 +31,11 @@ const Account = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) {
-      toast({ title: 'Error', description: 'Name cannot be empty', variant: 'destructive' });
-      return;
-    }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      toast({ title: 'Error', description: 'Invalid email format', variant: 'destructive' });
-      return;
-    }
+    const errors: { name?: string; email?: string } = {};
+    if (!name.trim()) errors.name = 'Name cannot be empty';
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) errors.email = 'Invalid email format';
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
     setSaving(true);
     try {
       // Replace with your real API endpoint
@@ -64,14 +62,11 @@ const Account = () => {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 6) {
-      toast({ title: 'Error', description: 'New password must be at least 6 characters', variant: 'destructive' });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast({ title: 'Error', description: 'Passwords do not match', variant: 'destructive' });
-      return;
-    }
+    const errors: { newPassword?: string; confirmPassword?: string } = {};
+    if (newPassword.length < 6) errors.newPassword = 'New password must be at least 6 characters';
+    if (newPassword !== confirmPassword) errors.confirmPassword = 'Passwords do not match';
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
     setPasswordLoading(true);
     try {
       // Replace with your real API endpoint
@@ -107,11 +102,13 @@ const Account = () => {
           <form onSubmit={handleSave} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" value={name} onChange={e => setName(e.target.value)} required disabled={saving} />
+              <Input id="name" value={name} onChange={e => setName(e.target.value)} required disabled={saving} aria-invalid={!!fieldErrors.name} />
+              {fieldErrors.name && <p className="text-destructive text-xs mt-1">{fieldErrors.name}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={saving} />
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={saving} aria-invalid={!!fieldErrors.email} />
+              {fieldErrors.email && <p className="text-destructive text-xs mt-1">{fieldErrors.email}</p>}
             </div>
             <div className="flex items-center gap-4">
               <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
@@ -129,11 +126,13 @@ const Account = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="newPassword">New Password</Label>
-                      <Input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required disabled={passwordLoading} />
+                      <Input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required disabled={passwordLoading} aria-invalid={!!fieldErrors.newPassword} />
+                      {fieldErrors.newPassword && <p className="text-destructive text-xs mt-1">{fieldErrors.newPassword}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                      <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required disabled={passwordLoading} />
+                      <Input id="confirmPassword" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required disabled={passwordLoading} aria-invalid={!!fieldErrors.confirmPassword} />
+                      {fieldErrors.confirmPassword && <p className="text-destructive text-xs mt-1">{fieldErrors.confirmPassword}</p>}
                     </div>
                     <DialogFooter>
                       <Button type="submit" disabled={passwordLoading}>

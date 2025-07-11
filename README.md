@@ -106,7 +106,7 @@ npm run dev
 
 - `src/components/` — Reusable UI components (Header, Footer, ProductCard, etc.)
 - `src/pages/` — Main pages (Home, Shop, Cart, ProductDetail, About, NotFound, Admin, etc.)
-- `src/context/` — React Context for global state (Auth, Cart, Wishlist)
+- `src/context/` — React Context for global (Auth, Cart, Wishlist)
 - `src/data/` — Static data (e.g., products list)
 - `src/hooks/` — Custom React hooks
 - `src/lib/` — Utility functions

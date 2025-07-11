@@ -17,6 +17,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { useSearchParams } from 'react-router-dom';
 
 export interface Product {
   _id: string;
@@ -31,13 +32,30 @@ export interface Product {
 }
 
 const productSchema = yup.object().shape({
-  name: yup.string().required('Product name is required'),
-  price: yup.number().typeError('Price must be a number').positive('Price must be positive').required('Price is required'),
-  category: yup.string().oneOf(categories.map(c => c.value), 'Select a valid category').required('Category is required'),
+  name: yup.string()
+    .required('Product name is required')
+    .min(2, 'Product name must be at least 2 characters')
+    .max(100, 'Product name must be at most 100 characters')
+    .matches(/[a-zA-Z]/, 'Product name must contain letters')
+    .notOneOf([/^[0-9]+$/], 'Product name cannot be only digits'),
+  price: yup.number()
+    .typeError('Price must be a number')
+    .moreThan(1, 'Price must be greater than 1 KES')
+    .required('Price is required'),
+  category: yup.string()
+    .min(2, 'Category must be at least 2 characters')
+    .oneOf(categories.map(c => c.value), 'Select a valid category')
+    .required('Category is required'),
   image: yup.string().required('Image is required'),
-  description: yup.string().required('Description is required'),
+  description: yup.string()
+    .required('Description is required')
+    .min(10, 'Description must be at least 10 characters'),
   specifications: yup.array().of(yup.string().required('Specification cannot be empty')).min(1, 'At least one specification is required'),
-  stock: yup.number().typeError('Stock must be a number').integer('Stock must be an integer').min(0, 'Stock cannot be negative').required('Stock is required'),
+  stock: yup.number()
+    .typeError('Stock must be a number')
+    .integer('Stock must be an integer')
+    .min(0, 'Stock cannot be negative')
+    .required('Stock is required'),
   featured: yup.boolean(),
 });
 
@@ -57,6 +75,7 @@ const Products = () => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -76,7 +95,7 @@ const Products = () => {
       const res = await fetch('/api/products');
       if (!res.ok) throw new Error('Failed to fetch products');
       const data = await res.json();
-      setProducts(data);
+      setProducts(Array.isArray(data) ? data : data.products);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -88,6 +107,18 @@ const Products = () => {
     fetchProducts();
     // eslint-disable-next-line
   }, []);
+
+  // Auto-open edit dialog if ?edit=productId is present
+  useEffect(() => {
+    if (products.length > 0) {
+      const editId = searchParams.get('edit');
+      if (editId) {
+        const prod = products.find(p => p._id === editId);
+        if (prod) setEditingProduct(prod);
+      }
+    }
+    // eslint-disable-next-line
+  }, [products]);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -489,7 +520,7 @@ const Products = () => {
             </Select>
           </div>
 
-          <Table>
+          <Table className="min-w-full">
             <TableHeader>
               <TableRow>
                 <TableHead>Product</TableHead>

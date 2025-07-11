@@ -11,12 +11,22 @@ const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; password?: string }>({});
   const { register, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Inline validation
+    const errors: { name?: string; email?: string; password?: string } = {};
+    if (!name) errors.name = 'Name is required';
+    if (!email) errors.email = 'Email is required';
+    else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) errors.email = 'Invalid email address';
+    if (!password) errors.password = 'Password is required';
+    else if (password.length < 6) errors.password = 'Password must be at least 6 characters';
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
     try {
       await register(name, email, password);
       toast({
@@ -50,7 +60,9 @@ const Register = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
+                aria-invalid={!!fieldErrors.name}
               />
+              {fieldErrors.name && <p className="text-destructive text-xs mt-1">{fieldErrors.name}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -60,7 +72,9 @@ const Register = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                aria-invalid={!!fieldErrors.email}
               />
+              {fieldErrors.email && <p className="text-destructive text-xs mt-1">{fieldErrors.email}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
@@ -70,7 +84,9 @@ const Register = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                aria-invalid={!!fieldErrors.password}
               />
+              {fieldErrors.password && <p className="text-destructive text-xs mt-1">{fieldErrors.password}</p>}
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Creating Account...' : 'Register'}

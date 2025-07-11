@@ -67,24 +67,18 @@ const formatPhoneNumber = (phone) => {
 };
 
 // Initiate STK Push
-export const initiateMpesaPayment = async (req, res) => {
+export const initiateMpesaPayment = async (req, res, next) => {
   try {
     const { phone, amount, orderId } = req.body;
     
     if (!phone || !amount || !orderId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Phone number, amount, and order ID are required' 
-      });
+      return res.status(400).json({ error: 'Phone number, amount, and order ID are required' });
     }
 
     // Validate order exists
     const order = await Order.findById(orderId);
     if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Order not found' 
-      });
+      return res.status(404).json({ error: 'Order not found' });
     }
 
     const formattedPhone = formatPhoneNumber(phone);
@@ -141,22 +135,18 @@ export const initiateMpesaPayment = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('M-Pesa payment initiation error:', error.response?.data || error.message);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to initiate M-Pesa payment'
-    });
+    next(error);
   }
 };
 
 // Handle M-Pesa callback
-export const handleMpesaCallback = async (req, res) => {
+export const handleMpesaCallback = async (req, res, next) => {
   try {
     const { Body } = req.body;
     const stkCallback = Body?.stkCallback;
 
     if (!stkCallback) {
-      return res.status(400).json({ message: 'Invalid callback data' });
+      return res.status(400).json({ error: 'Invalid callback data' });
     }
 
     const { 
@@ -173,7 +163,7 @@ export const handleMpesaCallback = async (req, res) => {
 
     if (!transaction) {
       console.error('Transaction not found for CheckoutRequestID:', CheckoutRequestID);
-      return res.status(404).json({ message: 'Transaction not found' });
+      return res.status(404).json({ error: 'Transaction not found' });
     }
 
     // Update transaction with callback data
@@ -214,13 +204,12 @@ export const handleMpesaCallback = async (req, res) => {
     res.json({ message: 'Callback processed successfully' });
 
   } catch (error) {
-    console.error('M-Pesa callback error:', error);
-    res.status(500).json({ message: 'Callback processing failed' });
+    next(error);
   }
 };
 
 // Check payment status
-export const checkPaymentStatus = async (req, res) => {
+export const checkPaymentStatus = async (req, res, next) => {
   try {
     const { checkoutRequestId } = req.params;
     
@@ -229,10 +218,7 @@ export const checkPaymentStatus = async (req, res) => {
     }).populate('orderId');
 
     if (!transaction) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Transaction not found' 
-      });
+      return res.status(404).json({ error: 'Transaction not found' });
     }
 
     res.json({
@@ -249,11 +235,7 @@ export const checkPaymentStatus = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Payment status check error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to check payment status'
-    });
+    next(error);
   }
 };
 

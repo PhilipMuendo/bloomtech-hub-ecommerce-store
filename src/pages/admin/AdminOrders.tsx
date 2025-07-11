@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,71 +27,67 @@ const AdminOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const { toast } = useToast();
 
-  // Mock orders data
-  const orders: Order[] = [
-    {
-      id: 'ORD-001',
-      customerName: 'John Doe',
-      customerEmail: 'john@example.com',
-      date: '2024-01-15',
-      status: 'pending',
-      total: 93500,
-      items: [
-        { productName: 'HP EliteBook 840 G8 Laptop', quantity: 1, price: 85000 },
-        { productName: 'TP-Link AC1200 Wi-Fi Router', quantity: 1, price: 8500 }
-      ]
-    },
-    {
-      id: 'ORD-002',
-      customerName: 'Jane Smith',
-      customerEmail: 'jane@example.com',
-      date: '2024-01-14',
-      status: 'processing',
-      total: 12300,
-      items: [
-        { productName: 'Wireless Keyboard and Mouse Combo', quantity: 2, price: 2200 },
-        { productName: 'TP-Link Wi-Fi Router (AC1200)', quantity: 1, price: 4800 },
-        { productName: 'USB Type-C Multiport Hub', quantity: 1, price: 2500 }
-      ]
-    },
-    {
-      id: 'ORD-003',
-      customerName: 'Mike Johnson',
-      customerEmail: 'mike@example.com',
-      date: '2024-01-13',
-      status: 'shipped',
-      total: 5700,
-      items: [
-        { productName: 'LED Floodlight 50W', quantity: 2, price: 2000 },
-        { productName: 'Double Wall Socket with USB Port', quantity: 1, price: 950 },
-        { productName: 'Schneider 10A Circuit Breaker (MCB)', quantity: 1, price: 650 }
-      ]
-    },
-    {
-      id: 'ORD-004',
-      customerName: 'Sarah Wilson',
-      customerEmail: 'sarah@example.com',
-      date: '2024-01-12',
-      status: 'delivered',
-      total: 15800,
-      items: [
-        { productName: 'External SSD 500GB (SanDisk)', quantity: 1, price: 9500 },
-        { productName: 'Rechargeable Emergency Light', quantity: 1, price: 2800 },
-        { productName: 'RJ45 Network Crimping Tool', quantity: 1, price: 1400 },
-        { productName: 'Lenovo ThinkPad E15', quantity: 1, price: 85000 }
-      ]
-    }
-  ];
+  useEffect(() => {
+    const fetchOrders = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('limit', '12');
+        if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
+        const res = await fetch(`/api/orders?${params.toString()}`);
+        if (!res.ok) throw new Error('Failed to fetch orders');
+        const data = await res.json();
+        // Normalize order data for display
+        const normalized = data.orders.map((o: any) => ({
+          id: o._id || o.id,
+          customerName: o.customerName || (o.userId?.name ?? 'N/A'),
+          customerEmail: o.customerEmail || (o.userId?.email ?? 'N/A'),
+          date: o.createdAt,
+          status: o.status,
+          total: o.total,
+          items: o.items || [],
+        }));
+        setOrders(normalized);
+        setTotalPages(data.totalPages || 1);
+      } catch (err: any) {
+        let errorMsg = 'An unknown error occurred';
+        if (err && err.response && err.response.error) {
+          errorMsg = err.response.error;
+        } else if (err && err.message) {
+          errorMsg = err.message;
+        }
+        setError(errorMsg);
+        toast({
+          title: 'Error',
+          description: errorMsg,
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+    // eslint-disable-next-line
+  }, [page, statusFilter]);
 
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
+
+  const handlePrevPage = () => setPage((p) => Math.max(1, p - 1));
+  const handleNextPage = () => setPage((p) => Math.min(totalPages, p + 1));
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -127,7 +123,7 @@ const AdminOrders = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:gap-4 mb-4">
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -138,7 +134,7 @@ const AdminOrders = () => {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-[120px] sm:w-[180px] h-8">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -152,61 +148,69 @@ const AdminOrders = () => {
             </Select>
           </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order ID</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.id}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{order.customerName}</div>
-                      <div className="text-sm text-muted-foreground">{order.customerEmail}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusColor(order.status)}>
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>KES {order.total.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedOrder(order)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Select onValueChange={(value) => updateOrderStatus(order.id, value)}>
-                        <SelectTrigger className="w-[120px] h-8">
-                          <Package className="h-4 w-4" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="processing">Processing</SelectItem>
-                          <SelectItem value="shipped">Shipped</SelectItem>
-                          <SelectItem value="delivered">Delivered</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </TableCell>
+          <div className="w-full overflow-x-auto">
+            <Table className="min-w-[700px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order ID</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredOrders.map((order) => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">{order.id}</TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{order.customerName}</div>
+                        <div className="text-sm text-muted-foreground">{order.customerEmail}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusColor(order.status)}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>KES {order.total.toLocaleString()}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedOrder(order)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Select onValueChange={(value) => updateOrderStatus(order.id, value)}>
+                          <SelectTrigger className="w-[120px] h-8">
+                            <Package className="h-4 w-4" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="processing">Processing</SelectItem>
+                            <SelectItem value="shipped">Shipped</SelectItem>
+                            <SelectItem value="delivered">Delivered</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {/* Pagination Controls */}
+          <div className="flex justify-center items-center gap-4 mt-8">
+            <Button onClick={handlePrevPage} disabled={page === 1} variant="outline">Previous</Button>
+            <span>Page {page} of {totalPages}</span>
+            <Button onClick={handleNextPage} disabled={page === totalPages} variant="outline">Next</Button>
+          </div>
         </CardContent>
       </Card>
 

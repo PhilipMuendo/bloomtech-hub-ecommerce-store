@@ -176,10 +176,10 @@ const Newsletter = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
         <div>
-          <h1 className="text-3xl font-bold">Newsletter</h1>
-          <p className="text-muted-foreground">Manage subscribers and email campaigns</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Newsletter</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">Manage subscribers and email campaigns</p>
         </div>
         <Dialog open={isComposeOpen} onOpenChange={setIsComposeOpen}>
           <DialogTrigger asChild>
@@ -312,46 +312,48 @@ const Newsletter = () => {
                 </div>
               </div>
 
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Subscribe Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSubscribers.map((subscriber) => (
-                    <TableRow key={subscriber.id}>
-                      <TableCell className="font-medium">{subscriber.email}</TableCell>
-                      <TableCell>{subscriber.name || '-'}</TableCell>
-                      <TableCell>{new Date(subscriber.subscribeDate).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <Badge variant={subscriber.status === 'active' ? 'default' : 'secondary'}>
-                          {subscriber.status.charAt(0).toUpperCase() + subscriber.status.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {subscriber.source.charAt(0).toUpperCase() + subscriber.source.slice(1)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleRemoveSubscriber(subscriber.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+              <div className="w-full overflow-x-auto">
+                <Table className="min-w-[600px]">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Subscribe Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSubscribers.map((subscriber) => (
+                      <TableRow key={subscriber.id}>
+                        <TableCell className="font-medium">{subscriber.email}</TableCell>
+                        <TableCell>{subscriber.name || '-'}</TableCell>
+                        <TableCell>{new Date(subscriber.subscribeDate).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Badge variant={subscriber.status === 'active' ? 'default' : 'secondary'}>
+                            {subscriber.status.charAt(0).toUpperCase() + subscriber.status.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {subscriber.source.charAt(0).toUpperCase() + subscriber.source.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleRemoveSubscriber(subscriber.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         )}

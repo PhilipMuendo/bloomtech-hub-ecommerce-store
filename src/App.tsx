@@ -6,37 +6,50 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { CartProvider } from "@/context/CartContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import Home from "./pages/Home";
-import Shop from "./pages/Shop";
-import ProductDetail from "./pages/ProductDetail";
-import Cart from "./pages/Cart";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import FAQs from "./pages/FAQs";
-import Blog from "./pages/Blog";
-import NotFound from "./pages/NotFound";
-import Wishlist from "./pages/Wishlist";
-import Orders from "./pages/Orders";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+import { Suspense, lazy } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./components/AdminLayout";
-import Dashboard from "./pages/admin/Dashboard";
-import Products from "./pages/admin/Products";
-import AdminOrders from "./pages/admin/AdminOrders";
-import Users from "./pages/admin/Users";
-import Reviews from "./pages/admin/Reviews";
-import Newsletter from "./pages/admin/Newsletter";
-import Account from './pages/Account';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from "react";
-import BlogPost from "./pages/BlogPost";
-import AdminBlogs from './pages/admin/AdminBlogs';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsOfService from './pages/TermsOfService';
-import ReturnsRefunds from './pages/ReturnsRefunds';
+
+// Lazy load all pages for code splitting
+const Home = lazy(() => import("./pages/Home"));
+const Shop = lazy(() => import("./pages/Shop"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const Cart = lazy(() => import("./pages/Cart"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const FAQs = lazy(() => import("./pages/FAQs"));
+const Blog = lazy(() => import("./pages/Blog"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Wishlist = lazy(() => import("./pages/Wishlist"));
+const Orders = lazy(() => import("./pages/Orders"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Account = lazy(() => import('./pages/Account'));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const ReturnsRefunds = lazy(() => import('./pages/ReturnsRefunds'));
+
+// Lazy load admin pages separately for better code splitting
+const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
+const Products = lazy(() => import("./pages/admin/Products"));
+const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const Users = lazy(() => import("./pages/admin/Users"));
+const Reviews = lazy(() => import("./pages/admin/Reviews"));
+const Newsletter = lazy(() => import("./pages/admin/Newsletter"));
+const AdminBlogs = lazy(() => import('./pages/admin/AdminBlogs'));
+const LowStockProducts = lazy(() => import('./pages/admin/LowStockProducts'));
 
 const queryClient = new QueryClient();
+
+// Loading component for Suspense fallback
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+);
 
 // Wrapper to provide location context
 const AnimatedRoutes = () => {
@@ -45,172 +58,242 @@ const AnimatedRoutes = () => {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Home />
-          </motion.div>
-        } />
-        <Route path="/shop" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Shop />
-          </motion.div>
-        } />
-        <Route path="/product/:id" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <ProductDetail />
-          </motion.div>
-        } />
-        <Route path="/cart" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Cart />
-          </motion.div>
-        } />
-        <Route path="/about" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <About />
-          </motion.div>
-        } />
-        <Route path="/contact" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Contact />
-          </motion.div>
-        } />
-        <Route path="/faqs" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <FAQs />
-          </motion.div>
-        } />
-        <Route path="/blog" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Blog />
-          </motion.div>
-        } />
-        <Route path="/blog/:slug" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <BlogPost />
-          </motion.div>
-        } />
-        <Route path="/wishlist" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Wishlist />
-          </motion.div>
-        } />
-        <Route path="/orders" element={
-          <ProtectedRoute>
+          <Suspense fallback={<LoadingSpinner />}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <Orders />
+              <Home />
             </motion.div>
+          </Suspense>
+        } />
+        <Route path="/shop" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Shop />
+            </motion.div>
+          </Suspense>
+        } />
+        <Route path="/product/:id" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ProductDetail />
+            </motion.div>
+          </Suspense>
+        } />
+        <Route path="/cart" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Cart />
+            </motion.div>
+          </Suspense>
+        } />
+        <Route path="/about" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <About />
+            </motion.div>
+          </Suspense>
+        } />
+        <Route path="/contact" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Contact />
+            </motion.div>
+          </Suspense>
+        } />
+        <Route path="/faqs" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <FAQs />
+            </motion.div>
+          </Suspense>
+        } />
+        <Route path="/blog" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Blog />
+            </motion.div>
+          </Suspense>
+        } />
+        <Route path="/blog/:slug" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <BlogPost />
+            </motion.div>
+          </Suspense>
+        } />
+        <Route path="/wishlist" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Wishlist />
+            </motion.div>
+          </Suspense>
+        } />
+        <Route path="/orders" element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingSpinner />}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Orders />
+              </motion.div>
+            </Suspense>
           </ProtectedRoute>
         } />
         <Route path="/login" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Login />
-          </motion.div>
+          <Suspense fallback={<LoadingSpinner />}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Login />
+            </motion.div>
+          </Suspense>
         } />
         <Route path="/register" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Register />
-          </motion.div>
+          <Suspense fallback={<LoadingSpinner />}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Register />
+            </motion.div>
+          </Suspense>
         } />
         <Route path="/account" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Account />
-          </motion.div>
+          <Suspense fallback={<LoadingSpinner />}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Account />
+            </motion.div>
+          </Suspense>
         } />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/terms-of-service" element={<TermsOfService />} />
-        <Route path="/returns-refunds" element={<ReturnsRefunds />} />
+        <Route path="/privacy-policy" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <PrivacyPolicy />
+          </Suspense>
+        } />
+        <Route path="/terms-of-service" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <TermsOfService />
+          </Suspense>
+        } />
+        <Route path="/returns-refunds" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <ReturnsRefunds />
+          </Suspense>
+        } />
         <Route path="/admin" element={
-          <ProtectedRoute requireAdmin>
-            <AdminLayout />
+          <ProtectedRoute adminOnly>
+            <Suspense fallback={<LoadingSpinner />}>
+              <AdminLayout />
+            </Suspense>
           </ProtectedRoute>
         }>
-          <Route index element={<Dashboard />} />
-          <Route path="products" element={<Products />} />
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="users" element={<Users />} />
-          <Route path="reviews" element={<Reviews />} />
-          <Route path="newsletter" element={<Newsletter />} />
-          <Route path="blogs" element={<AdminBlogs />} />
+          <Route index element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <Dashboard />
+            </Suspense>
+          } />
+          <Route path="products" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <Products />
+            </Suspense>
+          } />
+          <Route path="orders" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AdminOrders />
+            </Suspense>
+          } />
+          <Route path="users" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <Users />
+            </Suspense>
+          } />
+          <Route path="reviews" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <Reviews />
+            </Suspense>
+          } />
+          <Route path="newsletter" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <Newsletter />
+            </Suspense>
+          } />
+          <Route path="blogs" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AdminBlogs />
+            </Suspense>
+          } />
+          <Route path="low-stock" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <LowStockProducts />
+            </Suspense>
+          } />
         </Route>
         <Route path="*" element={
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
+          <Suspense fallback={<LoadingSpinner />}>
             <NotFound />
-          </motion.div>
+          </Suspense>
         } />
       </Routes>
     </AnimatePresence>

@@ -144,7 +144,7 @@ const Reviews = () => {
         <p className="text-muted-foreground">Manage customer reviews and feedback</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Total Reviews</CardTitle>
@@ -174,9 +174,7 @@ const Reviews = () => {
             <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {(reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)}
-            </div>
+            <div className="text-2xl font-bold">{(reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)}</div>
           </CardContent>
         </Card>
       </div>
@@ -225,7 +223,8 @@ const Reviews = () => {
             </Select>
           </div>
 
-          <Table>
+          <div className="w-full overflow-x-auto">
+            <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Product</TableHead>
@@ -307,6 +306,7 @@ const Reviews = () => {
               ))}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 

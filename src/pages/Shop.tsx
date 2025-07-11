@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import ProductCard from '@/components/ProductCard';
 import { Search } from 'lucide-react';
 import { categories, categoryDisplayMap } from '@/data/categories';
+import { useToast } from '@/hooks/use-toast';
 
 const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -18,24 +19,57 @@ const Shop = () => {
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]); // Changed from Product[] to any[]
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('/api/products');
+        // Build query params for pagination, filtering, sorting
+        const params = new URLSearchParams();
+        params.set('page', String(page));
+        params.set('limit', '12');
+        if (categoryFilter && categoryFilter !== 'all') params.set('category', categoryFilter);
+        if (sortBy) {
+          if (sortBy === 'price-low') params.set('sort', 'price');
+          else if (sortBy === 'price-high') params.set('sort', '-price');
+          else params.set('sort', 'name');
+        }
+        const res = await fetch(`/api/products?${params.toString()}`);
         if (!res.ok) throw new Error('Failed to fetch products');
         const data = await res.json();
-        setProducts(data);
+        // Normalize product data for frontend compatibility
+        const normalized = data.products.map((p: any) => ({
+          ...p,
+          id: p.id || p._id, // Ensure id is always set
+          image: p.image || p.imageUrl || '/placeholder.svg',
+          inStock: typeof p.inStock === 'boolean' ? p.inStock : (typeof p.stock === 'number' ? p.stock > 0 : true),
+        }));
+        setProducts(normalized);
+        setTotalPages(data.totalPages || 1);
       } catch (err: any) {
-        setError(err.message);
+        let errorMsg = 'An unknown error occurred';
+        if (err && err.response && err.response.error) {
+          errorMsg = err.response.error;
+        } else if (err && err.message) {
+          errorMsg = err.message;
+        }
+        setError(errorMsg);
+        toast({
+          title: 'Error',
+          description: errorMsg,
+          variant: 'destructive',
+        });
       } finally {
         setLoading(false);
       }
     };
     fetchProducts();
-  }, []);
+    // eslint-disable-next-line
+  }, [page, categoryFilter, sortBy]);
 
   useEffect(() => {
     let result = [...products];
@@ -103,6 +137,10 @@ const Shop = () => {
     }
     setSearchParams(params);
   };
+
+  // Pagination controls
+  const handlePrevPage = () => setPage((p) => Math.max(1, p - 1));
+  const handleNextPage = () => setPage((p) => Math.min(totalPages, p + 1));
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -175,12 +213,20 @@ const Shop = () => {
         <div className="text-center py-16">Loading products...</div>
       ) : error ? (
         <div className="text-center py-16 text-red-500">{error}</div>
-      ) : filteredProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product._id} product={product} />
-          ))}
-        </div>
+      ) : products.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+          {/* Pagination Controls */}
+          <div className="flex justify-center items-center gap-4 mt-8">
+            <Button onClick={handlePrevPage} disabled={page === 1} variant="outline">Previous</Button>
+            <span>Page {page} of {totalPages}</span>
+            <Button onClick={handleNextPage} disabled={page === totalPages} variant="outline">Next</Button>
+          </div>
+        </>
       ) : (
         <div className="text-center py-16">
           <h3 className="text-xl font-semibold mb-2">No products found</h3>
@@ -191,7 +237,9 @@ const Shop = () => {
             onClick={() => {
               setSearchQuery('');
               setCategoryFilter('all');
+              setPage(1);
               setPriceRange('all');
+              setSortBy('name');
               setSearchParams({});
             }}
           >

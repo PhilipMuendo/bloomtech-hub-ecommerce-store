@@ -175,7 +175,7 @@ const Users = () => {
         </div>
       )}
       {!loading && !error && users.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -243,101 +243,103 @@ const Users = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Orders</TableHead>
-                  <TableHead>Total Spent</TableHead>
-                  <TableHead>Join Date</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.length === 0 ? (
+            <div className="w-full overflow-x-auto">
+              <Table className="min-w-[600px]">
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      No users found.
-                    </TableCell>
+                    <TableHead>User</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Orders</TableHead>
+                    <TableHead>Total Spent</TableHead>
+                    <TableHead>Join Date</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ) : (
-                  filteredUsers.map((user) => (
-                    <TableRow key={user._id}>
-                      <TableCell>
-                        <div>
-                          <div className="font-medium">{user.name}</div>
-                          <div className="text-sm text-muted-foreground">{user.email}</div>
-                          <div className="text-xs text-muted-foreground">{user._id}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusColor(user.status)}>
-                          {(user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : 'Unknown')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {user.role === 'superadmin' ? (
-                            <Badge variant="default" className="flex items-center gap-1">
-                              <ShieldCheck className="h-3 w-3" />
-                              Super Admin
-                            </Badge>
-                          ) : user.role === 'admin' ? (
-                            <Badge variant="default" className="flex items-center gap-1">
-                              <ShieldCheck className="h-3 w-3" />
-                              Admin
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="flex items-center gap-1">
-                              <Shield className="h-3 w-3" />
-                              User
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>{typeof user.totalOrders === 'number' ? user.totalOrders : 0}</TableCell>
-                      <TableCell>KES {typeof user.totalSpent === 'number' ? user.totalSpent.toLocaleString() : '0'}</TableCell>
-                      <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedUser(user)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Select onValueChange={(value) => updateUserStatus(user._id, value)}>
-                            <SelectTrigger className="w-[100px] h-8">
-                              <SelectValue placeholder="Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="active">Active</SelectItem>
-                              <SelectItem value="inactive">Inactive</SelectItem>
-                              <SelectItem value="suspended">Suspend</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {isSuperAdmin() && (
-                            <Select onValueChange={(value) => updateUserRole(user._id, value)}>
-                              <SelectTrigger className="w-[120px] h-8">
-                                <SelectValue placeholder="Role" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="user">User</SelectItem>
-                                <SelectItem value="admin">Admin</SelectItem>
-                                <SelectItem value="superadmin">Super Admin</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          )}
-                        </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        No users found.
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    filteredUsers.map((user) => (
+                      <TableRow key={user._id}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{user.name}</div>
+                            <div className="text-sm text-muted-foreground">{user.email}</div>
+                            <div className="text-xs text-muted-foreground">{user._id}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusColor(user.status)}>
+                            {(user.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : 'Unknown')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {user.role === 'superadmin' ? (
+                              <Badge variant="default" className="flex items-center gap-1">
+                                <ShieldCheck className="h-3 w-3" />
+                                Super Admin
+                              </Badge>
+                            ) : user.role === 'admin' ? (
+                              <Badge variant="default" className="flex items-center gap-1">
+                                <ShieldCheck className="h-3 w-3" />
+                                Admin
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="flex items-center gap-1">
+                                <Shield className="h-3 w-3" />
+                                User
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{typeof user.totalOrders === 'number' ? user.totalOrders : 0}</TableCell>
+                        <TableCell>KES {typeof user.totalSpent === 'number' ? user.totalSpent.toLocaleString() : '0'}</TableCell>
+                        <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setSelectedUser(user)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Select onValueChange={(value) => updateUserStatus(user._id, value)}>
+                              <SelectTrigger className="w-[100px] h-8">
+                                <SelectValue placeholder="Status" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="inactive">Inactive</SelectItem>
+                                <SelectItem value="suspended">Suspend</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            {isSuperAdmin() && (
+                              <Select onValueChange={(value) => updateUserRole(user._id, value)}>
+                                <SelectTrigger className="w-[120px] h-8">
+                                  <SelectValue placeholder="Role" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="user">User</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                  <SelectItem value="superadmin">Super Admin</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       )}

@@ -60,6 +60,13 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/blogs', blogRoutes);
 
+// Global error handler (should be after all routes)
+app.use((err, req, res, next) => {
+  const status = err.status || 500;
+  const message = err.message || 'Internal server error';
+  res.status(status).json({ error: message });
+});
+
 // MongoDB connection
 const PORT = process.env.PORT || 5000;
 

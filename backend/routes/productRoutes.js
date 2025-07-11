@@ -4,7 +4,8 @@ import {
   getProductById,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getLowStockProducts
 } from '../controllers/productController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireAdmin } from '../middleware/roleAuth.js';
@@ -13,6 +14,7 @@ import { requireAdmin } from '../middleware/roleAuth.js';
 const router = express.Router();
 
 router.get('/', getAllProducts);
+router.get('/low-stock', requireAuth, requireAdmin, getLowStockProducts);
 router.get('/:id', getProductById);
 router.post('/', requireAuth, requireAdmin, createProduct);
 router.put('/:id', requireAuth, requireAdmin, updateProduct);
