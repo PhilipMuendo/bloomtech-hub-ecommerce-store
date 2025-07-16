@@ -43,7 +43,15 @@ const AdminOrders = () => {
         params.set('page', String(page));
         params.set('limit', '12');
         if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
-        const res = await fetch(`/api/orders?${params.toString()}`);
+        // Look for token in both 'jwt' and 'user' keys
+        let token = localStorage.getItem('jwt');
+        if (!token) {
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          token = user.token;
+        }
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await fetch(`/api/orders?${params.toString()}`, { headers });
         if (!res.ok) throw new Error('Failed to fetch orders');
         const data = await res.json();
         // Normalize order data for display

@@ -143,16 +143,16 @@ const Shop = () => {
   const handleNextPage = () => setPage((p) => Math.min(totalPages, p + 1));
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold mb-4">Shop Our Products</h1>
-        <p className="text-muted-foreground text-lg">
+    <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-4">Shop Our Products</h1>
+        <p className="text-muted-foreground text-base sm:text-lg">
           Discover our complete range of security systems, ICT equipment, electrical materials, and power solutions
         </p>
       </div>
       {/* Filters */}
-      <div className="bg-white p-6 rounded-lg shadow-sm border mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Search */}
           <form onSubmit={handleSearch} className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -161,12 +161,12 @@ const Shop = () => {
               placeholder="Search products..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 text-base sm:text-lg"
             />
           </form>
           {/* Category Filter */}
           <Select value={categoryFilter} onValueChange={handleCategoryChange}>
-            <SelectTrigger>
+            <SelectTrigger className="text-base sm:text-lg">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
@@ -178,7 +178,7 @@ const Shop = () => {
           </Select>
           {/* Price Range */}
           <Select value={priceRange} onValueChange={setPriceRange}>
-            <SelectTrigger>
+            <SelectTrigger className="text-base sm:text-lg">
               <SelectValue placeholder="All Prices" />
             </SelectTrigger>
             <SelectContent>
@@ -191,7 +191,7 @@ const Shop = () => {
           </Select>
           {/* Sort By */}
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger>
+            <SelectTrigger className="text-base sm:text-lg">
               <SelectValue placeholder="Sort By" />
             </SelectTrigger>
             <SelectContent>
@@ -203,34 +203,34 @@ const Shop = () => {
         </div>
       </div>
       {/* Results Count */}
-      <div className="mb-6">
-        <p className="text-muted-foreground">
+      <div className="mb-4 sm:mb-6">
+        <p className="text-muted-foreground text-sm sm:text-base">
           Showing {filteredProducts.length} of {products.length} products
         </p>
       </div>
       {/* Products Grid */}
       {loading ? (
-        <div className="text-center py-16">Loading products...</div>
+        <div className="text-center py-12 sm:py-16">Loading products...</div>
       ) : error ? (
-        <div className="text-center py-16 text-red-500">{error}</div>
+        <div className="text-center py-12 sm:py-16 text-red-500">{error}</div>
       ) : products.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {products.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
           {/* Pagination Controls */}
-          <div className="flex justify-center items-center gap-4 mt-8">
-            <Button onClick={handlePrevPage} disabled={page === 1} variant="outline">Previous</Button>
-            <span>Page {page} of {totalPages}</span>
-            <Button onClick={handleNextPage} disabled={page === totalPages} variant="outline">Next</Button>
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
+            <Button onClick={handlePrevPage} disabled={page === 1} variant="outline" className="text-base px-5 py-2">Previous</Button>
+            <span className="text-sm sm:text-base">Page {page} of {totalPages}</span>
+            <Button onClick={handleNextPage} disabled={page === totalPages} variant="outline" className="text-base px-5 py-2">Next</Button>
           </div>
         </>
       ) : (
-        <div className="text-center py-16">
-          <h3 className="text-xl font-semibold mb-2">No products found</h3>
-          <p className="text-muted-foreground mb-4">
+        <div className="text-center py-12 sm:py-16">
+          <h3 className="text-lg sm:text-xl font-semibold mb-2">No products found</h3>
+          <p className="text-muted-foreground mb-4 text-sm sm:text-base">
             Try adjusting your search criteria or browse all products
           </p>
           <Button
@@ -242,6 +242,7 @@ const Shop = () => {
               setSortBy('name');
               setSearchParams({});
             }}
+            className="text-base px-5 py-2"
           >
             Clear Filters
           </Button>

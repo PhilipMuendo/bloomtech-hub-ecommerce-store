@@ -10,6 +10,35 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 
+const categoryDisplayMap: Record<string, string> = {
+  power: 'Power Solutions',
+  security: 'Security Systems',
+  ict: 'ICT Equipment',
+  electrical: 'Electrical Materials',
+};
+const categoryColors: Record<string, string> = {
+  power: '#1E40AF', // blue-800
+  security: '#059669', // emerald-600
+  ict: '#D97706', // amber-600
+  electrical: '#DC2626', // red-600
+};
+
+// Custom tooltip for pie chart
+const OrdersByCategoryTooltip = ({ active, payload, totalOrders }: any) => {
+  if (active && payload && payload.length) {
+    const entry = payload[0].payload;
+    const displayName = categoryDisplayMap[entry.category] || entry.category;
+    const percent = totalOrders > 0 ? ((entry.orders / totalOrders) * 100).toFixed(1) : '0';
+    return (
+      <div className="bg-white p-3 rounded shadow text-sm border">
+        <div><strong>{displayName}</strong></div>
+        <div>Orders: {entry.orders} ({percent}%)</div>
+      </div>
+    );
+  }
+  return null;
+};
+
 const Dashboard = () => {
   const [dateRange, setDateRange] = useState('last30days');
   const [stats, setStats] = useState(null);
@@ -19,6 +48,11 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { toast } = useToast();
+
+  // Add state for recent orders
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [recentOrdersLoading, setRecentOrdersLoading] = useState(false);
+  const [recentOrdersError, setRecentOrdersError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -71,6 +105,35 @@ const Dashboard = () => {
     fetchData();
   }, [dateRange]);
 
+  // Fetch recent orders (most recent 4)
+  useEffect(() => {
+    const fetchRecentOrders = async () => {
+      setRecentOrdersLoading(true);
+      setRecentOrdersError(null);
+      try {
+        // Look for token in both 'jwt' and 'user' keys
+        let token = localStorage.getItem('jwt');
+        if (!token) {
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          token = user.token;
+        }
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await fetch('/api/orders?page=1&limit=4&sort=-createdAt', { headers });
+        if (!res.ok) throw new Error('Failed to fetch recent orders');
+        const data = await res.json();
+        setRecentOrders(Array.isArray(data.orders) ? data.orders : []);
+      } catch (err: any) {
+        setRecentOrdersError(err.message || 'Error loading recent orders');
+      } finally {
+        setRecentOrdersLoading(false);
+      }
+    };
+    fetchRecentOrders();
+  }, []);
+
   const chartConfig = {
     revenue: {
       label: "Revenue (KES)",
@@ -111,6 +174,8 @@ const Dashboard = () => {
       </CardContent>
     </Card>
   );
+
+  const totalOrdersByCategory = ordersByCategoryData.reduce((sum, cat) => sum + (cat.orders || 0), 0);
 
   return (
     <div className="space-y-6 p-2 sm:p-4 md:p-6">
@@ -239,7 +304,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Orders by Category Pie Chart */}
+            {/* Orders by Category */}
             <Card>
               <CardHeader>
                 <CardTitle>Orders by Category</CardTitle>
@@ -257,18 +322,35 @@ const Dashboard = () => {
                         outerRadius={100}
                         dataKey="orders"
                         nameKey="category"
+                        label={({ category, orders }) =>
+                          `${categoryDisplayMap[category] || category}: ${orders}`
+                        }
+                        isAnimationActive={true}
                       >
                         {ordersByCategoryData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                          <Cell key={`cell-${index}`} fill={categoryColors[entry.category] || '#1E3A8A'} />
                         ))}
                       </Pie>
-                      <ChartTooltip 
-                        content={<ChartTooltipContent />}
-                        formatter={(value, name) => [`${value} orders`, name]}
+                      <ChartTooltip
+                        content={<OrdersByCategoryTooltip totalOrders={totalOrdersByCategory} />}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                 </ChartContainer>
+                {/* Legend */}
+                <div className="flex flex-wrap gap-4 mt-4 justify-center">
+                  {ordersByCategoryData.map((entry, idx) => (
+                    <div key={entry.category} className="flex items-center gap-2">
+                      <span
+                        className="inline-block w-4 h-4 rounded-full"
+                        style={{ backgroundColor: categoryColors[entry.category] || '#1E3A8A' }}
+                      ></span>
+                      <span className="text-sm">
+                        {categoryDisplayMap[entry.category] || entry.category}: <strong>{entry.orders}</strong>
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -316,23 +398,31 @@ const Dashboard = () => {
                 <CardDescription>Latest customer orders</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <div>
-                          <p className="font-medium">Order #{1000 + i}</p>
-                          <p className="text-sm text-muted-foreground">Customer {i}</p>
+                {recentOrdersLoading ? (
+                  <div className="text-center py-4">Loading recent orders...</div>
+                ) : recentOrdersError ? (
+                  <div className="text-center py-4 text-red-500">{recentOrdersError}</div>
+                ) : recentOrders.length === 0 ? (
+                  <div className="text-center py-4 text-muted-foreground">No recent orders.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {recentOrders.map((order) => (
+                      <div key={order._id || order.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <div>
+                            <p className="font-medium">Order #{order._id?.slice(-6) || order.id?.slice(-6) || 'N/A'}</p>
+                            <p className="text-sm text-muted-foreground">{order.userId?.name || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">KES {order.total?.toLocaleString?.() || '0'}</p>
+                          <p className="text-xs text-green-600">{order.status ? order.status.charAt(0).toUpperCase() + order.status.slice(1) : 'N/A'}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-medium">KES {(15000 + i * 5000).toLocaleString()}</p>
-                        <p className="text-xs text-green-600">Completed</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

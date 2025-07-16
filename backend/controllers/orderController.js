@@ -22,6 +22,7 @@ export const getOrders = async (req, res, next) => {
     }
     const [orders, total] = await Promise.all([
       Order.find(query)
+        .populate('userId', 'name email') // Populate user info for each order
         .sort(sortObj)
         .skip(skip)
         .limit(parseInt(limit))

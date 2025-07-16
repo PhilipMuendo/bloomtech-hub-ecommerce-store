@@ -39,6 +39,10 @@ const productSchema = new mongoose.Schema({
       message: 'Image URL is required.'
     }
   },
+  featured: {
+    type: Boolean,
+    default: false
+  },
   reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],
 }, { timestamps: true });
 

@@ -48,6 +48,8 @@ export const getProductById = async (req, res, next) => {
 // POST /api/products
 export const createProduct = async (req, res, next) => {
   try {
+    if (typeof req.body.featured === 'undefined') req.body.featured = false;
+    console.log('Create product payload:', req.body);
     const product = new Product(req.body);
     await product.save();
     res.status(201).json(product);
@@ -59,7 +61,15 @@ export const createProduct = async (req, res, next) => {
 // PUT /api/products/:id
 export const updateProduct = async (req, res, next) => {
   try {
-    const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (typeof req.body.featured === 'undefined') req.body.featured = false;
+    console.log('Update product payload:', req.body);
+    // Only allow updatable fields
+    const allowedFields = ['name', 'description', 'price', 'category', 'stock', 'imageUrl', 'featured'];
+    const update = {};
+    for (const key of allowedFields) {
+      if (req.body[key] !== undefined) update[key] = req.body[key];
+    }
+    const product = await Product.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!product) return res.status(404).json({ error: 'Product not found' });
     res.json(product);
   } catch (err) {
@@ -83,6 +93,16 @@ export const getLowStockProducts = async (req, res, next) => {
   try {
     const threshold = parseInt(req.query.threshold) || 10;
     const products = await Product.find({ stock: { $lt: threshold, $gt: 0 } }).lean();
+    res.json(products);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/products/featured
+export const getFeaturedProducts = async (req, res, next) => {
+  try {
+    const products = await Product.find({ featured: true }).lean();
     res.json(products);
   } catch (err) {
     next(err);

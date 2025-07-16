@@ -12,23 +12,25 @@ import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { categories, categoryDisplayMap } from '@/data/categories';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useSearchParams } from 'react-router-dom';
+import { fetchLowStockProducts } from '@/components/AdminLayout';
 
 export interface Product {
   _id: string;
   name: string;
   price: number;
-  image: string;
+  imageUrl: string;
   category: 'security' | 'ict' | 'electrical' | 'power';
   description: string;
-  specifications: string[];
-  inStock: boolean;
+  stock: number;
   featured?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const productSchema = yup.object().shape({
@@ -46,11 +48,10 @@ const productSchema = yup.object().shape({
     .min(2, 'Category must be at least 2 characters')
     .oneOf(categories.map(c => c.value), 'Select a valid category')
     .required('Category is required'),
-  image: yup.string().required('Image is required'),
+  imageUrl: yup.string().required('Image is required'),
   description: yup.string()
     .required('Description is required')
     .min(10, 'Description must be at least 10 characters'),
-  specifications: yup.array().of(yup.string().required('Specification cannot be empty')).min(1, 'At least one specification is required'),
   stock: yup.number()
     .typeError('Stock must be a number')
     .integer('Stock must be an integer')
@@ -59,10 +60,12 @@ const productSchema = yup.object().shape({
   featured: yup.boolean(),
 });
 
+const BACKEND_HOST = import.meta.env.VITE_BACKEND_HOST || 'http://localhost:5000';
+
 const getImageUrl = (url: string) => {
   if (!url) return '';
   if (url.startsWith('http')) return url;
-  return `http://localhost:5000${url}`;
+  return `${BACKEND_HOST}${url}`;
 };
 
 const Products = () => {
@@ -82,9 +85,8 @@ const Products = () => {
     price: 0,
     category: 'ict' as 'ict' | 'electrical' | 'security' | 'power',
     description: '',
-    image: '',
-    specifications: '',
-    inStock: true
+    imageUrl: '',
+    stock: 1
   });
 
   // Fetch products from backend
@@ -142,10 +144,9 @@ const Products = () => {
         },
         body: JSON.stringify({
           ...formData,
-          imageUrl: formData.image, // map image to imageUrl
           price: Number(formData.price),
-          specifications: formData.specifications,
-          inStock: formData.stock > 0,
+          stock: Number(formData.stock),
+          featured: !!formData.featured,
         })
       });
       if (!res.ok) throw new Error('Failed to add product');
@@ -164,27 +165,39 @@ const Products = () => {
     setEditingProduct(product);
   };
 
-  const handleUpdateProduct = async () => {
+  const handleUpdateProduct = async (formData?: any) => {
     if (!editingProduct) return;
     setLoading(true);
     setError(null);
     try {
+      // Only send allowed fields
+      const updatePayload = {
+        name: formData.name,
+        description: formData.description,
+        price: Number(formData.price),
+        category: formData.category,
+        stock: Number(formData.stock),
+        imageUrl: formData.imageUrl,
+        featured: !!formData.featured,
+      };
+      console.log('Updating product with payload:', updatePayload);
       const res = await fetch(`/api/products/${editingProduct._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${currentUser?.token}`
         },
-        body: JSON.stringify({
-          ...editingProduct,
-          price: Number(editingProduct.price),
-          specifications: Array.isArray(editingProduct.specifications) ? editingProduct.specifications : (editingProduct.specifications as string).split('\n')
-        })
+        body: JSON.stringify(updatePayload)
       });
+      const data = await res.json();
+      console.log('Update response:', data);
       if (!res.ok) throw new Error('Failed to update product');
-      toast({ title: 'Product Updated', description: `${editingProduct.name} has been updated.` });
+      toast({ title: 'Product Updated', description: `${formData.name} has been updated.` });
       setEditingProduct(null);
       fetchProducts();
+      // Refresh low stock notification
+      const lowStock = await fetchLowStockProducts(currentUser?.token);
+      window.dispatchEvent(new CustomEvent('lowStockUpdated', { detail: lowStock }));
     } catch (err: any) {
       setError(err.message);
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -246,46 +259,48 @@ const Products = () => {
       name: product.name,
       price: product.price,
       category: product.category,
-      image: product.image,
+      imageUrl: product.imageUrl,
       description: product.description,
-      specifications: product.specifications,
-      stock: product.inStock ? 1 : 0, // fallback
-      featured: product.featured || false,
+      stock: product.stock,
+      featured: !!product.featured,
     } : {
       name: '',
       price: 0,
       category: categories[0].value,
-      image: '',
+      imageUrl: '',
       description: '',
-      specifications: [''] as string[], // Ensure default value is an array
       stock: 1,
       featured: false,
     };
 
-    const { control, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm({
+    const { control, handleSubmit, setValue, watch, formState: { errors, isSubmitting }, reset } = useForm({
       defaultValues,
       resolver: yupResolver(productSchema),
       mode: 'onBlur',
+      shouldUnregister: false,
     });
-    const { fields, append, remove } = useFieldArray({
-      control,
-      name: 'specifications',
-    });
-    const imageValue = watch('image');
+
+    // Reset form when product changes (for editing)
+    React.useEffect(() => {
+      if (product) {
+        reset(defaultValues);
+      }
+    }, [product, reset]);
+    const imageValue = watch('imageUrl');
     const dropzoneRef = useRef(null);
 
     // Drag-and-drop image upload
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
       if (acceptedFiles.length > 0) {
-        setValue('image', '');
-        setValue('image', await uploadImage(acceptedFiles[0]));
+        setValue('imageUrl', '');
+        setValue('imageUrl', await uploadImage(acceptedFiles[0]));
       }
     }, [setValue]);
     const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'image/*': [] } });
 
     async function uploadImage(file: File): Promise<string> {
-      setValue('image', '');
-      setValue('image', 'uploading');
+      setValue('imageUrl', '');
+      setValue('imageUrl', 'uploading');
       try {
         const formData = new FormData();
         formData.append('image', file);
@@ -299,6 +314,7 @@ const Products = () => {
     }
 
     const onSubmit = async (data: any) => {
+      console.log('Form submit data:', data);
       await onSave(data);
     };
 
@@ -306,7 +322,7 @@ const Products = () => {
     const previewData = watch();
 
     return (
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-4 md:p-8 min-w-[350px] w-full max-w-2xl mx-auto" aria-label="Add Product Form">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-4 md:p-8 min-w-[350px] w-full max-w-2xl mx-auto max-h-[75vh] overflow-y-auto" aria-label="Add Product Form">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <Label htmlFor="name">Product Name</Label>
@@ -369,11 +385,16 @@ const Products = () => {
             <Controller
               name="featured"
               control={control}
-              render={({ field }) => (
-                <input id="featured" type="checkbox" checked={field.value} onChange={e => field.onChange(e.target.checked)} />
-              )}
+              render={({ field }) => {
+                console.log('Checkbox field.value:', field.value);
+                return (
+                  <>
+                    <input id="featured" type="checkbox" checked={!!field.value} onChange={e => field.onChange(e.target.checked)} />
+                    <span>Featured Product</span>
+                  </>
+                );
+              }}
             />
-            Featured Product
           </Label>
         </div>
         <div>
@@ -391,7 +412,7 @@ const Products = () => {
           {imageValue && imageValue !== 'uploading' && (
             <img src={getImageUrl(imageValue)} alt="Preview" className="w-32 h-32 object-cover rounded-lg mt-2 mx-auto" />
           )}
-          {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image.message}</p>}
+          {errors.imageUrl && <p className="text-red-500 text-xs mt-1">{errors.imageUrl.message}</p>}
         </div>
         <div>
           <Label htmlFor="description">Description</Label>
@@ -404,25 +425,6 @@ const Products = () => {
           />
           {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
         </div>
-        <div>
-          <Label>Specifications</Label>
-          {fields.map((item, idx) => (
-            <div key={item.id} className="flex gap-2 mb-2">
-              <Controller
-                name={`specifications.${idx}`}
-                control={control}
-                render={({ field }) => (
-                  <Input {...field} placeholder={`Specification #${idx + 1}`} aria-invalid={!!errors.specifications?.[idx]} />
-                )}
-              />
-              <Button type="button" variant="outline" onClick={() => remove(idx)} aria-label={`Remove specification ${idx + 1}`}>Remove</Button>
-            </div>
-          ))}
-          <Button type="button" onClick={() => append('')} variant="secondary" className="mt-2">Add Specification</Button>
-          {errors.specifications && typeof errors.specifications.message === 'string' && (
-            <p className="text-red-500 text-xs mt-1">{errors.specifications.message}</p>
-          )}
-        </div>
         <div className="flex justify-end space-x-2">
           <Button variant="outline" type="button" onClick={onCancel}>Cancel</Button>
           <Button type="submit" disabled={isSubmitting}>{isEdit ? 'Update Product' : 'Save Product'}</Button>
@@ -434,17 +436,15 @@ const Products = () => {
             <Card>
               <CardContent className="p-4">
                 <div className="flex flex-col items-center">
-                  {previewData.image && previewData.image !== 'uploading' && (
-                    <img src={getImageUrl(previewData.image)} alt="Preview" className="w-32 h-32 object-cover rounded-lg mb-2" />
+                  {previewData.imageUrl && previewData.imageUrl !== 'uploading' && (
+                    <img src={getImageUrl(previewData.imageUrl)} alt="Preview" className="w-32 h-32 object-cover rounded-lg mb-2" />
                   )}
                   <div className="font-bold text-lg mb-1">{previewData.name || 'Product Name'}</div>
                   <div className="text-muted-foreground mb-1">{categoryDisplayMap[previewData.category] || 'Category'}</div>
                   <div className="text-primary font-semibold mb-1">KES {previewData.price || 0}</div>
                   <div className="text-xs text-muted-foreground mb-1">{previewData.description || 'Description...'}</div>
                   <ul className="text-xs text-muted-foreground list-disc pl-4">
-                    {previewData.specifications && previewData.specifications.map((spec: string, idx: number) => (
-                      <li key={idx}>{spec}</li>
-                    ))}
+                    {/* Specifications are no longer displayed in the form, so this block is removed */}
                   </ul>
                   <div className="mt-2">
                     <Badge variant={previewData.featured ? 'default' : 'secondary'}>
@@ -464,20 +464,31 @@ const Products = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-4 sm:mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Products</h1>
-          <p className="text-muted-foreground">Manage your product catalog</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
+          <p className="text-muted-foreground text-base sm:text-lg">Manage your product catalog</p>
         </div>
-        <Button
-          onClick={() => {
-            window.open('/api/products/export/csv', '_blank');
-          }}
-          variant="outline"
-        >
-          Export Products (CSV)
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setIsAddDialogOpen(true)}
+            variant="default"
+            className="text-base sm:text-lg px-4 py-2"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Product
+          </Button>
+          <Button
+            onClick={() => {
+              window.open('/api/products/export/csv', '_blank');
+            }}
+            variant="outline"
+            className="text-base sm:text-lg px-4 py-2"
+          >
+            Export Products (CSV)
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -511,73 +522,76 @@ const Products = () => {
             </Select>
           </div>
 
-          <Table className="min-w-full">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Stock</TableHead>
-                <TableHead>Featured</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.map((product) => (
-                <TableRow key={product._id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={getImageUrl(product.image)}
-                        alt={product.name}
-                        className="w-10 h-10 rounded object-cover"
-                      />
-                      <div>
-                        <div className="font-medium">{product.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {product.description.substring(0, 50)}...
+          {/* Table wrapper for horizontal scroll on mobile */}
+          <div className="overflow-x-auto rounded-lg border bg-white">
+            <Table className="min-w-[700px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Price</TableHead>
+                  <TableHead>Stock</TableHead>
+                  <TableHead>Featured</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProducts.map((product) => (
+                  <TableRow key={product._id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={getImageUrl(product.imageUrl)}
+                          alt={product.name}
+                          className="w-10 h-10 rounded object-cover"
+                        />
+                        <div>
+                          <div className="font-medium">{product.name}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {product.description.substring(0, 50)}...
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="default">
-                      {categoryDisplayMap[product.category] || product.category}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>KES {product.price.toLocaleString()}</TableCell>
-                  <TableCell>
-                    <Badge variant={product.inStock ? 'default' : 'destructive'}>
-                      {typeof product['stock'] === 'number' ? product['stock'] : (product.inStock ? 'In Stock' : 'Out of Stock')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={product.featured ? 'default' : 'secondary'}>
-                      {product.featured ? 'Yes' : 'No'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditProduct(product)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteProduct(product._id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="default">
+                        {categoryDisplayMap[product.category] || product.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>KES {product.price.toLocaleString()}</TableCell>
+                    <TableCell>
+                      <Badge variant={product.stock > 0 ? 'default' : 'destructive'}>
+                        {product.stock}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={product.featured ? 'default' : 'secondary'}>
+                        {product.featured ? 'Yes' : 'No'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditProduct(product)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteProduct(product._id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -598,6 +612,22 @@ const Products = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Add Product Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add Product</DialogTitle>
+            <DialogDescription>
+              Enter product details to add a new product
+            </DialogDescription>
+          </DialogHeader>
+          <ProductForm
+            onSave={handleAddProduct}
+            onCancel={() => setIsAddDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

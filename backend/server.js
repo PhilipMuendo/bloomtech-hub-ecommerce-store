@@ -24,6 +24,8 @@ import fs from 'fs';
 // Load environment variables
 dotenv.config();
 
+console.log('MONGO_URI:', process.env.MONGO_URI);
+
 const app = express();
 
 // Middleware

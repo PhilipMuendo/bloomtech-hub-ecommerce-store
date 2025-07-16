@@ -6,7 +6,8 @@ import {
   updateProduct,
   deleteProduct,
   getLowStockProducts,
-  exportProductsCSV
+  exportProductsCSV,
+  getFeaturedProducts
 } from '../controllers/productController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireAdmin } from '../middleware/roleAuth.js';
@@ -17,6 +18,7 @@ const router = express.Router();
 router.get('/', getAllProducts);
 router.get('/low-stock', requireAuth, requireAdmin, getLowStockProducts);
 router.get('/export/csv', exportProductsCSV);
+router.get('/featured', getFeaturedProducts);
 router.get('/:id', getProductById);
 router.post('/', requireAuth, requireAdmin, createProduct);
 router.put('/:id', requireAuth, requireAdmin, updateProduct);

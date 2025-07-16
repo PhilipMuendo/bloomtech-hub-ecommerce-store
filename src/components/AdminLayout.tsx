@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -17,8 +17,21 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
-import { useEffect } from 'react';
 import ReactDOM from 'react-dom';
+
+export async function fetchLowStockProducts(token) {
+  try {
+    const res = await fetch('/api/products/low-stock', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -30,19 +43,20 @@ const AdminLayout = () => {
 
   useEffect(() => {
     async function fetchLowStock() {
-      try {
-        const res = await fetch('/api/products/low-stock', {
-          headers: { Authorization: `Bearer ${user?.token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setLowStockProducts(data);
-        }
-      } catch {}
+      const data = await fetchLowStockProducts(user?.token);
+      setLowStockProducts(data);
     }
     if (user && (user.role === 'admin' || user.role === 'superadmin')) {
       fetchLowStock();
     }
+    // Listen for lowStockUpdated event
+    function handleLowStockUpdated(e) {
+      setLowStockProducts(e.detail);
+    }
+    window.addEventListener('lowStockUpdated', handleLowStockUpdated);
+    return () => {
+      window.removeEventListener('lowStockUpdated', handleLowStockUpdated);
+    };
   }, [user]);
 
   const menuItems = [

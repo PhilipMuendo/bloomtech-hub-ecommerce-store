@@ -59,7 +59,7 @@ const Wishlist: React.FC = () => {
   });
 
   if (isLoading) {
-    return <div className="container mx-auto py-16 text-center">Loading your wishlist...</div>;
+    return <div className="container mx-auto px-2 sm:px-4 py-12 sm:py-16 text-center">Loading your wishlist...</div>;
   }
   if (isError) {
     toast({ title: 'Error', description: 'Failed to load wishlist.', variant: 'destructive' });
@@ -68,20 +68,20 @@ const Wishlist: React.FC = () => {
   if (!wishlist || (wishlist as any[]).length === 0) {
     console.log('EMPTY WISHLIST STATE TRIGGERED', wishlist);
     return (
-      <div className="container mx-auto py-16 text-center">
-        <h1 className="text-3xl font-bold mb-4">Your Wishlist</h1>
-        <p className="text-muted-foreground mb-4">No items in your wishlist. Browse our shop and add products you love!</p>
+      <div className="container mx-auto px-2 sm:px-4 py-12 sm:py-16 text-center">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Your Wishlist</h1>
+        <p className="text-muted-foreground mb-3 sm:mb-4 text-base sm:text-lg">No items in your wishlist. Browse our shop and add products you love!</p>
         <Link to="/shop">
-          <Button>Browse Products</Button>
+          <Button className="text-base sm:text-lg px-6 py-3">Browse Products</Button>
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-16">
-      <h1 className="text-3xl font-bold mb-8 text-center">Your Wishlist</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    <div className="container mx-auto px-2 sm:px-4 py-12 sm:py-16">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center">Your Wishlist</h1>
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
         {(wishlist as any[]).map((item: any, idx: number) => {
           const product = item.product || item.productId;
           if (!product) return null;
@@ -91,21 +91,22 @@ const Wishlist: React.FC = () => {
                 <img
                   src={product.imageUrl || product.image}
                   alt={product.name}
-                  className="w-full h-48 object-cover rounded-t-md"
+                  className="w-full h-40 sm:h-48 object-cover rounded-t-md"
                 />
-                <CardContent className="p-4">
-                  <h3 className="font-semibold text-lg mb-2">{product.name}</h3>
-                  <p className="text-muted-foreground text-sm mb-2 line-clamp-2">{product.description}</p>
-                  <div className="text-xl font-bold text-primary mb-2">
+                <CardContent className="p-3 sm:p-4">
+                  <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">{product.name}</h3>
+                  <p className="text-muted-foreground text-xs sm:text-sm mb-1 sm:mb-2 line-clamp-2">{product.description}</p>
+                  <div className="text-lg sm:text-xl font-bold text-primary mb-1 sm:mb-2">
                     KES {product.price?.toLocaleString()}
                   </div>
                 </CardContent>
               </Link>
-              <div className="flex gap-2 p-4 pt-0">
+              <div className="flex gap-2 p-3 sm:p-4 pt-0">
                 <Button
                   variant="outline"
                   onClick={() => (product._id || product.id) && removeMutation.mutate({ productId: product._id || product.id, token: token! })}
                   disabled={removeMutation.status === 'pending'}
+                  className="text-xs sm:text-sm"
                 >
                   Remove
                 </Button>
@@ -121,6 +122,7 @@ const Wishlist: React.FC = () => {
                     toast({ title: 'Added to cart!', description: product.name });
                   }}
                   disabled={!product._id}
+                  className="text-xs sm:text-sm"
                 >
                   Add to Cart
                 </Button>
