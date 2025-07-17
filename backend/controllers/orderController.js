@@ -1,5 +1,6 @@
 import Order from '../models/Order.js';
 import mongoose from 'mongoose';
+import Product from '../models/Product.js';
 
 // Get current user's orders or all orders for admin
 export const getOrders = async (req, res, next) => {
@@ -22,15 +23,25 @@ export const getOrders = async (req, res, next) => {
     }
     const [orders, total] = await Promise.all([
       Order.find(query)
-        .populate('userId', 'name email') // Populate user info for each order
+        .populate('userId', 'name email')
+        .populate('items.productId', 'name price')
         .sort(sortObj)
         .skip(skip)
         .limit(parseInt(limit))
         .lean(),
       Order.countDocuments(query)
     ]);
+    // Map productName into each item for frontend compatibility
+    const ordersWithProductNames = orders.map(order => ({
+      ...order,
+      items: order.items.map(item => ({
+        ...item,
+        productName: item.productId?.name || item.productName || 'N/A',
+        price: item.productId?.price || item.price || 0,
+      })),
+    }));
     res.json({
-      orders,
+      orders: ordersWithProductNames,
       total,
       page: parseInt(page),
       limit: parseInt(limit),
@@ -55,20 +66,38 @@ export const getOrderById = async (req, res, next) => {
 // Create new order (for admin or direct order creation)
 export const createOrder = async (req, res, next) => {
   try {
-  const { items, total } = req.body;
+    const { items, total } = req.body;
     if (!items || !total) return res.status(400).json({ error: 'Items and total required' });
-  // Validate and convert productId
-  for (const item of items) {
-    if (!mongoose.Types.ObjectId.isValid(item.productId)) {
+    // Validate and convert productId
+    for (const item of items) {
+      if (!mongoose.Types.ObjectId.isValid(item.productId)) {
         return res.status(400).json({ error: `Invalid productId: ${item.productId}` });
+      }
     }
-  }
-  const normalizedItems = items.map(item => ({
-    ...item,
-    productId: new mongoose.Types.ObjectId(item.productId)
-  }));
-  const order = await Order.create({ userId: req.user._id, items: normalizedItems, total });
-  res.status(201).json(order);
+    // Check stock for all items first
+    for (const item of items) {
+      const product = await Product.findById(item.productId);
+      if (!product) {
+        return res.status(400).json({ error: `Product not found: ${item.productId}` });
+      }
+      if (product.stock < item.quantity) {
+        return res.status(400).json({ error: `Insufficient stock for product: ${product.name}` });
+      }
+    }
+    const normalizedItems = items.map(item => ({
+      ...item,
+      productId: new mongoose.Types.ObjectId(item.productId)
+    }));
+    const order = await Order.create({ userId: req.user._id, items: normalizedItems, total });
+    // Decrement stock for each product
+    for (const item of items) {
+      await Product.findByIdAndUpdate(
+        item.productId,
+        { $inc: { stock: -item.quantity } },
+        { new: true }
+      );
+    }
+    res.status(201).json(order);
   } catch (err) {
     next(err);
   }

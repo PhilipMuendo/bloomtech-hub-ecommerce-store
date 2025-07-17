@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+dist
+.env
+.DS_Store
+.git
+.gitignore
+coverage
+uploads
+public/placeholder.svg 

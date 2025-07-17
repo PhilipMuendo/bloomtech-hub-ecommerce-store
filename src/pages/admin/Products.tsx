@@ -194,6 +194,12 @@ const Products = () => {
       if (!res.ok) throw new Error('Failed to update product');
       toast({ title: 'Product Updated', description: `${formData.name} has been updated.` });
       setEditingProduct(null);
+      // Remove ?edit=... from URL to prevent dialog from reopening
+      setSearchParams(params => {
+        const newParams = new URLSearchParams(params);
+        newParams.delete('edit');
+        return newParams;
+      });
       fetchProducts();
       // Refresh low stock notification
       const lowStock = await fetchLowStockProducts(currentUser?.token);

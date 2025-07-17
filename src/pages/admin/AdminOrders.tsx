@@ -261,7 +261,7 @@ const AdminOrders = () => {
                   <TableBody>
                     {selectedOrder.items.map((item, index) => (
                       <TableRow key={index}>
-                        <TableCell>{item.productName}</TableCell>
+                        <TableCell>{item.productName || item.productId || 'N/A'}</TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell>KES {item.price.toLocaleString()}</TableCell>
                         <TableCell>KES {(item.quantity * item.price).toLocaleString()}</TableCell>

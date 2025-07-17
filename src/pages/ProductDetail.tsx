@@ -10,6 +10,7 @@ import ReviewForm from '@/components/ReviewForm';
 import ReviewsList from '@/components/ReviewsList';
 import BackInStockAlert from '@/components/BackInStockAlert';
 import { useToast } from '@/hooks/use-toast';
+import ProductCard from '@/components/ProductCard';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,8 @@ const ProductDetail = () => {
   const [product, setProduct] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [quantity, setQuantity] = React.useState(1);
+  const [relatedProducts, setRelatedProducts] = React.useState<any[]>([]);
 
   React.useEffect(() => {
     if (!id) return;
@@ -42,6 +45,20 @@ const ProductDetail = () => {
       })
       .finally(() => setLoading(false));
   }, [id]);
+
+  // Fetch related products by category (excluding current product)
+  React.useEffect(() => {
+    if (!product || !product.category) return;
+    fetch(`/api/products?category=${product.category}&limit=5`)
+      .then(async (res) => {
+        if (!res.ok) return setRelatedProducts([]);
+        const data = await res.json();
+        // Exclude current product and limit to 4
+        const filtered = (data.products || data).filter((p: any) => p.id !== product.id && p._id !== product.id).slice(0, 4);
+        setRelatedProducts(filtered);
+      })
+      .catch(() => setRelatedProducts([]));
+  }, [product]);
 
   if (loading) {
     return (
@@ -73,7 +90,7 @@ const ProductDetail = () => {
         price: product.price,
         image: product.image,
         category: product.category
-      });
+      }, quantity);
       toast({ title: 'Added to cart!', description: product.name });
     } catch (error: any) {
       toast({ title: 'Error', description: error?.message || 'Failed to add to cart', variant: 'destructive' });
@@ -98,10 +115,10 @@ const ProductDetail = () => {
   return (
     <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
       {/* Breadcrumb */}
-      <div className="mb-4 sm:mb-6">
-        <Button variant="ghost" asChild className="mb-2 sm:mb-4">
-          <Link to="/shop" className="flex items-center space-x-2">
-            <ArrowLeft className="w-4 h-4" />
+      <div className="sticky top-0 z-30 bg-white py-2 mb-4 sm:mb-6 shadow-sm flex items-center">
+        <Button variant="default" asChild size="lg" className="flex items-center space-x-2 px-5 py-2 text-base font-semibold">
+          <Link to="/shop">
+            <ArrowLeft className="w-5 h-5 mr-2" />
             <span>Back to Shop</span>
           </Link>
         </Button>
@@ -113,8 +130,15 @@ const ProductDetail = () => {
           <div className="relative overflow-hidden rounded-lg">
             <img
               src={product.imageUrl || product.image || '/placeholder.svg'}
-              alt={product.name}
+              srcSet={
+                product.imageUrl || product.image
+                  ? `${product.imageUrl || product.image}?w=400 400w, ${product.imageUrl || product.image}?w=800 800w, ${product.imageUrl || product.image}?w=1200 1200w`
+                  : undefined
+              }
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
+              alt={product.name || 'Product image'}
               className="w-full h-64 sm:h-96 lg:h-[500px] object-cover"
+              loading="lazy"
             />
             {product.featured && (
               <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-accent text-white px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded">
@@ -152,14 +176,18 @@ const ProductDetail = () => {
             <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">Specifications</h2>
             <Card>
               <CardContent className="p-3 sm:p-4">
-                <ul className="space-y-2">
-                  {(product.specifications || []).map((spec, index) => (
-                    <li key={index} className="flex items-start space-x-2">
-                      <span className="text-accent font-medium">•</span>
-                      <span>{spec}</span>
-                    </li>
-                  ))}
-                </ul>
+                {Array.isArray(product.specifications) && product.specifications.length > 0 ? (
+                  <ul className="space-y-2">
+                    {product.specifications.map((spec, index) => (
+                      <li key={index} className="flex items-start space-x-2">
+                        <span className="text-accent font-medium">•</span>
+                        <span>{spec}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-muted-foreground text-sm">No specifications available.</div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -184,6 +212,19 @@ const ProductDetail = () => {
             )}
 
             <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex items-center mb-2 sm:mb-0">
+                <label htmlFor="quantity" className="mr-2 text-sm font-medium">Qty:</label>
+                <input
+                  id="quantity"
+                  type="number"
+                  min={1}
+                  max={typeof product.stock === 'number' ? product.stock : 99}
+                  value={quantity}
+                  onChange={e => setQuantity(Math.max(1, Math.min(Number(e.target.value), typeof product.stock === 'number' ? product.stock : 99)))}
+                  className="w-16 border rounded px-2 py-1 text-center"
+                  disabled={!isInStock}
+                />
+              </div>
               <Button
                 onClick={handleAddToCart}
                 disabled={!isInStock}
@@ -223,17 +264,30 @@ const ProductDetail = () => {
       {/* Related Products */}
       <div className="mt-10 sm:mt-16">
         <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Related Products</h2>
-        <div className="text-center text-muted-foreground">
-          <p>Explore more products in our shop</p>
-          <Button asChild className="mt-3 sm:mt-4">
-            <Link to={`/shop?category=${product.category}`}>
-              View More {product.category === 'ict' ? 'ICT Equipment' : 
-                         product.category === 'security' ? 'Security Systems' :
-                         product.category === 'power' ? 'Power Solutions' : 
-                         'Electrical Materials'}
-            </Link>
-          </Button>
-        </div>
+        {relatedProducts.length > 0 ? (
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {relatedProducts.map((prod) => (
+              <ProductCard key={prod.id || prod._id} product={{
+                ...prod,
+                id: prod.id || prod._id,
+                image: prod.image || prod.imageUrl || '/placeholder.svg',
+                inStock: typeof prod.inStock === 'boolean' ? prod.inStock : (typeof prod.stock === 'number' ? prod.stock > 0 : true),
+              }} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground">
+            <p>No related products found.</p>
+            <Button asChild className="mt-3 sm:mt-4">
+              <Link to={`/shop?category=${product.category}`}>
+                View More {product.category === 'ict' ? 'ICT Equipment' : 
+                           product.category === 'security' ? 'Security Systems' :
+                           product.category === 'power' ? 'Power Solutions' : 
+                           'Electrical Materials'}
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
