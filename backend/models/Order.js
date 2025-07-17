@@ -14,6 +14,20 @@ const orderSchema = new mongoose.Schema({
   },
   total: { type: Number, required: true, min: [0.01, 'Order total must be greater than zero.'] },
   status: { type: String, default: 'Pending' },
+  shippingAddress: { type: String, default: '' }, // Added field
+  trackingNumber: {
+    type: String,
+    default: function() {
+      // Format: BT-YYYYMMDD-XXXXXX (random 6 digits)
+      const date = new Date();
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      const rand = Math.floor(100000 + Math.random() * 900000);
+      return `BT-${y}${m}${d}-${rand}`;
+    },
+    unique: true
+  },
 }, { timestamps: true });
 
 orderSchema.index({ userId: 1 });

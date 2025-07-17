@@ -31,6 +31,7 @@ const BlogPost = lazy(() => import("./pages/BlogPost"));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const ReturnsRefunds = lazy(() => import('./pages/ReturnsRefunds'));
+const Shipping = lazy(() => import("./pages/Shipping"));
 
 // Lazy load admin pages separately for better code splitting
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
@@ -240,6 +241,18 @@ const AnimatedRoutes = () => {
         <Route path="/returns-refunds" element={
           <Suspense fallback={<LoadingSpinner />}>
             <ReturnsRefunds />
+          </Suspense>
+        } />
+        <Route path="/shipping" element={
+          <Suspense fallback={<LoadingSpinner />}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Shipping />
+          </motion.div>
           </Suspense>
         } />
         <Route path="/admin" element={

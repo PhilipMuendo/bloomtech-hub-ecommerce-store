@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import { sendVerificationEmail, generateVerificationToken } from './authController.js';
 
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -94,10 +95,20 @@ export const updateMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ error: 'User not found' });
+    let emailChanged = false;
+    if (req.body.email && req.body.email !== user.email) {
+      user.email = req.body.email;
+      user.verified = false;
+      user.verificationToken = generateVerificationToken();
+      user.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
+      emailChanged = true;
+    }
     user.name = req.body.name || user.name;
-    user.email = req.body.email || user.email;
     await user.save();
-    res.json({ _id: user._id, name: user.name, email: user.email, role: user.role });
+    if (emailChanged) {
+      await sendVerificationEmail(user, req);
+    }
+    res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, verified: user.verified });
   } catch (error) {
     if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
       return res.status(400).json({ error: 'Email is already in use by another account.' });

@@ -21,6 +21,7 @@ interface Order {
     quantity: number;
     price: number;
   }>;
+  shippingAddress?: string; // Added for shipping address
 }
 
 const AdminOrders = () => {
@@ -32,6 +33,8 @@ const AdminOrders = () => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -43,6 +46,8 @@ const AdminOrders = () => {
         params.set('page', String(page));
         params.set('limit', '12');
         if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
+        if (dateFrom) params.set('fromDate', dateFrom);
+        if (dateTo) params.set('toDate', dateTo);
         // Look for token in both 'jwt' and 'user' keys
         let token = localStorage.getItem('jwt');
         if (!token) {
@@ -60,9 +65,10 @@ const AdminOrders = () => {
           customerName: o.customerName || (o.userId?.name ?? 'N/A'),
           customerEmail: o.customerEmail || (o.userId?.email ?? 'N/A'),
           date: o.createdAt,
-          status: o.status,
+          status: o.status as 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled',
           total: o.total,
           items: o.items || [],
+          shippingAddress: o.shippingAddress, // Normalize shipping address
         }));
         setOrders(normalized);
         setTotalPages(data.totalPages || 1);
@@ -85,12 +91,19 @@ const AdminOrders = () => {
     };
     fetchOrders();
     // eslint-disable-next-line
-  }, [page, statusFilter]);
+  }, [page, statusFilter, dateFrom, dateTo]);
 
+  // Filter orders by date range
   const filteredOrders = orders.filter(order => {
+    const orderDate = new Date(order.date).setHours(0,0,0,0);
+    const from = dateFrom ? new Date(dateFrom).setHours(0,0,0,0) : null;
+    const to = dateTo ? new Date(dateTo).setHours(0,0,0,0) : null;
+    if (from && orderDate < from) return false;
+    if (to && orderDate > to) return false;
+    // Also apply search filter
     const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
+      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
 
@@ -108,12 +121,41 @@ const AdminOrders = () => {
     }
   };
 
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
-    // In real app, would call API
-    toast({
-      title: "Order Updated",
-      description: `Order ${orderId} status changed to ${newStatus}`,
-    });
+  const updateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      let token = localStorage.getItem('jwt');
+      if (!token) {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        token = user.token;
+      }
+      const res = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error('Failed to update order status');
+      toast({
+        title: "Order Updated",
+        description: `Order ${orderId} status changed to ${newStatus}`,
+        duration: 1000,
+      });
+      // Update the order's status in local state immediately
+      setOrders(prevOrders => prevOrders.map(order =>
+        order.id === orderId ? { ...order, status: newStatus } : order
+      ));
+      // Optionally refresh orders from server:
+      // setPage(1);
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to update order status',
+        variant: 'destructive',
+        duration: 1000,
+      });
+    }
   };
 
   return (
@@ -131,11 +173,11 @@ const AdminOrders = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-4 sm:flex-row sm:gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row sm:gap-4 gap-4 mb-4 items-center">
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search orders..."
+                placeholder="Search by order ID, customer name, or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -154,6 +196,29 @@ const AdminOrders = () => {
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
+            <div className="flex items-center gap-2">
+              <label htmlFor="dateFrom" className="text-sm font-medium">From:</label>
+              <input
+                id="dateFrom"
+                type="date"
+                value={dateFrom}
+                onChange={e => setDateFrom(e.target.value)}
+                className="border rounded px-2 py-1 text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="dateTo" className="text-sm font-medium">To:</label>
+              <input
+                id="dateTo"
+                type="date"
+                value={dateTo}
+                onChange={e => setDateTo(e.target.value)}
+                className="border rounded px-2 py-1 text-sm"
+              />
+            </div>
+            {(dateFrom || dateTo) && (
+              <Button variant="outline" size="sm" onClick={() => { setDateFrom(''); setDateTo(''); }}>Clear</Button>
+            )}
           </div>
 
           <div className="w-full overflow-x-auto">
@@ -261,7 +326,7 @@ const AdminOrders = () => {
                   <TableBody>
                     {selectedOrder.items.map((item, index) => (
                       <TableRow key={index}>
-                        <TableCell>{item.productName || item.productId || 'N/A'}</TableCell>
+                        <TableCell>{item.productName || 'N/A'}</TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell>KES {item.price.toLocaleString()}</TableCell>
                         <TableCell>KES {(item.quantity * item.price).toLocaleString()}</TableCell>
@@ -275,6 +340,9 @@ const AdminOrders = () => {
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total:</span>
                   <span>KES {selectedOrder.total.toLocaleString()}</span>
+                </div>
+                <div className="mt-2 text-sm text-muted-foreground">
+                  <strong>Shipping Address:</strong> {selectedOrder.shippingAddress || 'N/A'}
                 </div>
               </div>
             </div>

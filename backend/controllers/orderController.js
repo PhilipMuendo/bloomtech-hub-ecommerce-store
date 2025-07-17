@@ -66,7 +66,7 @@ export const getOrderById = async (req, res, next) => {
 // Create new order (for admin or direct order creation)
 export const createOrder = async (req, res, next) => {
   try {
-    const { items, total } = req.body;
+    const { items, total, shippingAddress } = req.body;
     if (!items || !total) return res.status(400).json({ error: 'Items and total required' });
     // Validate and convert productId
     for (const item of items) {
@@ -88,7 +88,7 @@ export const createOrder = async (req, res, next) => {
       ...item,
       productId: new mongoose.Types.ObjectId(item.productId)
     }));
-    const order = await Order.create({ userId: req.user._id, items: normalizedItems, total });
+    const order = await Order.create({ userId: req.user._id, items: normalizedItems, total, shippingAddress });
     // Decrement stock for each product
     for (const item of items) {
       await Product.findByIdAndUpdate(
@@ -98,6 +98,32 @@ export const createOrder = async (req, res, next) => {
       );
     }
     res.status(201).json(order);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Update order status, shipping info, or tracking number (admin only)
+export const updateOrderStatus = async (req, res, next) => {
+  try {
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const { status, shippingAddress, trackingNumber } = req.body;
+    const allowedFields = {};
+    if (status) allowedFields.status = status;
+    if (shippingAddress) allowedFields.shippingAddress = shippingAddress;
+    if (trackingNumber) allowedFields.trackingNumber = trackingNumber;
+    if (Object.keys(allowedFields).length === 0) {
+      return res.status(400).json({ error: 'No valid fields to update' });
+    }
+    const order = await Order.findByIdAndUpdate(
+      req.params.id,
+      { $set: allowedFields },
+      { new: true }
+    );
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    res.json(order);
   } catch (err) {
     next(err);
   }

@@ -55,7 +55,8 @@ const MpesaPaymentModal: React.FC<MpesaPaymentModalProps> = ({
       toast({
         title: "Error",
         description: "Please enter your phone number",
-        variant: "destructive"
+        variant: "destructive",
+        duration: 1000,
       });
       return;
     }
@@ -84,6 +85,7 @@ const MpesaPaymentModal: React.FC<MpesaPaymentModalProps> = ({
         toast({
           title: "STK Push Sent",
           description: "Check your phone for the M-Pesa prompt and enter your PIN",
+          duration: 1000,
         });
         
         // Start polling for payment status
@@ -98,7 +100,8 @@ const MpesaPaymentModal: React.FC<MpesaPaymentModalProps> = ({
       toast({
         title: "Payment Failed",
         description: error instanceof Error ? error.message : 'Failed to initiate payment',
-        variant: "destructive"
+        variant: "destructive",
+        duration: 1000,
       });
     } finally {
       setIsProcessing(false);
@@ -128,6 +131,7 @@ const MpesaPaymentModal: React.FC<MpesaPaymentModalProps> = ({
             toast({
               title: "Payment Successful",
               description: `Your order has been paid successfully. Receipt: ${mpesaReceiptNumber}`,
+              duration: 1000,
             });
             setTimeout(() => {
               onSuccess();
@@ -140,7 +144,8 @@ const MpesaPaymentModal: React.FC<MpesaPaymentModalProps> = ({
             toast({
               title: "Payment Failed",
               description: resultDesc || 'Payment failed',
-              variant: "destructive"
+              variant: "destructive",
+              duration: 1000,
             });
             return;
           }
@@ -155,7 +160,8 @@ const MpesaPaymentModal: React.FC<MpesaPaymentModalProps> = ({
           toast({
             title: "Payment Timeout",
             description: "Payment verification timed out. Please check your M-Pesa messages.",
-            variant: "destructive"
+            variant: "destructive",
+            duration: 1000,
           });
         }
       } catch (error) {
@@ -195,6 +201,7 @@ const MpesaPaymentModal: React.FC<MpesaPaymentModalProps> = ({
           toast({
             title: "Mock Payment Successful",
             description: "Order payment completed (development mode)",
+            duration: 1000,
           });
           setTimeout(() => {
             onSuccess();
@@ -206,7 +213,8 @@ const MpesaPaymentModal: React.FC<MpesaPaymentModalProps> = ({
           toast({
             title: "Mock Payment Failed",
             description: "Payment failed (development mode)",
-            variant: "destructive"
+            variant: "destructive",
+            duration: 1000,
           });
         }
       }

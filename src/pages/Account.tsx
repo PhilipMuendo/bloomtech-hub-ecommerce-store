@@ -20,6 +20,7 @@ const Account = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; password?: string; newPassword?: string; confirmPassword?: string }>({});
+  const [emailChanged, setEmailChanged] = useState(false);
   const navigate = useNavigate();
 
   const token = user?.token || (typeof window !== 'undefined' && localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).token);
@@ -56,6 +57,10 @@ const Account = () => {
         localStorage.setItem('user', JSON.stringify(newUser));
         // If you have a setUser or dispatch function in AuthContext, call it here to update context immediately
         // Example: dispatch({ type: 'LOGIN_SUCCESS', payload: newUser });
+        if (updated.verified === false) {
+          setEmailChanged(true);
+          localStorage.removeItem('user');
+        }
       }
       setTimeout(() => navigate('/shop'), 1000);
     } catch (err: any) {
@@ -95,6 +100,22 @@ const Account = () => {
       setPasswordLoading(false);
     }
   };
+
+  if (emailChanged) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Email Changed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">Your email has been changed. Please check your new email to verify your account before logging in again.</p>
+            <p className="text-muted-foreground text-sm mb-4">Didn't receive the email? Check your spam folder or <a href="/resend-verification" className="text-primary underline">resend verification</a>.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-8">

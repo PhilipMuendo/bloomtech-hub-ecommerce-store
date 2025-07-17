@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/context/CartContext';
@@ -14,8 +14,18 @@ const Cart = () => {
   const { user } = useAuth();
   const [showMpesaModal, setShowMpesaModal] = React.useState(false);
   const [currentOrderId, setCurrentOrderId] = React.useState('');
+  const navigate = useNavigate();
 
-  const handleCheckout = async () => {
+  React.useEffect(() => {
+    // If returning from shipping info, show payment modal after order creation
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('shipping') === 'done') {
+      handleOrderWithShipping();
+    }
+    // eslint-disable-next-line
+  }, []);
+
+  const handleOrderWithShipping = async () => {
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -24,9 +34,16 @@ const Cart = () => {
       });
       return;
     }
-
+    const pickupPoint = localStorage.getItem('pickupPoint') || '';
+    if (!pickupPoint) {
+      toast({
+        title: "Shipping Info Required",
+        description: "Please select a pickup point.",
+        variant: "destructive"
+      });
+      return;
+    }
     try {
-      // Create order first
       const orderResponse = await fetch('/api/orders', {
         method: 'POST',
         headers: {
@@ -38,25 +55,38 @@ const Cart = () => {
             productId: item.id,
             quantity: item.quantity
           })),
-          total: getTotalPrice()
+          total: getTotalPrice(),
+          shippingAddress: pickupPoint
         })
       });
-
       const orderData = await orderResponse.json();
-      
       if (orderData._id) {
         setCurrentOrderId(orderData._id);
         setShowMpesaModal(true);
+        localStorage.removeItem('pickupPoint');
       } else {
         throw new Error('Failed to create order');
       }
     } catch (error) {
-      toast({ 
-        title: "Error", 
+      toast({
+        title: "Error",
         description: "Failed to create order. Please try again.",
         variant: "destructive"
       });
     }
+  };
+
+  const handleCheckout = () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to place an order",
+        variant: "destructive"
+      });
+      return;
+    }
+    // Redirect to shipping info page
+    navigate('/shipping');
   };
 
   const handlePaymentSuccess = () => {
@@ -99,7 +129,7 @@ const Cart = () => {
             <Card key={item.id} className="p-3 sm:p-4">
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <img
-                  src={item.imageUrl || item.image}
+                  src={item.image || '/placeholder.svg'}
                   alt={item.name}
                   className="w-full sm:w-24 h-32 sm:h-24 object-cover rounded"
                 />

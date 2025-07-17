@@ -56,7 +56,8 @@ export const checkout = async (req, res, next) => {
       const product = await Product.findById(item.productId);
       if (product) total += product.price * item.quantity;
     }
-    const order = await Order.create({ userId: req.user._id, items, total });
+    const shippingAddress = req.body.shippingAddress || '';
+    const order = await Order.create({ userId: req.user._id, items, total, shippingAddress });
     await CartItem.deleteMany({ userId: req.user._id });
     res.status(201).json(order);
   } catch (err) {
