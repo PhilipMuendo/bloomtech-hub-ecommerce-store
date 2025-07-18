@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Search, Eye, Star, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 interface Review {
   id: string;
@@ -27,71 +28,40 @@ const Reviews = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [ratingFilter, setRatingFilter] = useState<string>('all');
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  // Mock reviews data
-  const reviews: Review[] = [
-    {
-      id: 'REV-001',
-      productName: 'HP EliteBook 840 G8 Laptop',
-      productId: '1',
-      customerName: 'John Doe',
-      customerEmail: 'john@example.com',
-      rating: 5,
-      comment: 'Excellent laptop for business use. Fast performance and great build quality.',
-      date: '2024-01-15',
-      status: 'approved',
-      helpful: 12
-    },
-    {
-      id: 'REV-002',
-      productName: 'TP-Link AC1200 Wi-Fi Router',
-      productId: '2',
-      customerName: 'Jane Smith',
-      customerEmail: 'jane@example.com',
-      rating: 4,
-      comment: 'Good router with decent range. Setup was easy and works well.',
-      date: '2024-01-14',
-      status: 'pending',
-      helpful: 3
-    },
-    {
-      id: 'REV-003',
-      productName: 'Lenovo ThinkPad E15',
-      productId: '15',
-      customerName: 'Mike Johnson',
-      customerEmail: 'mike@example.com',
-      rating: 2,
-      comment: 'Product arrived damaged and customer service was poor.',
-      date: '2024-01-13',
-      status: 'pending',
-      helpful: 1
-    },
-    {
-      id: 'REV-004',
-      productName: 'LED Floodlight 50W',
-      productId: '18',
-      customerName: 'Sarah Wilson',
-      customerEmail: 'sarah@example.com',
-      rating: 5,
-      comment: 'Bright and energy efficient. Perfect for outdoor lighting.',
-      date: '2024-01-12',
-      status: 'approved',
-      helpful: 8
-    },
-    {
-      id: 'REV-005',
-      productName: 'USB Type-C Multiport Hub',
-      productId: '16',
-      customerName: 'David Brown',
-      customerEmail: 'david@example.com',
-      rating: 1,
-      comment: 'Completely inappropriate and offensive content that violates guidelines.',
-      date: '2024-01-11',
-      status: 'rejected',
-      helpful: 0
-    }
-  ];
+  useEffect(() => {
+    const fetchReviews = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/reviews', {
+          headers: {
+            'Authorization': user?.token ? `Bearer ${user.token}` : ''
+          }
+        });
+        if (!res.ok) throw new Error('Failed to fetch reviews');
+        const data = await res.json();
+        setReviews(data);
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch reviews');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (user?.token) fetchReviews();
+  }, [user]);
+
+  if (loading) {
+    return <div className="text-center py-12">Loading reviews...</div>;
+  }
+  if (error) {
+    return <div className="text-center py-12 text-red-500">{error}</div>;
+  }
 
   const filteredReviews = reviews.filter(review => {
     const matchesSearch = review.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -19,6 +19,7 @@ import { useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useSearchParams } from 'react-router-dom';
 import { fetchLowStockProducts } from '@/components/AdminLayout';
+import './category-badge.css';
 
 export interface Product {
   _id: string;
@@ -560,7 +561,7 @@ const Products = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="default">
+                      <Badge variant="default" className="category-badge">
                         {categoryDisplayMap[product.category] || product.category}
                       </Badge>
                     </TableCell>

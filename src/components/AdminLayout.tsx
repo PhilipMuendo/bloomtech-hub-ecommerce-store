@@ -37,7 +37,7 @@ const AdminLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [showNotif, setShowNotif] = useState(false);
 
@@ -70,6 +70,7 @@ const AdminLayout = () => {
   ];
 
   const handleLogout = () => {
+    logout();
     navigate('/');
   };
 

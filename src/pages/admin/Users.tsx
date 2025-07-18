@@ -310,7 +310,7 @@ const Users = () => {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Select onValueChange={(value) => updateUserStatus(user._id, value)}>
+                            <Select onValueChange={(value) => updateUserStatus(user._id, value)} disabled={user._id === currentUser?._id && user.role === 'superadmin'}>
                               <SelectTrigger className="w-[100px] h-8">
                                 <SelectValue placeholder="Status" />
                               </SelectTrigger>

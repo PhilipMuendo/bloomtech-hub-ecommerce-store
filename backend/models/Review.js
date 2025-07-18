@@ -5,6 +5,8 @@ const reviewSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   comment: { type: String, required: true, minlength: 5 },
   rating: { type: Number, required: true, min: 1, max: 5 },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  helpful: { type: Number, default: 0 },
 }, { timestamps: true });
 
 const Review = mongoose.model('Review', reviewSchema);

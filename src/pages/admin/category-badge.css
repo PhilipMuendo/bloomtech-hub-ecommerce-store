@@ -1,0 +1,6 @@
+.category-badge {
+  min-width: 120px;
+  justify-content: center;
+  display: inline-flex;
+  text-align: center;
+} 
