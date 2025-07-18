@@ -9,6 +9,7 @@ import AnimatedCounter from '@/components/AnimatedCounter';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 const categoryDisplayMap: Record<string, string> = {
   power: 'Power Solutions',
@@ -48,6 +49,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { toast } = useToast();
+  const { isSuperAdmin } = useAuth();
 
   // Add state for recent orders
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
@@ -247,13 +249,15 @@ const Dashboard = () => {
               description="Customer reviews"
               color="bg-orange-500"
             />
-            <StatCard
-              title="Revenue"
-              value={stats?.revenue || 0}
-              icon={TrendingUp}
-              description="Total revenue (KES)"
-              color="bg-emerald-500"
-            />
+            {isSuperAdmin() && (
+              <StatCard
+                title="Revenue"
+                value={stats?.revenue || 0}
+                icon={TrendingUp}
+                description="Total revenue (KES)"
+                color="bg-emerald-500"
+              />
+            )}
             <StatCard
               title="Newsletter"
               value={stats?.subscribers || 0}
@@ -265,44 +269,46 @@ const Dashboard = () => {
 
           {/* Charts Section */}
           <div className="grid gap-4 sm:gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-full">
-            {/* Revenue Trend Chart */}
-            <Card className="col-span-full lg:col-span-2 max-w-full">
-              <CardHeader>
-                <CardTitle>Revenue Trend</CardTitle>
-                <CardDescription>Monthly revenue for the last 6 months</CardDescription>
-              </CardHeader>
-              <CardContent className="overflow-x-auto max-w-full">
-                <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[320px] max-w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={revenueData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis 
-                        dataKey="month" 
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                      />
-                      <YAxis 
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                        tickFormatter={(value) => `${value / 1000}K`}
-                      />
-                      <ChartTooltip 
-                        content={<ChartTooltipContent />}
-                        formatter={(value) => [`KES ${value.toLocaleString()}`, 'Revenue']}
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="revenue"
-                        stroke="var(--color-revenue)"
-                        strokeWidth={3}
-                        dot={{ fill: "var(--color-revenue)", strokeWidth: 2, r: 4 }}
-                        activeDot={{ r: 6, stroke: "var(--color-revenue)" }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </CardContent>
-            </Card>
+            {/* Revenue Trend Chart (SuperAdmin only) */}
+            {isSuperAdmin() && (
+              <Card className="col-span-full lg:col-span-2 max-w-full">
+                <CardHeader>
+                  <CardTitle>Revenue Trend</CardTitle>
+                  <CardDescription>Monthly revenue for the last 6 months</CardDescription>
+                </CardHeader>
+                <CardContent className="overflow-x-auto max-w-full">
+                  <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[320px] max-w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={revenueData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis 
+                          dataKey="month" 
+                          stroke="hsl(var(--muted-foreground))"
+                          fontSize={12}
+                        />
+                        <YAxis 
+                          stroke="hsl(var(--muted-foreground))"
+                          fontSize={12}
+                          tickFormatter={(value) => `${value / 1000}K`}
+                        />
+                        <ChartTooltip 
+                          content={<ChartTooltipContent />}
+                          formatter={(value) => [`KES ${value.toLocaleString()}`, 'Revenue']}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="revenue"
+                          stroke="var(--color-revenue)"
+                          strokeWidth={3}
+                          dot={{ fill: "var(--color-revenue)", strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: "var(--color-revenue)" }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Orders by Category */}
             <Card className="max-w-full">
