@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 export interface Review {
   id: string;
@@ -7,22 +8,52 @@ export interface Review {
   rating: number;
   comment: string;
   createdAt: Date;
+  status?: string;
 }
 
 export const useReviews = (productId: string) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+
+  // Fetch reviews for this product
+  const fetchReviews = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/reviews', {
+        headers: user?.token ? { 'Authorization': `Bearer ${user.token}` } : {}
+      });
+      if (!res.ok) throw new Error('Failed to fetch reviews');
+      const data = await res.json();
+      // Filter reviews for this product
+      setReviews(data.filter((r: Review) => r.productId === productId));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+    // eslint-disable-next-line
+  }, [productId, user?.token]);
 
   const addReview = async (rating: number, comment: string) => {
-    const newReview: Review = {
-      id: Math.random().toString(36).substr(2, 9),
-      userId: '',
-      productId,
-      rating,
-      comment,
-      createdAt: new Date(),
-    };
-    setReviews(prev => [newReview, ...prev]);
+    if (!user || !user.token) throw new Error('Not authenticated');
+    setLoading(true);
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.token}`
+        },
+        body: JSON.stringify({ productId, rating, comment })
+      });
+      if (!res.ok) throw new Error('Failed to submit review');
+      await fetchReviews(); // Refresh reviews after adding
+    } finally {
+      setLoading(false);
+    }
   };
 
   const averageRating = reviews.length > 0 

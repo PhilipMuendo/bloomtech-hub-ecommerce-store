@@ -25,7 +25,7 @@ interface Review {
 
 const Reviews = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all'); // Default to 'all' to show all reviews
   const [ratingFilter, setRatingFilter] = useState<string>('all');
   const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);

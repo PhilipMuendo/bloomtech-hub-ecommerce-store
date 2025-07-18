@@ -256,8 +256,8 @@ const ProductDetail = () => {
       <div className="mt-10 sm:mt-16 space-y-6 sm:space-y-8">
         <h2 className="text-xl sm:text-2xl font-bold">Customer Reviews</h2>
         <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-2">
-          <ReviewForm productId={product.id} />
-          <ReviewsList productId={product.id} />
+          <ReviewForm productId={product._id} />
+          <ReviewsList productId={product._id} />
         </div>
       </div>
 
