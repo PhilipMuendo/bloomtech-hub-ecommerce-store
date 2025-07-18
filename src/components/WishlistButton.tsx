@@ -22,7 +22,7 @@ const WishlistButton: React.FC<WishlistButtonProps> = ({ productId, className, i
 
   const handleWishlistClick = async () => {
     if (!user) {
-      setShowModal(true);
+      toast({ title: 'Please log in to add items to your wishlist.' });
       return;
     }
     try {

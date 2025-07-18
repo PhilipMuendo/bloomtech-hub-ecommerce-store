@@ -20,6 +20,7 @@ interface AuthContextType extends AuthState {
   isAdmin: () => boolean;
   isSuperAdmin: () => boolean;
   hasRole: (role: string) => boolean;
+  updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -128,6 +129,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return state.user?.role === role;
   };
 
+  const updateUser = (user: User) => {
+    localStorage.setItem('user', JSON.stringify(user));
+    dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+  };
+
   return (
     <AuthContext.Provider value={{
       ...state,
@@ -136,7 +142,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       logout,
       isAdmin,
       isSuperAdmin,
-      hasRole
+      hasRole,
+      updateUser
     }}>
       {children}
     </AuthContext.Provider>

@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 
 const Account = () => {
-  const { user, login } = useAuth();
+  const { user, login, updateUser } = useAuth();
   const { toast } = useToast();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -54,9 +54,7 @@ const Account = () => {
       // Update context/localStorage with new user info
       if (updated && updated.name && updated.email) {
         const newUser = { ...user, name: updated.name, email: updated.email };
-        localStorage.setItem('user', JSON.stringify(newUser));
-        // If you have a setUser or dispatch function in AuthContext, call it here to update context immediately
-        // Example: dispatch({ type: 'LOGIN_SUCCESS', payload: newUser });
+        updateUser(newUser);
         if (updated.verified === false) {
           setEmailChanged(true);
           localStorage.removeItem('user');

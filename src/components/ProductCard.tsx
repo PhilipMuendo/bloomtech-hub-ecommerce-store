@@ -7,6 +7,8 @@ import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/hooks/useWishlist';
 import { Badge } from '@/components/ui/badge';
 import WishlistButton from './WishlistButton';
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface Product {
   id: string;
@@ -25,10 +27,16 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const handleAddToCart = () => {
+    if (!user) {
+      toast({ title: 'Please log in to add items to your cart.' });
+      return;
+    }
     addToCart({
       id: product.id,
       name: product.name,

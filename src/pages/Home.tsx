@@ -7,6 +7,14 @@ import ProductCard from '@/components/ProductCard';
 import { motion } from 'framer-motion';
 import AnimatedCounter from '../components/AnimatedCounter';
 import CategoriesNavigation from '../components/CategoriesNavigation';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext
+} from '@/components/ui/carousel';
+import { type CarouselApi } from '@/components/ui/carousel';
 
 // SectionReveal component for reusability
 const SectionReveal: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
@@ -25,6 +33,8 @@ const Home = () => {
   const [featuredProducts, setFeaturedProducts] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const carouselApiRef = React.useRef<CarouselApi | null>(null);
+  const [isCarouselPaused, setIsCarouselPaused] = React.useState(false);
 
   React.useEffect(() => {
     async function fetchFeatured() {
@@ -48,6 +58,25 @@ const Home = () => {
     }
     fetchFeatured();
   }, []);
+
+  // Add auto-scroll effect
+  React.useEffect(() => {
+    if (featuredProducts.length === 0) return;
+    let interval = null;
+    const scroll = () => {
+      if (isCarouselPaused) return;
+      const api = carouselApiRef.current;
+      if (api) {
+        if (api.canScrollNext()) {
+          api.scrollNext();
+        } else {
+          api.scrollTo(0); // Loop back to start
+        }
+      }
+    };
+    interval = setInterval(scroll, 3000);
+    return () => interval && clearInterval(interval);
+  }, [featuredProducts, isCarouselPaused]);
 
   return (
     <div className="space-y-16">
@@ -94,12 +123,26 @@ const Home = () => {
           ) : error ? (
             <div className="text-center py-8 text-red-500">{error}</div>
           ) : (
-          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-            {featuredProducts.map((product) => (
-              <div key={product.id} className="animate-scale-in">
-                <ProductCard product={product} />
-              </div>
-            ))}
+          <div className="mb-6 sm:mb-8 relative max-w-full overflow-x-hidden">
+            <Carousel
+              opts={{ loop: true }}
+              setApi={api => (carouselApiRef.current = api)}
+              onMouseEnter={() => setIsCarouselPaused(true)}
+              onMouseLeave={() => setIsCarouselPaused(false)}
+            >
+              <CarouselContent>
+                {featuredProducts.map((product) => (
+                  <CarouselItem
+                    key={product.id}
+                    className="w-[220px] sm:w-[260px] max-w-full flex-shrink-0 animate-scale-in"
+                  >
+                    <ProductCard product={product} />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
           </div>
           )}
 

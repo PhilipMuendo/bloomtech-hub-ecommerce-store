@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import AnimatedCounter from '@/components/AnimatedCounter';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 
 const About = () => {
   return (
@@ -255,20 +256,12 @@ const About = () => {
                 Our expert team is ready to help you find the perfect solutions.
               </p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
-                <a
-                  href="mailto:info@keensellventures.com"
+                <Link
+                  to="/contact"
                   className="bg-white text-primary px-8 py-4 rounded-lg font-semibold text-lg shadow-md hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
                 >
-                  <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 12H8m8 0a4 4 0 11-8 0 4 4 0 018 0zm0 0v4m0-4V8" /></svg>
-                  Email Us
-                </a>
-                <a
-                  href="tel:+254700123456"
-                  className="border-2 border-white px-8 py-4 rounded-lg font-semibold text-lg shadow-md hover:bg-white hover:text-primary transition-all flex items-center justify-center gap-2"
-                >
-                  <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm0 10a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2zm10-10a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zm0 10a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
-                  Call Us
-                </a>
+                  Contact Us
+                </Link>
               </div>
             </div>
           </motion.div>
