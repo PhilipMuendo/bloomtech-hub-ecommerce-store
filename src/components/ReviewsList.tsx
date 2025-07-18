@@ -53,7 +53,9 @@ const ReviewsList: React.FC<ReviewsListProps> = ({ productId }) => {
                     ))}
                   </div>
                   <span className="text-sm text-muted-foreground">
-                    {review.createdAt.toLocaleDateString()}
+                    {review.createdAt && typeof review.createdAt.toLocaleDateString === 'function'
+                      ? review.createdAt.toLocaleDateString()
+                      : 'Unknown date'}
                   </span>
                 </div>
                 <p>{review.comment}</p>

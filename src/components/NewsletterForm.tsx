@@ -12,8 +12,12 @@ const NewsletterForm: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      // Mock newsletter subscription
-      await new Promise(res => setTimeout(res, 500));
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      if (!res.ok) throw new Error('Failed to subscribe');
       setEmail('');
       toast({ title: "Successfully subscribed to newsletter!" });
     } catch (error) {

@@ -243,8 +243,8 @@ const Users = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-full overflow-x-auto">
-              <Table className="min-w-[600px]">
+            <div className="overflow-x-auto max-w-full">
+              <Table className="min-w-[600px] w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead>User</TableHead>

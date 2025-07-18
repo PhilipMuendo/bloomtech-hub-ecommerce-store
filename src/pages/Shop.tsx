@@ -143,7 +143,7 @@ const Shop = () => {
   const handleNextPage = () => setPage((p) => Math.min(totalPages, p + 1));
 
   return (
-    <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
+    <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8 max-w-full overflow-x-hidden">
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-4">Shop Our Products</h1>
         <p className="text-muted-foreground text-base sm:text-lg">
@@ -151,8 +151,8 @@ const Shop = () => {
         </p>
       </div>
       {/* Filters */}
-      <div className="bg-white p-4 sm:p-6 rounded-lg shadow-sm border mb-6 sm:mb-8">
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="bg-white p-3 sm:p-6 rounded-lg shadow-sm border mb-6 sm:mb-8 max-w-full">
+        <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-4 max-w-full">
           {/* Search */}
           <form onSubmit={handleSearch} className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -215,7 +215,7 @@ const Shop = () => {
         <div className="text-center py-12 sm:py-16 text-red-500">{error}</div>
       ) : products.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 max-w-full">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

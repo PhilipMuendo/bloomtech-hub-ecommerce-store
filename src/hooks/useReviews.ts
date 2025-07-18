@@ -25,8 +25,15 @@ export const useReviews = (productId: string) => {
       });
       if (!res.ok) throw new Error('Failed to fetch reviews');
       const data = await res.json();
-      // Filter reviews for this product
-      setReviews(data.filter((r: Review) => r.productId === productId));
+      // Filter reviews for this product and ensure createdAt is a Date object
+      setReviews(
+        data
+          .filter((r: Review) => String(r.productId) === String(productId))
+          .map((r: any) => ({
+            ...r,
+            createdAt: r.createdAt ? new Date(r.createdAt) : undefined
+          }))
+      );
     } finally {
       setLoading(false);
     }

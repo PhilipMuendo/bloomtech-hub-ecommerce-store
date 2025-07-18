@@ -8,26 +8,36 @@ BloomTech Hub Ecommerce Store is a modern, full-featured ecommerce platform with
 
 ## Features
 
-### Frontend
+### Customer-Facing
 - **Product Catalog**: Browse a wide range of products with detailed descriptions, images, and prices.
 - **Product Detail Pages**: View comprehensive information about each product, including images, specifications, and related items.
 - **Shopping Cart**: Add, remove, and update products in your cart with real-time price calculations.
 - **Wishlist**: Save products for later viewing.
 - **Checkout Process**: Streamlined checkout flow for a smooth purchasing experience.
-- **Newsletter Signup**: Subscribe to updates and promotions.
-- **Responsive Design**: Fully optimized for desktops, tablets, and mobile devices.
+- **Newsletter Signup**: Subscribe to updates and promotions (real backend integration).
+- **Product Reviews**: Submit and view reviews; reviews are visible to admin for moderation.
+- **Responsive Design**: Fully optimized for desktops, tablets, and all phone sizes. No horizontal scroll on any device.
 - **Modern UI Components**: Utilizes shadcn-ui and Tailwind CSS for a clean and consistent look.
 - **Context Management**: Uses React Context for managing cart, auth, and wishlist state.
 - **Custom Hooks**: Includes reusable hooks for mobile detection, toast notifications, wishlist, reviews, and more.
 - **404 Not Found Page**: Friendly error page for invalid routes.
 
+### Admin Panel
+- **Dashboard**: Visualize key stats (products, orders, users, reviews, revenue, newsletter subscribers) with responsive charts.
+- **Product, User, and Review Management**: View, filter, and manage all products, users, and reviews.
+- **Review Moderation**: Approve/reject reviews; only approved reviews show on the storefront.
+- **Newsletter Subscribers**: View all newsletter signups in real time.
+- **Mobile-First Admin**: All tables, charts, and navigation are fully mobile responsive with horizontal scroll for wide tables.
+- **Role-Based Access**: Admin and superadmin roles, with superadmin protected from self-deactivation.
+
 ### Backend
-- **RESTful API**: Provides endpoints for authentication, cart, orders, and wishlist management.
+- **RESTful API**: Provides endpoints for authentication, cart, orders, wishlist, reviews, newsletter, and more.
 - **MongoDB Models**: User, Product, Order, CartItem, Wishlist, Review, Newsletter, BackInStockAlert.
 - **Authentication**: JWT-based authentication and authorization middleware.
 - **Order Management**: Place and view orders.
 - **Wishlist Management**: Add/remove products from wishlist.
 - **Cart Management**: Add/remove/update cart items.
+- **Newsletter**: Subscribe and view subscribers via API.
 - **Logging & Security**: Uses morgan for logging, dotenv for environment variables, and CORS for security.
 
 ---
@@ -102,6 +112,17 @@ npm run dev
 
 ---
 
+## Deployment
+
+### Frontend (Vercel)
+- Deploy the frontend to [Vercel](https://vercel.com/) for free. Connect your repo, set the root to the frontend directory, and use the default Vite build settings.
+
+### Backend (Render)
+- Deploy the backend to [Render](https://render.com/) (free tier available). Connect your repo, set the root to the backend directory, and set environment variables as above.
+- Use [Neon](https://neon.tech/) or [Supabase](https://supabase.com/) for a free cloud database if MongoDB Atlas free tier is unavailable.
+
+---
+
 ## Project Structure
 
 - `src/components/` — Reusable UI components (Header, Footer, ProductCard, etc.)
@@ -120,10 +141,18 @@ npm run dev
 
 ---
 
-## Backend API Endpoints
+## Backend API Endpoints (Highlights)
 
 - `POST   /api/auth/register` — Register a new user
 - `POST   /api/auth/login` — Login and receive JWT
+- `GET    /api/products` — List all products
+- `GET    /api/products/:id` — Get product details
+- `GET    /api/products/featured` — Get featured products
+- `POST   /api/reviews` — Submit a product review
+- `GET    /api/reviews` — Admin: fetch all reviews
+- `PUT    /api/reviews/:id/status` — Admin: approve/reject review
+- `POST   /api/newsletter` — Subscribe to newsletter
+- `GET    /api/subscribers` — Admin: fetch newsletter subscribers
 - `GET    /api/cart` — Get user's cart
 - `POST   /api/cart` — Add item to cart
 - `PUT    /api/cart/:itemId` — Update cart item

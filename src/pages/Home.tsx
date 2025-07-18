@@ -50,11 +50,11 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="space-y-16">
+    <div className="space-y-16 max-w-full overflow-x-hidden">
       {/* Hero Section */}
       <SectionReveal>
         <section className="hero-gradient text-white py-16 sm:py-20">
-          <div className="container mx-auto px-2 sm:px-4 text-center">
+          <div className="container mx-auto px-2 sm:px-4 text-center max-w-full">
             <div className="animate-fade-in">
               <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 sm:mb-6">
                 Your Tech Solutions Hub
@@ -81,7 +81,7 @@ const Home = () => {
 
       {/* Featured Products */}
       <SectionReveal>
-        <section className="container mx-auto px-2 sm:px-4">
+        <section className="container mx-auto px-2 sm:px-4 max-w-full">
           <div className="text-center mb-8 sm:mb-12 animate-slide-up">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-4">Featured Products</h2>
             <p className="text-muted-foreground text-base sm:text-lg">
@@ -94,7 +94,7 @@ const Home = () => {
           ) : error ? (
             <div className="text-center py-8 text-red-500">{error}</div>
           ) : (
-          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8 max-w-full">
             {featuredProducts.map((product) => (
               <div key={product.id} className="animate-scale-in">
                 <ProductCard product={product} />
@@ -113,7 +113,7 @@ const Home = () => {
 
       {/* Why Choose Us */}
       <section className="bg-muted py-10 sm:py-16">
-        <div className="container mx-auto px-2 sm:px-4">
+        <div className="container mx-auto px-2 sm:px-4 max-w-full">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-4">Why Choose BLOOMTECH Hub?</h2>
             <p className="text-muted-foreground text-base sm:text-lg">
@@ -121,7 +121,7 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:gap-8 md:grid-cols-3 max-w-full">
             <div className="text-center animate-slide-up">
               <div className="w-14 h-14 sm:w-16 sm:h-16 bg-primary rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                 <span className="text-xl sm:text-2xl text-white">✓</span>

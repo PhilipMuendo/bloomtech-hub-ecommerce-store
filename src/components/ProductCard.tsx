@@ -47,10 +47,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   };
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
-      <CardContent className="p-4">
+    <Card className="group hover:shadow-lg transition-all duration-300 overflow-hidden w-full max-w-xs mx-auto">
+      <CardContent className="p-3 sm:p-4">
         {/* Image Container */}
-        <div className="relative aspect-square mb-4 overflow-hidden rounded-lg bg-gray-100">
+        <div className="relative aspect-square mb-3 sm:mb-4 overflow-hidden rounded-lg bg-gray-100">
           {!imageLoaded && !imageError && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="animate-pulse bg-gray-200 w-full h-full"></div>
@@ -75,46 +75,47 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
           {/* Featured Badge */}
           {product.featured && (
-            <Badge className="absolute top-2 left-2 bg-primary text-white">
+            <Badge className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 bg-primary text-white text-xs sm:text-sm px-2 py-0.5">
               Featured
             </Badge>
           )}
 
           {/* Out of Stock Badge */}
           {!product.inStock && (
-            <Badge className="absolute bottom-2 left-2 bg-red-500 text-white">
+            <Badge className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 bg-red-500 text-white text-xs sm:text-sm px-2 py-0.5">
               Out of Stock
             </Badge>
           )}
         </div>
 
         {/* Product Info */}
-        <div className="space-y-2">
+        <div className="space-y-1.5 sm:space-y-2">
           <Link to={`/product/${product.id}`} className="block">
-            <h3 className="font-semibold text-sm line-clamp-2 hover:text-primary transition-colors">
+            <h3 className="font-semibold text-xs sm:text-sm line-clamp-2 hover:text-primary transition-colors">
               {product.name}
             </h3>
           </Link>
           
           <div className="flex items-center justify-between">
-            <span className="font-bold text-lg text-primary">
+            <span className="font-bold text-base sm:text-lg text-primary">
               KES {product.price.toLocaleString()}
             </span>
           </div>
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 mt-2">
             <Button
               size="sm"
               onClick={handleAddToCart}
               disabled={!product.inStock}
-              className="flex items-center gap-1"
+              className="flex items-center gap-1 w-full xs:w-auto"
             >
               <ShoppingCart className="h-4 w-4" />
-              Add to Cart
+              <span className="hidden xs:inline">Add to Cart</span>
+              <span className="xs:hidden">Add</span>
             </Button>
             <WishlistButton
               productId={product.id}
               iconOnly
-              className="bg-white/80 hover:bg-white rounded-full shadow border border-gray-200"
+              className="bg-white/80 hover:bg-white rounded-full shadow border border-gray-200 w-full xs:w-auto"
             />
           </div>
         </div>

@@ -178,7 +178,7 @@ const Dashboard = () => {
   const totalOrdersByCategory = ordersByCategoryData.reduce((sum, cat) => sum + (cat.orders || 0), 0);
 
   return (
-    <div className="space-y-6 p-2 sm:p-4 md:p-6">
+    <div className="space-y-6 p-2 sm:p-4 md:p-6 max-w-full overflow-x-hidden">
       {loading ? (
         <div className="text-center py-20 text-lg">Loading dashboard...</div>
       ) : error && !loading ? (
@@ -218,7 +218,7 @@ const Dashboard = () => {
           </div>
 
           {/* Animated Stats Cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 max-w-full">
             <StatCard
               title="Total Products"
               value={stats?.totalProducts || 0}
@@ -264,15 +264,15 @@ const Dashboard = () => {
           </div>
 
           {/* Charts Section */}
-          <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-full">
             {/* Revenue Trend Chart */}
-            <Card className="col-span-full lg:col-span-2">
+            <Card className="col-span-full lg:col-span-2 max-w-full">
               <CardHeader>
                 <CardTitle>Revenue Trend</CardTitle>
                 <CardDescription>Monthly revenue for the last 6 months</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+              <CardContent className="overflow-x-auto max-w-full">
+                <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[320px] max-w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={revenueData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -305,13 +305,13 @@ const Dashboard = () => {
             </Card>
 
             {/* Orders by Category */}
-            <Card>
+            <Card className="max-w-full">
               <CardHeader>
                 <CardTitle>Orders by Category</CardTitle>
                 <CardDescription>Distribution of orders</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+              <CardContent className="overflow-x-auto max-w-full">
+                <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[320px] max-w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -356,14 +356,14 @@ const Dashboard = () => {
           </div>
 
           {/* User Signups Chart & Recent Orders */}
-          <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
-            <Card>
+          <div className="grid gap-4 sm:gap-6 sm:grid-cols-1 md:grid-cols-2 max-w-full">
+            <Card className="max-w-full">
               <CardHeader>
                 <CardTitle>User Signups</CardTitle>
                 <CardDescription>Monthly new user registrations</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+              <CardContent className="overflow-x-auto max-w-full">
+                <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[320px] max-w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={userSignupsData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -392,7 +392,7 @@ const Dashboard = () => {
             </Card>
 
             {/* Recent Orders */}
-            <Card>
+            <Card className="max-w-full">
               <CardHeader>
                 <CardTitle>Recent Orders</CardTitle>
                 <CardDescription>Latest customer orders</CardDescription>

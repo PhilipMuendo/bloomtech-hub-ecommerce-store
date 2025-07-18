@@ -530,8 +530,8 @@ const Products = () => {
           </div>
 
           {/* Table wrapper for horizontal scroll on mobile */}
-          <div className="overflow-x-auto rounded-lg border bg-white">
-            <Table className="min-w-[700px]">
+          <div className="overflow-x-auto max-w-full">
+            <Table className="min-w-[700px] w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
