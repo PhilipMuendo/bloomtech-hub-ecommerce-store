@@ -267,11 +267,11 @@ const Dashboard = () => {
             />
           </div>
 
-          {/* Charts Section */}
-          <div className="grid gap-4 sm:gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-full">
+          {/* Charts Section - Top Row */}
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-full">
             {/* Revenue Trend Chart (SuperAdmin only) */}
             {isSuperAdmin() && (
-              <Card className="col-span-full lg:col-span-2 max-w-full">
+              <Card className="max-w-full">
                 <CardHeader>
                   <CardTitle>Revenue Trend</CardTitle>
                   <CardDescription>Monthly revenue for the last 6 months</CardDescription>
@@ -309,8 +309,41 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             )}
-
-            {/* Orders by Category */}
+            {/* User Signups Chart */}
+            <Card className="max-w-full">
+              <CardHeader>
+                <CardTitle>User Signups</CardTitle>
+                <CardDescription>Monthly new user registrations</CardDescription>
+              </CardHeader>
+              <CardContent className="overflow-x-auto max-w-full">
+                <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[320px] max-w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={userSignupsData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis 
+                        dataKey="month" 
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                      />
+                      <YAxis 
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                      />
+                      <ChartTooltip 
+                        content={<ChartTooltipContent />}
+                        formatter={(value) => [`${value} users`, 'New Signups']}
+                      />
+                      <Bar
+                        dataKey="signups"
+                        fill="var(--color-signups)"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+            {/* Orders by Category Chart */}
             <Card className="max-w-full">
               <CardHeader>
                 <CardTitle>Orders by Category</CardTitle>
@@ -360,43 +393,8 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </div>
-
-          {/* User Signups Chart & Recent Orders */}
-          <div className="grid gap-4 sm:gap-6 sm:grid-cols-1 md:grid-cols-2 max-w-full">
-            <Card className="max-w-full">
-              <CardHeader>
-                <CardTitle>User Signups</CardTitle>
-                <CardDescription>Monthly new user registrations</CardDescription>
-              </CardHeader>
-              <CardContent className="overflow-x-auto max-w-full">
-                <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[320px] max-w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={userSignupsData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis 
-                        dataKey="month" 
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                      />
-                      <YAxis 
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                      />
-                      <ChartTooltip 
-                        content={<ChartTooltipContent />}
-                        formatter={(value) => [`${value} users`, 'New Signups']}
-                      />
-                      <Bar
-                        dataKey="signups"
-                        fill="var(--color-signups)"
-                        radius={[4, 4, 0, 0]}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-
+          {/* Bottom Row: Recent Orders */}
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 max-w-full mt-2">
             {/* Recent Orders */}
             <Card className="max-w-full">
               <CardHeader>
