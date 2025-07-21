@@ -361,9 +361,6 @@ const Dashboard = () => {
                         outerRadius={100}
                         dataKey="orders"
                         nameKey="category"
-                        label={({ category, orders }) =>
-                          `${categoryDisplayMap[category] || category}: ${orders}`
-                        }
                         isAnimationActive={true}
                       >
                         {ordersByCategoryData.map((entry, index) => (
