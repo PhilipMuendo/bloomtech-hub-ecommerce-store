@@ -2,7 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { Package, ShoppingCart, Users, MessageSquare, Mail, TrendingUp, Calendar } from 'lucide-react';
+import {
+  Package,
+  ShoppingCart,
+  Users,
+  MessageSquare,
+  Mail,
+  TrendingUp,
+  Calendar,
+  FileText,
+  CheckSquare
+} from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar, ResponsiveContainer } from 'recharts';
 import { products } from '@/data/products';
 import AnimatedCounter from '@/components/AnimatedCounter';
@@ -50,6 +60,7 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const { toast } = useToast();
   const { isSuperAdmin } = useAuth();
+  const [quoteStats, setQuoteStats] = useState({ pendingQuotes: 0, closedThisMonth: 0 });
 
   // Add state for recent orders
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
@@ -61,10 +72,20 @@ const Dashboard = () => {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem('jwt');
+        // Correctly retrieve the token from the 'user' object in localStorage
+        let token = localStorage.getItem('jwt');
+        if (!token) {
+          const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+          token = userObj.token;
+        }
+
+        if (!token) {
+          throw new Error('Authentication token not found. Please log in again.');
+        }
+
         const headers = {
           'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
+          'Authorization': `Bearer ${token}`,
         };
         const fetchOptions = { method: 'GET', headers };
         console.log('Fetch options:', fetchOptions);
@@ -105,7 +126,23 @@ const Dashboard = () => {
       }
     };
     fetchData();
-  }, [dateRange]);
+
+    const fetchQuoteStats = async () => {
+      if (!isSuperAdmin()) return;
+      try {
+        const token = localStorage.getItem('jwt');
+        const res = await fetch('/api/dashboard/quote-summary', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        setQuoteStats(data);
+      } catch (err) {
+        console.error("Failed to fetch quote stats:", err);
+      }
+    };
+
+    fetchQuoteStats();
+  }, [dateRange, isSuperAdmin]);
 
   // Fetch recent orders (most recent 4)
   useEffect(() => {
@@ -220,7 +257,7 @@ const Dashboard = () => {
           </div>
 
           {/* Animated Stats Cards */}
-          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 max-w-full">
+          <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 max-w-full">
             <StatCard
               title="Total Products"
               value={stats?.totalProducts || 0}
@@ -249,6 +286,24 @@ const Dashboard = () => {
               description="Customer reviews"
               color="bg-orange-500"
             />
+            {isSuperAdmin() && (
+              <>
+                <StatCard
+                  title="Pending Quotes"
+                  value={quoteStats.pendingQuotes}
+                  icon={FileText}
+                  description="Awaiting response"
+                  color="bg-yellow-500"
+                />
+                <StatCard
+                  title="Quotes Closed"
+                  value={quoteStats.closedThisMonth}
+                  icon={CheckSquare}
+                  description="This month"
+                  color="bg-blue-500"
+                />
+              </>
+            )}
             {isSuperAdmin() && (
               <StatCard
                 title="Revenue"

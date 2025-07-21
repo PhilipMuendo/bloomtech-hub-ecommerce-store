@@ -59,7 +59,6 @@ const UserDropdown = () => {
           onClick={() => {
             logout();
             toast({ title: 'You have successfully logged out.' });
-            navigate('/');
           }}
           className="text-red-600 cursor-pointer flex items-center gap-2"
         >

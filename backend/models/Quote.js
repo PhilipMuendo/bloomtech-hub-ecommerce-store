@@ -26,6 +26,7 @@ const quoteSchema = new mongoose.Schema({
   },
   status: { type: String, enum: ['pending', 'responded', 'closed', 'declined'], default: 'pending' },
   userSeen: { type: Boolean, default: true },
+  adminSeen: { type: Boolean, default: true },
 }, { timestamps: true });
 
 const Quote = mongoose.model('Quote', quoteSchema);

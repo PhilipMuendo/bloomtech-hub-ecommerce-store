@@ -152,8 +152,22 @@ export const replyToQuote = async (req, res) => {
     }
     quote.messages.push({ sender: 'user', text: message });
     quote.status = 'pending'; // Re-open for admin
+    quote.adminSeen = false; // Mark as unseen for admin
     await quote.save();
     res.json(quote);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// PATCH /api/quotes/admin-seen - Admin marks all quotes as seen
+export const markAdminSeen = async (req, res) => {
+  try {
+    if (!req.user || req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    await Quote.updateMany({ adminSeen: false }, { $set: { adminSeen: true } });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

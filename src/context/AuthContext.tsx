@@ -114,7 +114,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('jwt');
     dispatch({ type: 'LOGOUT' });
+    // Force a hard refresh to the homepage to ensure all state is cleared
+    window.location.href = '/';
   };
 
   const isAdmin = () => {

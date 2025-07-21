@@ -3,9 +3,10 @@ import Order from '../models/Order.js';
 import User from '../models/User.js';
 import Review from '../models/Review.js';
 import Newsletter from '../models/Newsletter.js';
+import Quote from '../models/Quote.js';
 
 // GET /api/dashboard/summary
-export const getDashboardSummary = async (req, res) => {
+export const getDashboardSummary = async (req, res, next) => {
   try {
     const [totalProducts, totalOrders, totalUsers, totalReviews, totalRevenue, totalSubscribers] = await Promise.all([
       Product.countDocuments(),
@@ -14,10 +15,38 @@ export const getDashboardSummary = async (req, res) => {
       Review.countDocuments(),
       Order.aggregate([{ $group: { _id: null, total: { $sum: '$total' } } }]).then(r => r[0]?.total || 0),
       Newsletter.countDocuments(),
+      // Add logic for total revenue if superadmin
+      req.user.role === 'superadmin' ? Order.aggregate([{ $group: { _id: null, total: { $sum: '$total' } } }]).then(r => r[0]?.total || 0) : Promise.resolve([{ totalRevenue: 0 }]),
     ]);
     res.json({ totalProducts, totalOrders, totalUsers, totalReviews, revenue: totalRevenue, subscribers: totalSubscribers });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch dashboard summary', error: err.message });
+  }
+};
+
+export const getQuoteSummary = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const pendingQuotes = await Quote.countDocuments({ status: 'pending' });
+
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const closedThisMonth = await Quote.countDocuments({
+      status: 'closed',
+      updatedAt: { $gte: startOfMonth },
+    });
+
+    res.json({
+      pendingQuotes,
+      closedThisMonth,
+    });
+  } catch (err) {
+    next(err);
   }
 };
 

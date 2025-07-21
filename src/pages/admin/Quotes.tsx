@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, MailCheck, CheckCircle, XCircle, FilePlus } from 'lucide-react';
+import { Clock, MailCheck, CheckCircle, XCircle, FilePlus, User as UserIcon, MessageSquare as MessageIcon } from 'lucide-react';
+image.pngimport { Quote } from '@/types';
 
 const StatusBadge = ({ status }) => {
   switch (status) {
@@ -39,10 +40,10 @@ const StatusBadge = ({ status }) => {
 };
 
 const Quotes = () => {
-  const [quotes, setQuotes] = useState<any[]>([]);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedQuote, setSelectedQuote] = useState<any>(null);
+  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [response, setResponse] = useState('');
   const [status, setStatus] = useState('responded');
   const [responding, setResponding] = useState(false);
@@ -69,6 +70,21 @@ const Quotes = () => {
       }
     };
     if (user) fetchQuotes();
+  }, [user]);
+
+  useEffect(() => {
+    const markAdminSeen = async () => {
+      if (user?.role !== 'superadmin') return;
+      try {
+        await fetch('/api/quotes/admin-seen', {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+      } catch (error) {
+        console.error("Failed to mark quotes as seen:", error);
+      }
+    };
+    markAdminSeen();
   }, [user]);
 
   const handleRespond = async () => {
@@ -175,50 +191,59 @@ const Quotes = () => {
         )}
       </CardContent>
       <Dialog open={!!selectedQuote} onOpenChange={() => setSelectedQuote(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Respond to Quote</DialogTitle>
+            <DialogTitle className="text-xl font-bold">Respond to Quote</DialogTitle>
           </DialogHeader>
-          <div>
-            <div className="mb-2 font-semibold">Customer: {selectedQuote?.name} ({selectedQuote?.email})</div>
-            <div className="mb-2">Items:
-              <ul className="list-disc ml-5">
-                {selectedQuote?.items?.map((item: any) => (
-                  <li key={item.productId?._id || item.productId}>
-                    {item.productId?.name || item.productId} x {item.quantity}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="mb-2">Message: {selectedQuote?.message || <span className="italic text-muted-foreground">(none)</span>}</div>
-            <div className="mb-2">Conversation:
-              <div className="border rounded p-2 max-h-48 overflow-y-auto">
-                {selectedQuote?.messages.map((msg: any) => (
-                  <div key={msg._id} className={`flex ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`p-2 rounded-lg my-1 ${msg.sender === 'admin' ? 'bg-blue-100' : 'bg-gray-100'}`}>
-                      <p>{msg.text}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(msg.createdAt).toLocaleString()}</p>
+          {selectedQuote && (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-3 rounded-lg border bg-muted/50 p-3">
+                <UserIcon className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <div className="font-semibold">{selectedQuote.name}</div>
+                  <div className="text-sm text-muted-foreground">{selectedQuote.email}</div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-muted-foreground">Conversation History</h3>
+                <div className="max-h-48 space-y-3 overflow-y-auto rounded-lg border p-3">
+                  {selectedQuote.messages.map((msg: any) => (
+                    <div key={msg._id} className={`flex items-end gap-2 text-sm ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-xs rounded-xl px-3 py-2 ${msg.sender === 'admin' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                        <p>{msg.text}</p>
+                        <p className="text-xs opacity-70 mt-1 text-right">{new Date(msg.createdAt).toLocaleTimeString()}</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-muted-foreground">Your Response</h3>
+                <textarea
+                  className="w-full min-h-[80px] rounded-md border p-2 text-sm"
+                  placeholder="Type your response or decline reason..."
+                  value={response}
+                  onChange={e => setResponse(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-muted-foreground">Update Status</h3>
+                <select className="w-full rounded-md border p-2 text-sm bg-background" value={status} onChange={e => setStatus(e.target.value)}>
+                  <option value="pending">Pending</option>
+                  <option value="responded">Responded</option>
+                  <option value="closed">Closed</option>
+                  <option value="declined">Declined</option>
+                </select>
               </div>
             </div>
-            <textarea
-              className="w-full border rounded p-2 mb-2"
-              rows={3}
-              placeholder="Response to customer..."
-              value={response}
-              onChange={e => setResponse(e.target.value)}
-            />
-            <select className="w-full border rounded p-2 mb-2" value={status} onChange={e => setStatus(e.target.value)}>
-              <option value="responded">Responded</option>
-              <option value="closed">Closed</option>
-              <option value="pending">Pending</option>
-              <option value="declined">Declined</option>
-            </select>
-          </div>
+          )}
           <DialogFooter>
-            <Button onClick={handleRespond} loading={responding}>Send Response</Button>
+            <Button onClick={handleRespond} disabled={responding}>
+              {responding ? <Clock className="animate-spin" /> : 'Send Response'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,5 +1,5 @@
 import express from 'express';
-import { createQuote, getQuotes, respondToQuote, getUserQuotes, markQuotesSeen, createOrderFromQuote, replyToQuote } from '../controllers/quoteController.js';
+import { createQuote, getQuotes, respondToQuote, getUserQuotes, markQuotesSeen, createOrderFromQuote, replyToQuote, markAdminSeen } from '../controllers/quoteController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/roleAuth.js';
 
@@ -19,5 +19,7 @@ router.patch('/mark-seen', requireAuth, markQuotesSeen);
 router.post('/:id/create-order', requireAuth, requireSuperAdmin, createOrderFromQuote);
 // Customer replies to a quote
 router.post('/:id/reply', requireAuth, replyToQuote);
+// Admin marks all quotes as seen
+router.patch('/admin-seen', requireAuth, requireSuperAdmin, markAdminSeen);
 
 export default router; 
