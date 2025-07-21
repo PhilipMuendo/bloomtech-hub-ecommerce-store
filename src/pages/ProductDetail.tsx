@@ -11,11 +11,16 @@ import ReviewsList from '@/components/ReviewsList';
 import BackInStockAlert from '@/components/BackInStockAlert';
 import { useToast } from '@/hooks/use-toast';
 import ProductCard from '@/components/ProductCard';
+import GetQuoteModal from '@/components/GetQuoteModal';
+import { useAuth } from '@/context/AuthContext';
+import { Tag } from 'lucide-react';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [showQuote, setShowQuote] = React.useState(false);
 
   const [product, setProduct] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
@@ -289,6 +294,22 @@ const ProductDetail = () => {
           </div>
         )}
       </div>
+
+      {/* Add below Add to Cart button */}
+      <Button
+        variant="secondary"
+        className="w-full flex items-center gap-2 mt-4 border-dashed border-2 border-accent hover:bg-accent/10"
+        onClick={() => setShowQuote(true)}
+      >
+        <Tag className="w-5 h-5 text-accent" />
+        Request Bulk Quote
+      </Button>
+      <GetQuoteModal
+        open={showQuote}
+        onOpenChange={setShowQuote}
+        items={[{ productId: product.id || product._id, name: product.name, quantity }]}
+        userInfo={user ? { name: user.name, email: user.email, ...(user.phone ? { phone: user.phone } : {}) } : {}}
+      />
     </div>
   );
 };

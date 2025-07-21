@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import NewsletterForm from '@/components/NewsletterForm';
 import MpesaPaymentModal from '@/components/MpesaPaymentModal';
+import GetQuoteModal from '@/components/GetQuoteModal';
+import { Tag } from 'lucide-react';
 
 const Cart = () => {
   const { cartItems, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCart();
@@ -14,6 +16,7 @@ const Cart = () => {
   const { user } = useAuth();
   const [showMpesaModal, setShowMpesaModal] = React.useState(false);
   const [currentOrderId, setCurrentOrderId] = React.useState('');
+  const [showQuote, setShowQuote] = React.useState(false);
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -201,6 +204,14 @@ const Cart = () => {
                 <Button onClick={handleCheckout} className="w-full bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg px-6 py-3" size="lg">
                   Pay with M-Pesa
                 </Button>
+                <Button
+                  variant="secondary"
+                  className="w-full flex items-center gap-2 mt-4 border-dashed border-2 border-accent hover:bg-accent/10"
+                  onClick={() => setShowQuote(true)}
+                >
+                  <Tag className="w-5 h-5 text-accent" />
+                  Request Bulk Quote
+                </Button>
                 <Button asChild variant="outline" className="w-full text-base sm:text-lg px-6 py-3">
                   <Link to="/shop">Continue Shopping</Link>
                 </Button>
@@ -235,6 +246,12 @@ const Cart = () => {
         orderId={currentOrderId}
         amount={getTotalPrice()}
         onSuccess={handlePaymentSuccess}
+      />
+      <GetQuoteModal
+        open={showQuote}
+        onOpenChange={setShowQuote}
+        items={cartItems.map(item => ({ productId: item.id, name: item.name, quantity: item.quantity }))}
+        userInfo={user ? { name: user.name, email: user.email, ...(user.phone ? { phone: user.phone } : {}) } : {}}
       />
     </div>
   );

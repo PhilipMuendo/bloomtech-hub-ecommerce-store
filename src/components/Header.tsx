@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, ShoppingCart, Search as SearchIcon, User, List, Heart, LogOut, ChevronDown, Shield } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, ShoppingCart, Search as SearchIcon, User, List, Heart, LogOut, ChevronDown, Shield, Bell } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -94,6 +94,25 @@ const Header = () => {
   const location = useLocation();
   const { cartItems } = useCart();
   const { user } = useAuth();
+  // Add state for quote notifications (for demo, use a static number or fetch from API)
+  const [quoteNotifications, setQuoteNotifications] = useState(0);
+  useEffect(() => {
+    const fetchQuoteNotifications = async () => {
+      if (!user) return setQuoteNotifications(0);
+      try {
+        const res = await fetch('/api/quotes/user', {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        if (!res.ok) return setQuoteNotifications(0);
+        const data = await res.json();
+        const unseen = data.filter((q: any) => q.status === 'responded' && q.userSeen === false).length;
+        setQuoteNotifications(unseen);
+      } catch {
+        setQuoteNotifications(0);
+      }
+    };
+    fetchQuoteNotifications();
+  }, [user]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,22 +177,33 @@ const Header = () => {
           </form>
 
           {/* User Menu */}
-          <UserMenu />
-
-          {/* Cart */}
-          {user && (
-            <Link to="/cart" className="relative">
-              <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                <ShoppingCart className="w-4 h-4" />
-                <span className="hidden sm:inline">Cart</span>
-              </Button>
-              {totalItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {totalItems}
-                </span>
-              )}
-            </Link>
-          )}
+          <div className="flex items-center gap-4">
+            {user && (
+              <Link to="/my-quotes" className="relative">
+                <Bell className="w-6 h-6 text-accent" />
+                {quoteNotifications > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs px-1.5 py-0.5">
+                    {quoteNotifications}
+                  </span>
+                )}
+              </Link>
+            )}
+            <UserMenu />
+            {/* Cart */}
+            {user && (
+              <Link to="/cart" className="relative">
+                <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                  <ShoppingCart className="w-4 h-4" />
+                  <span className="hidden sm:inline">Cart</span>
+                </Button>
+                {totalItems > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {totalItems}
+                  </span>
+                )}
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Navigation */}

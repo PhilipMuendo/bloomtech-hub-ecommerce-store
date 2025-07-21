@@ -32,6 +32,8 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const ReturnsRefunds = lazy(() => import('./pages/ReturnsRefunds'));
 const Shipping = lazy(() => import("./pages/Shipping"));
+const MyQuotes = lazy(() => import('./pages/MyQuotes'));
+const CustomCheckout = lazy(() => import('./pages/CustomCheckout'));
 
 // Lazy load admin pages separately for better code splitting
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
@@ -42,6 +44,7 @@ const Reviews = lazy(() => import("./pages/admin/Reviews"));
 const Newsletter = lazy(() => import("./pages/admin/Newsletter"));
 const AdminBlogs = lazy(() => import('./pages/admin/AdminBlogs'));
 const LowStockProducts = lazy(() => import('./pages/admin/LowStockProducts'));
+const Quotes = lazy(() => import("./pages/admin/Quotes"));
 
 const queryClient = new QueryClient();
 
@@ -228,6 +231,11 @@ const AnimatedRoutes = () => {
           </motion.div>
           </Suspense>
         } />
+        <Route path="/my-quotes" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <MyQuotes />
+          </Suspense>
+        } />
         <Route path="/privacy-policy" element={
           <Suspense fallback={<LoadingSpinner />}>
             <PrivacyPolicy />
@@ -255,8 +263,15 @@ const AnimatedRoutes = () => {
           </motion.div>
           </Suspense>
         } />
+        <Route path="/checkout/:orderId" element={
+          <ProtectedRoute>
+            <Suspense fallback={<LoadingSpinner />}>
+              <CustomCheckout />
+            </Suspense>
+          </ProtectedRoute>
+        } />
         <Route path="/admin" element={
-          <ProtectedRoute adminOnly>
+          <ProtectedRoute requireAdmin>
             <Suspense fallback={<LoadingSpinner />}>
             <AdminLayout />
             </Suspense>
@@ -275,6 +290,11 @@ const AnimatedRoutes = () => {
           <Route path="orders" element={
             <Suspense fallback={<LoadingSpinner />}>
               <AdminOrders />
+            </Suspense>
+          } />
+          <Route path="quotes" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <Quotes />
             </Suspense>
           } />
           <Route path="users" element={

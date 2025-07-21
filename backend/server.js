@@ -22,6 +22,7 @@ import connectDB from './config/db.js';
 import fs from 'fs';
 import reviewRoutes from './routes/reviewRoutes.js';
 import newsletterRoutes from './routes/newsletterRoutes.js';
+import quoteRoutes from './routes/quoteRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -65,6 +66,7 @@ app.use('/api/campaigns', campaignRoutes);
 app.use('/api/blogs', blogRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api', newsletterRoutes);
+app.use('/api/quotes', quoteRoutes);
 
 // Global error handler (should be after all routes)
 app.use((err, req, res, next) => {
