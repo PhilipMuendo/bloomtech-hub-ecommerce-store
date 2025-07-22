@@ -36,6 +36,7 @@ router.get('/transactions', requireAuth, requireAdmin, getAllTransactions);
 // Mock payment for development
 if (process.env.NODE_ENV !== 'production') {
   router.post('/mpesa/mock', requireAuth, mockMpesaPayment);
+  
 }
 
 export default router;

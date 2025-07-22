@@ -41,6 +41,8 @@ const StatusBadge = ({ status }) => {
 
 const Quotes = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [sortBy, setSortBy] = useState<'status' | 'requested'>('requested');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
@@ -136,10 +138,35 @@ const Quotes = () => {
     }
   };
 
+  // Sorting logic
+  const sortedQuotes = [...quotes].sort((a, b) => {
+    if (sortBy === 'status') {
+      const statusOrder = { pending: 1, responded: 2, closed: 3, declined: 4 };
+      const aStatus = statusOrder[a.status] || 99;
+      const bStatus = statusOrder[b.status] || 99;
+      return sortOrder === 'asc' ? aStatus - bStatus : bStatus - aStatus;
+    } else {
+      const aDate = new Date(a.createdAt).getTime();
+      const bDate = new Date(b.createdAt).getTime();
+      return sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
+    }
+  });
+
   return (
     <Card className="max-w-full">
       <CardHeader>
         <CardTitle>Quote Requests</CardTitle>
+        <div className="flex gap-2 mt-2">
+          <label className="text-sm font-medium">Sort by:</label>
+          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="border rounded px-2 py-1 text-sm">
+            <option value="requested">Requested Date</option>
+            <option value="status">Status</option>
+          </select>
+          <select value={sortOrder} onChange={e => setSortOrder(e.target.value as any)} className="border rounded px-2 py-1 text-sm">
+            <option value="desc">Descending</option>
+            <option value="asc">Ascending</option>
+          </select>
+        </div>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -159,8 +186,8 @@ const Quotes = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {quotes.map((q) => (
-                <TableRow key={q._id}>
+              {sortedQuotes.map((q) => (
+                <TableRow key={q._id} className={q.status === 'closed' ? 'bg-gray-50' : q.status === 'declined' ? 'bg-red-50' : ''}>
                   <TableCell>{q.name}</TableCell>
                   <TableCell>{q.email}</TableCell>
                   <TableCell>

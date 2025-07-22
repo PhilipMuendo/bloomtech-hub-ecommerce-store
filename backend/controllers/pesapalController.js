@@ -11,7 +11,7 @@ const {
   NODE_ENV
 } = process.env;
 
-const isProduction = NODE_ENV === 'production';
+
 
 // Helper to generate OAuth signature for Pesapal
 const generateOAuthSignature = (url, method, params) => {
@@ -20,9 +20,19 @@ const generateOAuthSignature = (url, method, params) => {
   return crypto.createHmac('sha1', signingKey).update(baseString).digest('base64');
 };
 
-// Initiate Pesapal payment
 export const initiatePesapalPayment = async (req, res, next) => {
   try {
+    // Validate required environment variables
+    const requiredEnvVars = [
+      'PESAPAL_CONSUMER_KEY',
+      'PESAPAL_CONSUMER_SECRET',
+      'PESAPAL_CALLBACK_URL'
+    ];
+    const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+    if (missingVars.length > 0) {
+      return res.status(500).json({ error: `Missing environment variables: ${missingVars.join(', ')}` });
+    }
+
     const { orderId } = req.body;
     if (!orderId) {
       return res.status(400).json({ error: 'Order ID is required' });
@@ -51,9 +61,9 @@ export const initiatePesapalPayment = async (req, res, next) => {
     const description = `Payment for Order ${order._id}`;
     const type = 'MERCHANT';
     const reference = order._id.toString();
-    const firstName = req.user?.name || 'Customer';
-    const lastName = '';
-    const email = req.user?.email || 'customer@example.com';
+    const firstName = req.body.firstName;
+    const lastName = req.body.lastName || '';
+    const email = req.body.email;
     const phoneNumber = ''; // Optional: collect from user if needed
 
     // Construct XML payload as per Pesapal API
@@ -123,9 +133,7 @@ export const handlePesapalCallback = async (req, res, next) => {
     }
 
     // Verify payment status by querying Pesapal API
-    const statusUrl = (isProduction
-      ? 'https://www.pesapal.com/API/QueryPaymentStatus'
-      : 'https://demo.pesapal.com/API/QueryPaymentStatus') + 
+    const statusUrl = `${PESAPAL_API_ENDPOINT}/QueryPaymentStatus` + 
       `?pesapal_merchant_reference=${pesapal_merchant_reference}&pesapal_transaction_tracking_id=${pesapal_transaction_tracking_id}`;
 
     // OAuth parameters for status query
@@ -164,8 +172,9 @@ export const handlePesapalCallback = async (req, res, next) => {
 
     if (paymentStatus === 'COMPLETED') {
       order.status = 'Paid';
+      // TODO: Implement a function to send a confirmation email to the customer
+      // sendConfirmationEmail(order.customer.email, order);
       await order.save();
-      // TODO: Send confirmation email to customer
     } else if (paymentStatus === 'PENDING') {
       order.status = 'Awaiting Payment';
       await order.save();
@@ -180,7 +189,6 @@ export const handlePesapalCallback = async (req, res, next) => {
   }
 };
 
-// Check payment status endpoint
 export const checkPesapalPaymentStatus = async (req, res, next) => {
   try {
     const { orderId } = req.params;
@@ -193,3 +201,5 @@ export const checkPesapalPaymentStatus = async (req, res, next) => {
     next(error);
   }
 };
+
+
