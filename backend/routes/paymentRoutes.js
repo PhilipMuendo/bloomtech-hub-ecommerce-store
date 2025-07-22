@@ -6,6 +6,11 @@ import {
   getAllTransactions,
   mockMpesaPayment 
 } from '../controllers/paymentController.js';
+import { 
+  initiatePesapalPayment,
+  handlePesapalCallback,
+  checkPesapalPaymentStatus
+} from '../controllers/pesapalController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireAdmin } from '../middleware/roleAuth.js';
 
@@ -19,6 +24,11 @@ router.post('/mpesa/callback', handleMpesaCallback);
 
 // Check payment status
 router.get('/mpesa/status/:checkoutRequestId', requireAuth, checkPaymentStatus);
+
+// Pesapal payment routes
+router.post('/pesapal', requireAuth, initiatePesapalPayment);
+router.post('/pesapal/callback', handlePesapalCallback);
+router.get('/pesapal/status/:orderId', requireAuth, checkPesapalPaymentStatus);
 
 // Get all transactions (admin only)
 router.get('/transactions', requireAuth, requireAdmin, getAllTransactions);

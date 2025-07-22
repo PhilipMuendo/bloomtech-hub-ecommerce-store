@@ -6,7 +6,7 @@ import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import NewsletterForm from '@/components/NewsletterForm';
-import MpesaPaymentModal from '@/components/MpesaPaymentModal';
+import PesapalPaymentModal from '@/components/PesapalPaymentModal';
 import GetQuoteModal from '@/components/GetQuoteModal';
 import { Tag } from 'lucide-react';
 
@@ -14,7 +14,7 @@ const Cart = () => {
   const { cartItems, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCart();
   const { toast } = useToast();
   const { user } = useAuth();
-  const [showMpesaModal, setShowMpesaModal] = React.useState(false);
+  const [showPesapalModal, setShowPesapalModal] = React.useState(false);
   const [currentOrderId, setCurrentOrderId] = React.useState('');
   const [showQuote, setShowQuote] = React.useState(false);
   const navigate = useNavigate();
@@ -65,7 +65,7 @@ const Cart = () => {
       const orderData = await orderResponse.json();
       if (orderData._id) {
         setCurrentOrderId(orderData._id);
-        setShowMpesaModal(true);
+      setShowPesapalModal(true);
         localStorage.removeItem('pickupPoint');
       } else {
         throw new Error('Failed to create order');
@@ -201,9 +201,9 @@ const Cart = () => {
               </div>
 
               <div className="space-y-2 sm:space-y-3 pt-3 sm:pt-4">
-                <Button onClick={handleCheckout} className="w-full bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg px-6 py-3" size="lg">
-                  Pay with M-Pesa
-                </Button>
+          <Button onClick={handleCheckout} className="w-full bg-blue-600 hover:bg-blue-700 text-white text-base sm:text-lg px-6 py-3" size="lg">
+            Proceed to Pay
+          </Button>
                 <Button
                   variant="secondary"
                   className="w-full flex items-center gap-2 mt-4 border-dashed border-2 border-accent hover:bg-accent/10"
@@ -240,9 +240,9 @@ const Cart = () => {
         </div>
       </div>
 
-      <MpesaPaymentModal
-        isOpen={showMpesaModal}
-        onClose={() => setShowMpesaModal(false)}
+      <PesapalPaymentModal
+        isOpen={showPesapalModal}
+        onClose={() => setShowPesapalModal(false)}
         orderId={currentOrderId}
         amount={getTotalPrice()}
         onSuccess={handlePaymentSuccess}

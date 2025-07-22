@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Clock, MailCheck, CheckCircle, XCircle, FilePlus, User as UserIcon, MessageSquare as MessageIcon } from 'lucide-react';
-image.pngimport { Quote } from '@/types';
+import { Quote } from '@/types';
 
 const StatusBadge = ({ status }) => {
   switch (status) {

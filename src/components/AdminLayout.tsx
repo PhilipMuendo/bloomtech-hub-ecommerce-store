@@ -136,14 +136,14 @@ const AdminLayout = () => {
             <nav className="mt-4 flex-1 space-y-1">
               {menuItems.map((item) => (
                 <Link
-                  key={item.path}
+                    key={item.path}
                   to={item.path}
                   className={`flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                     isActive(item.path)
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
-                >
+                  >
                   <item.icon className="mr-3 h-5 w-5" />
                   <span>{item.label}</span>
                   {item.path === '/admin/quotes' && adminQuoteNotifications > 0 && (
@@ -194,47 +194,47 @@ const AdminLayout = () => {
               </Button>
               <h1 className="text-xl font-semibold">
                 {menuItems.find((item) => isActive(item.path))?.label || 'Admin'}
-              </h1>
+                </h1>
             </div>
             <div className="flex items-center gap-4">
               {lowStockProducts.length > 0 && (
-                <button
-                  className="relative focus:outline-none"
-                  onClick={() => setShowNotif((v) => !v)}
-                  aria-label="Low stock notifications"
-                >
-                  <Bell className="h-6 w-6 text-gray-600" />
-                  <span className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
-                    {lowStockProducts.length}
-                  </span>
+                  <button
+                    className="relative focus:outline-none"
+                    onClick={() => setShowNotif((v) => !v)}
+                    aria-label="Low stock notifications"
+                  >
+                    <Bell className="h-6 w-6 text-gray-600" />
+                      <span className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+                        {lowStockProducts.length}
+                      </span>
                 </button>
-              )}
+                    )}
               {/* User Profile and other header items can go here */}
-              {showNotif && typeof window !== 'undefined' && ReactDOM.createPortal(
-                <div className="fixed top-20 right-8 w-72 bg-white border rounded-xl shadow-2xl z-[9999] overflow-hidden animate-fade-in">
-                  <div className="p-4 font-semibold border-b bg-gray-50 rounded-t-xl">Low Stock Products</div>
-                  {lowStockProducts.length === 0 ? (
-                    <div className="p-4 text-sm text-muted-foreground">No low stock products.</div>
-                  ) : (
-                    <ul className="max-h-64 overflow-y-auto divide-y divide-gray-100">
-                      {lowStockProducts.map((p) => (
-                        <li key={p._id} className="flex justify-between items-center px-4 py-3 hover:bg-gray-50 transition-colors">
-                          <span className="truncate max-w-[140px] font-medium text-gray-800">{p.name}</span>
-                          <span className="text-red-600 font-bold">{p.stock}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  <div className="p-2 border-t bg-gray-50 text-center">
-                    <button
-                      className="text-primary font-semibold hover:underline text-sm"
-                      onClick={() => { setShowNotif(false); navigate('/admin/low-stock'); }}
-                    >
-                      View Low Stock Products
-                    </button>
-                  </div>
-                </div>,
-                document.body
+                  {showNotif && typeof window !== 'undefined' && ReactDOM.createPortal(
+                    <div className="fixed top-20 right-8 w-72 bg-white border rounded-xl shadow-2xl z-[9999] overflow-hidden animate-fade-in">
+                      <div className="p-4 font-semibold border-b bg-gray-50 rounded-t-xl">Low Stock Products</div>
+                      {lowStockProducts.length === 0 ? (
+                        <div className="p-4 text-sm text-muted-foreground">No low stock products.</div>
+                      ) : (
+                        <ul className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                          {lowStockProducts.map((p) => (
+                            <li key={p._id} className="flex justify-between items-center px-4 py-3 hover:bg-gray-50 transition-colors">
+                              <span className="truncate max-w-[140px] font-medium text-gray-800">{p.name}</span>
+                              <span className="text-red-600 font-bold">{p.stock}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <div className="p-2 border-t bg-gray-50 text-center">
+                        <button
+                          className="text-primary font-semibold hover:underline text-sm"
+                          onClick={() => { setShowNotif(false); navigate('/admin/low-stock'); }}
+                        >
+                          View Low Stock Products
+                        </button>
+                      </div>
+                    </div>,
+                    document.body
               )}
             </div>
           </header>

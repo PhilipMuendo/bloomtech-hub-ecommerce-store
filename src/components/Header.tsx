@@ -187,21 +187,21 @@ const Header = () => {
                 )}
               </Link>
             )}
-            <UserMenu />
-            {/* Cart */}
-            {user && (
-              <Link to="/cart" className="relative">
-                <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                  <ShoppingCart className="w-4 h-4" />
-                  <span className="hidden sm:inline">Cart</span>
-                </Button>
-                {totalItems > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {totalItems}
-                  </span>
-                )}
-              </Link>
-            )}
+          <UserMenu />
+          {/* Cart */}
+          {user && (
+            <Link to="/cart" className="relative">
+              <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                <ShoppingCart className="w-4 h-4" />
+                <span className="hidden sm:inline">Cart</span>
+              </Button>
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </Link>
+          )}
           </div>
         </div>
 
