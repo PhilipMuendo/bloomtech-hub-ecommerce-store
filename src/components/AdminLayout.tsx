@@ -136,18 +136,18 @@ const AdminLayout = () => {
             <nav className="mt-4 flex-1 space-y-1">
               {menuItems.map((item) => (
                 <Link
-                    key={item.path}
+                  key={item.path}
                   to={item.path}
                   className={`flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                     isActive(item.path)
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
-                  >
+                >
                   <item.icon className="mr-3 h-5 w-5" />
                   <span>{item.label}</span>
                   {item.path === '/admin/quotes' && adminQuoteNotifications > 0 && (
-                    <span className="ml-auto inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
+                    <span className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
                       {adminQuoteNotifications}
                     </span>
                   )}
