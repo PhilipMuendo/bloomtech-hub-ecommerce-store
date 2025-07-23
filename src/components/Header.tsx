@@ -86,9 +86,15 @@ const UserMenu = () => {
   return <UserDropdown />;
 };
 
+// import { searchProducts } from '@/data/products';
+
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<{id: string, name: string}[]>([]);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const debounceTimeout = React.useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { cartItems } = useCart();
@@ -116,12 +122,15 @@ const Header = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      setLoading(true);
       navigate(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
       setSearchQuery('');
+      setSuggestions([]);
+      setTimeout(() => setLoading(false), 600); // Simulate loading
     }
   };
 
-  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const distinctProducts = cartItems.length;
   const isHomePage = location.pathname === '/';
 
   return (
@@ -159,19 +168,93 @@ const Header = () => {
           </Link>
 
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-8">
+          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-8" role="search">
             <div className="relative w-full">
               <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 type="text"
+                aria-label="Search for products"
                 placeholder="Search for ICT equipment, electrical materials..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full border-2 focus:border-primary"
+                onChange={async (e) => {
+                  setSearchQuery(e.target.value);
+                  setSearchError(null);
+                  if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+                  debounceTimeout.current = setTimeout(async () => {
+                    if (e.target.value.trim().length > 1) {
+                      try {
+                        const res = await fetch(`/api/products/search?q=${encodeURIComponent(e.target.value.trim())}`);
+                        if (res.ok) {
+                          const data = await res.json();
+                          setSuggestions(data.map((p: any) => ({ id: p.id, name: p.name })));
+                          setSearchError(null);
+                        } else {
+                          setSuggestions([]);
+                          setSearchError('No products found or server error.');
+                          console.error('Search API error:', res.status, await res.text());
+                        }
+                      } catch (err) {
+                        setSuggestions([]);
+                        setSearchError('Network error or server unavailable.');
+                        console.error('Search fetch error:', err);
+                      }
+                    } else {
+                      setSuggestions([]);
+                      setSearchError(null);
+                    }
+                  }, 350);
+                }}
+                className="pl-10 pr-10 py-2 w-full border-2 focus:border-primary"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleSearch(e as any);
+                }}
               />
-              <Button type="submit" size="sm" className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-accent hover:bg-accent/90">
-                Search
+              {/* Clear button */}
+              {searchQuery && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => { setSearchQuery(''); setSuggestions([]); }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 20 20"><path d="M6 6l8 8M6 14L14 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                </button>
+              )}
+              <Button
+                type="submit"
+                aria-label="Search"
+                size="sm"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-accent hover:bg-accent/90"
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="flex items-center"><svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>Searching...</span>
+                ) : 'Search'}
               </Button>
+              {/* Suggestions dropdown */}
+              {(suggestions.length > 0 || searchError) && (
+                <div className="absolute left-0 top-full mt-1 w-full bg-white border rounded shadow z-10">
+                  {suggestions.map((s, i) => (
+                    <div
+                      key={s.id}
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                      onClick={() => {
+                        setSearchQuery(s.name);
+                        setSuggestions([]);
+                        setSearchError(null);
+                        navigate(`/product/${s.id}`);
+                      }}
+                    >
+                      {s.name}
+                    </div>
+                  ))}
+                  {searchError && suggestions.length === 0 && (
+                    <div className="px-4 py-2 text-sm text-red-500">
+                      {searchError}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </form>
 
@@ -195,9 +278,9 @@ const Header = () => {
                 <ShoppingCart className="w-4 h-4" />
                 <span className="hidden sm:inline">Cart</span>
               </Button>
-              {totalItems > 0 && (
+              {distinctProducts > 0 && (
                 <span className="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {totalItems}
+                  {distinctProducts}
                 </span>
               )}
             </Link>
@@ -244,15 +327,72 @@ const Header = () => {
           {isMenuOpen && (
             <div className="md:hidden mt-4 py-4 border-t">
               <div className="flex flex-col space-y-4">
-                <form onSubmit={handleSearch} className="flex mb-4">
+                <form onSubmit={handleSearch} className="flex mb-4" role="search">
                   <Input
                     type="text"
-                    placeholder="Search products..."
+                    aria-label="Search for products"
+                    placeholder="Search for ICT equipment, electrical materials..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="flex-1 mr-2"
+                    onChange={async (e) => {
+                      setSearchQuery(e.target.value);
+                      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+                      debounceTimeout.current = setTimeout(async () => {
+                        if (e.target.value.trim().length > 1) {
+                          try {
+                            const res = await fetch(`/api/products?search=${encodeURIComponent(e.target.value.trim())}`);
+                            if (res.ok) {
+                              const data = await res.json();
+                              setSuggestions(data.map((p: any) => ({ id: p.id, name: p.name })));
+                            } else {
+                              setSuggestions([]);
+                            }
+                          } catch {
+                            setSuggestions([]);
+                          }
+                        } else {
+                          setSuggestions([]);
+                        }
+                      }, 350);
+                    }}
+                    className="flex-1 mr-2 pr-10"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleSearch(e as any);
+                    }}
                   />
-                  <Button type="submit" size="sm">Search</Button>
+                  {/* Clear button */}
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      onClick={() => { setSearchQuery(''); setSuggestions([]); }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 20 20"><path d="M6 6l8 8M6 14L14 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                    </button>
+                  )}
+                  <Button type="submit" aria-label="Search" size="sm" disabled={loading}>
+                    {loading ? (
+                      <span className="flex items-center"><svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>Searching...</span>
+                    ) : 'Search'}
+                  </Button>
+                  {/* Suggestions dropdown */}
+                  {suggestions.length > 0 && (
+                    <div className="absolute left-0 top-full mt-1 w-full bg-white border rounded shadow z-10">
+                      {suggestions.map((s, i) => (
+                        <div
+                          key={s.id}
+                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                          onClick={() => {
+                            setSearchQuery(s.name);
+                            setSuggestions([]);
+                            navigate(`/product/${s.id}`);
+                          }}
+                        >
+                          {s.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </form>
                 <Link to="/" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                   Home

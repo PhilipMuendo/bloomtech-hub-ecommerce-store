@@ -1,3 +1,21 @@
+// GET /api/products/search?q=...
+export const searchProducts = async (req, res, next) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length < 2) {
+      return res.json([]);
+    }
+    // Search by name (case-insensitive, partial match)
+    const regex = new RegExp(q.trim(), 'i');
+    const products = await Product.find({ name: regex })
+      .select('name price imageUrl category stock')
+      .limit(10)
+      .lean();
+    res.json(products);
+  } catch (err) {
+    next(err);
+  }
+};
 import Product from '../models/Product.js';
 import { Parser as Json2csvParser } from 'json2csv';
 

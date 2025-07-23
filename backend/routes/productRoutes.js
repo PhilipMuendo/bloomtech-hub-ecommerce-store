@@ -7,7 +7,8 @@ import {
   deleteProduct,
   getLowStockProducts,
   exportProductsCSV,
-  getFeaturedProducts
+  getFeaturedProducts,
+  searchProducts
 } from '../controllers/productController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireAdmin } from '../middleware/roleAuth.js';
@@ -16,6 +17,8 @@ import { requireAdmin } from '../middleware/roleAuth.js';
 const router = express.Router();
 
 router.get('/', getAllProducts);
+// Instant search for frontend
+router.get('/search', searchProducts);
 router.get('/low-stock', requireAuth, requireAdmin, getLowStockProducts);
 router.get('/export/csv', exportProductsCSV);
 router.get('/featured', getFeaturedProducts);

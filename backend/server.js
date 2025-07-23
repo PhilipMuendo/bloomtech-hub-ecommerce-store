@@ -33,9 +33,18 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:8081',
-  credentials: true
+  origin: [
+    'http://localhost:8081', // Vite dev server
+    'http://localhost:3000', // React default
+    'http://127.0.0.1:8081',
+    'http://127.0.0.1:3000'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+// Handle preflight requests
+app.options('*', cors());
 app.use(express.json());
 app.use(morgan('dev'));
 app.use('/public', express.static(path.join(__dirname, 'public')));
