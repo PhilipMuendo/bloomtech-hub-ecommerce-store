@@ -13,10 +13,10 @@ const orderSchema = new mongoose.Schema({
     validate: [arr => arr.length > 0, 'Order must have at least one item.']
   },
   total: { type: Number, required: true, min: [0.01, 'Order total must be greater than zero.'] },
-  status: { 
-    type: String, 
-    enum: ['Pending', 'Awaiting Payment', 'Paid', 'Shipped', 'Delivered', 'Cancelled'], 
-    default: 'Pending' 
+  status: {
+    type: String,
+    enum: ['pending', 'processing', 'delivered', 'cancelled'],
+    default: 'pending'
   },
   shippingAddress: { type: String, default: '' }, // Added field
   trackingNumber: {

@@ -124,24 +124,8 @@ const Quotes = () => {
     }
   };
 
+  // Sort quotes first
   const sortedQuotes = [...quotes].sort((a, b) => {
-  // Date filtering logic
-  let filteredQuotes = sortedQuotes;
-  if (dateFilterType === 'range' && filterStart && filterEnd) {
-    const start = new Date(filterStart).setHours(0,0,0,0);
-    const end = new Date(filterEnd).setHours(23,59,59,999);
-    filteredQuotes = filteredQuotes.filter(q => {
-      const created = new Date(q.createdAt).getTime();
-      return created >= start && created <= end;
-    });
-  } else if (dateFilterType === 'day' && filterDay) {
-    const dayStart = new Date(filterDay).setHours(0,0,0,0);
-    const dayEnd = new Date(filterDay).setHours(23,59,59,999);
-    filteredQuotes = filteredQuotes.filter(q => {
-      const created = new Date(q.createdAt).getTime();
-      return created >= dayStart && created <= dayEnd;
-    });
-  }
     if (sortBy === 'newest') {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }
@@ -153,6 +137,24 @@ const Quotes = () => {
     }
     return 0;
   });
+
+  // Then filter by date
+  let filteredQuotes = sortedQuotes;
+  if (dateFilterType === 'range' && filterStart && filterEnd) {
+    const start = new Date(filterStart).setHours(0,0,0,0);
+    const end = new Date(filterEnd).setHours(23,59,59,999);
+    filteredQuotes = sortedQuotes.filter(q => {
+      const created = new Date(q.createdAt).getTime();
+      return created >= start && created <= end;
+    });
+  } else if (dateFilterType === 'day' && filterDay) {
+    const dayStart = new Date(filterDay).setHours(0,0,0,0);
+    const dayEnd = new Date(filterDay).setHours(23,59,59,999);
+    filteredQuotes = sortedQuotes.filter(q => {
+      const created = new Date(q.createdAt).getTime();
+      return created >= dayStart && created <= dayEnd;
+    });
+  }
 
   return (
     <Card className="max-w-full">

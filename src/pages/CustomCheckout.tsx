@@ -50,7 +50,7 @@ const CustomCheckout = () => {
         </ul>
         <div className="font-bold mt-4">Total: KES {order.total.toLocaleString()}</div>
         <Button onClick={() => setShowMpesa(true)} className="mt-4">
-          Pay with M-Pesa
+          Proceed to Pay
         </Button>
       </div>
       <MpesaPaymentModal

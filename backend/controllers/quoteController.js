@@ -129,12 +129,23 @@ export const createOrderFromQuote = async (req, res) => {
       userId: quote.userId,
       items: quote.items,
       total: finalPrice,
-      status: 'Awaiting Payment',
+      status: 'pending', // Use valid status
     });
     // Close quote
     quote.status = 'closed';
     await quote.save();
-    // TODO: Send customer email with link to /checkout/${order._id}
+    // Send customer email with checkout link
+    try {
+      const checkoutUrl = `${process.env.FRONTEND_URL || 'http://localhost:8081'}/checkout/${order._id}`;
+      await transporter.sendMail({
+        from: `Bloomtech Hub <${process.env.SMTP_USER || 'admin@example.com'}>`,
+        to: quote.email,
+        subject: 'Your Quote Has Been Approved - Complete Your Payment',
+        text: `Dear ${quote.name},\n\nYour quote request has been approved. Please complete your payment using the following link:\n\n${checkoutUrl}\n\nThank you for choosing Bloomtech Hub!`,
+      });
+    } catch (mailErr) {
+      console.error('Failed to send client payment email:', mailErr);
+    }
     res.status(201).json(order);
   } catch (err) {
     res.status(500).json({ error: err.message });
