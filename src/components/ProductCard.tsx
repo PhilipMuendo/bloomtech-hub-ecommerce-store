@@ -31,19 +31,34 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { toast } = useToast();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!user) {
       toast({ title: 'Please log in to add items to your cart.' });
       return;
     }
-    addToCart({
+    setAdding(true);
+    await new Promise(res => setTimeout(res, 600)); // Simulate async
+    const alreadyInCart = addToCart({
       id: product.id,
       name: product.name,
       price: product.price,
       image: product.image,
       category: product.category
     });
+    setAdding(false);
+    if (alreadyInCart) {
+      toast({
+        title: 'Product is already in your cart.',
+        description: 'You can adjust the quantity in your cart.',
+        duration: 1500 // 1.5 seconds
+      });
+    } else {
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1200);
+    }
   };
 
   return (
@@ -105,12 +120,20 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <Button
               size="sm"
               onClick={handleAddToCart}
-              disabled={!product.inStock}
+              disabled={!product.inStock || adding}
               className="flex items-center gap-1 w-full xs:w-auto"
             >
-              <ShoppingCart className="h-4 w-4" />
-              <span className="hidden xs:inline">Add to Cart</span>
-              <span className="xs:hidden">Add</span>
+              {adding ? (
+                <span className="flex items-center"><svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>Adding...</span>
+              ) : added ? (
+                <span className="flex items-center text-green-600"><svg className="h-4 w-4 mr-1" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" fill="none" /></svg>Added!</span>
+              ) : (
+                <>
+                  <ShoppingCart className="h-4 w-4" />
+                  <span className="hidden xs:inline">Add to Cart</span>
+                  <span className="xs:hidden">Add</span>
+                </>
+              )}
             </Button>
             <WishlistButton
               productId={product.id}

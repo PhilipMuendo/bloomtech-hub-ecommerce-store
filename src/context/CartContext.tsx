@@ -24,18 +24,18 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-  const addToCart = (product: Omit<CartItem, 'quantity'>, quantity: number = 1) => {
+  const addToCart = (product: Omit<CartItem, 'quantity'>, quantity: number = 1): boolean => {
+    let alreadyInCart = false;
     setCartItems(prev => {
       const existingItem = prev.find(item => item.id === product.id);
       if (existingItem) {
-        return prev.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
+        alreadyInCart = true;
+        // Do not increase quantity if already in cart
+        return prev;
       }
       return [...prev, { ...product, quantity }];
     });
+    return alreadyInCart;
   };
 
   const removeFromCart = (id: string) => {
