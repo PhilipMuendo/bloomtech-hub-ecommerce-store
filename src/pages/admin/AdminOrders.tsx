@@ -114,7 +114,6 @@ const AdminOrders = () => {
     switch (status) {
       case 'pending': return 'secondary';
       case 'processing': return 'default';
-      case 'shipped': return 'outline';
       case 'delivered': return 'default';
       case 'cancelled': return 'destructive';
       default: return 'secondary';
@@ -189,11 +188,10 @@ const AdminOrders = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="processing">Processing</SelectItem>
-                <SelectItem value="shipped">Shipped</SelectItem>
-                <SelectItem value="delivered">Delivered</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="processing">Processing</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex items-center gap-2">
@@ -266,7 +264,6 @@ const AdminOrders = () => {
                         <SelectContent>
                           <SelectItem value="pending">Pending</SelectItem>
                           <SelectItem value="processing">Processing</SelectItem>
-                          <SelectItem value="shipped">Shipped</SelectItem>
                           <SelectItem value="delivered">Delivered</SelectItem>
                           <SelectItem value="cancelled">Cancelled</SelectItem>
                         </SelectContent>
