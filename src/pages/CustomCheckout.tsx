@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import PesapalPaymentModal from '@/components/PesapalPaymentModal';
+import MpesaPaymentModal from '@/components/MpesaPaymentModal';
 
 const CustomCheckout = () => {
   const { orderId } = useParams<{ orderId: string }>();
@@ -10,7 +10,7 @@ const CustomCheckout = () => {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showPesapal, setShowPesapal] = useState(false);
+  const [showMpesa, setShowMpesa] = useState(false);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -49,13 +49,13 @@ const CustomCheckout = () => {
           ))}
         </ul>
         <div className="font-bold mt-4">Total: KES {order.total.toLocaleString()}</div>
-        <Button onClick={() => setShowPesapal(true)} className="mt-4 bg-blue-600 hover:bg-blue-700 text-white">
-          Proceed to Pay
+        <Button onClick={() => setShowMpesa(true)} className="mt-4">
+          Pay with M-Pesa
         </Button>
       </div>
-      <PesapalPaymentModal
-        isOpen={showPesapal}
-        onClose={() => setShowPesapal(false)}
+      <MpesaPaymentModal
+        isOpen={showMpesa}
+        onClose={() => setShowMpesa(false)}
         orderId={order._id}
         amount={order.total}
         onSuccess={() => alert('Payment successful!')}
@@ -64,4 +64,4 @@ const CustomCheckout = () => {
   );
 };
 
-export default CustomCheckout;
+export default CustomCheckout; 

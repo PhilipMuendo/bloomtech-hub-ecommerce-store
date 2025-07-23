@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, MailCheck, CheckCircle, XCircle, FilePlus, User as UserIcon, MessageSquare as MessageIcon } from 'lucide-react';
+import { Clock, MailCheck, CheckCircle, XCircle, FilePlus, User as UserIcon } from 'lucide-react';
 import { Quote } from '@/types';
 
 const StatusBadge = ({ status }) => {
@@ -40,9 +40,12 @@ const StatusBadge = ({ status }) => {
 };
 
 const Quotes = () => {
+  const [dateFilterType, setDateFilterType] = useState<'range' | 'day' | ''>('');
+  const [filterStart, setFilterStart] = useState('');
+  const [filterEnd, setFilterEnd] = useState('');
+  const [filterDay, setFilterDay] = useState('');
   const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [sortBy, setSortBy] = useState<'status' | 'requested'>('requested');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortBy, setSortBy] = useState<'newest' | 'status' | 'name'>('newest');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
@@ -74,21 +77,6 @@ const Quotes = () => {
     if (user) fetchQuotes();
   }, [user]);
 
-  useEffect(() => {
-    const markAdminSeen = async () => {
-      if (user?.role !== 'superadmin') return;
-      try {
-        await fetch('/api/quotes/admin-seen', {
-          method: 'PATCH',
-          headers: { Authorization: `Bearer ${user.token}` },
-        });
-      } catch (error) {
-        console.error("Failed to mark quotes as seen:", error);
-      }
-    };
-    markAdminSeen();
-  }, [user]);
-
   const handleRespond = async () => {
     if (!selectedQuote) return;
     setResponding(true);
@@ -106,7 +94,6 @@ const Quotes = () => {
       setSelectedQuote(null);
       setResponse('');
       setStatus('responded');
-      // Refresh quotes
       const updated = await res.json();
       setQuotes((prev) => prev.map((q) => (q._id === updated._id ? updated : q)));
     } catch (err: any) {
@@ -130,42 +117,88 @@ const Quotes = () => {
       if (!res.ok) throw new Error('Failed to create order');
       toast({ title: 'Order created successfully' });
       setShowCreateOrder(false);
-      // Refresh quotes
       const updatedQuote = { ...selectedQuote, status: 'closed' };
-      setQuotes(prev => prev.map(q => q._id === updatedQuote._id ? updatedQuote : q));
+      setQuotes((prev) => prev.map((q) => (q._id === updatedQuote._id ? updatedQuote : q)));
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     }
   };
 
-  // Sorting logic
   const sortedQuotes = [...quotes].sort((a, b) => {
-    if (sortBy === 'status') {
-      const statusOrder = { pending: 1, responded: 2, closed: 3, declined: 4 };
-      const aStatus = statusOrder[a.status] || 99;
-      const bStatus = statusOrder[b.status] || 99;
-      return sortOrder === 'asc' ? aStatus - bStatus : bStatus - aStatus;
-    } else {
-      const aDate = new Date(a.createdAt).getTime();
-      const bDate = new Date(b.createdAt).getTime();
-      return sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
+  // Date filtering logic
+  let filteredQuotes = sortedQuotes;
+  if (dateFilterType === 'range' && filterStart && filterEnd) {
+    const start = new Date(filterStart).setHours(0,0,0,0);
+    const end = new Date(filterEnd).setHours(23,59,59,999);
+    filteredQuotes = filteredQuotes.filter(q => {
+      const created = new Date(q.createdAt).getTime();
+      return created >= start && created <= end;
+    });
+  } else if (dateFilterType === 'day' && filterDay) {
+    const dayStart = new Date(filterDay).setHours(0,0,0,0);
+    const dayEnd = new Date(filterDay).setHours(23,59,59,999);
+    filteredQuotes = filteredQuotes.filter(q => {
+      const created = new Date(q.createdAt).getTime();
+      return created >= dayStart && created <= dayEnd;
+    });
+  }
+    if (sortBy === 'newest') {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }
+    if (sortBy === 'status') {
+      return a.status.localeCompare(b.status);
+    }
+    if (sortBy === 'name') {
+      return a.name.localeCompare(b.name);
+    }
+    return 0;
   });
 
   return (
     <Card className="max-w-full">
       <CardHeader>
         <CardTitle>Quote Requests</CardTitle>
-        <div className="flex gap-2 mt-2">
-          <label className="text-sm font-medium">Sort by:</label>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className="border rounded px-2 py-1 text-sm">
-            <option value="requested">Requested Date</option>
-            <option value="status">Status</option>
-          </select>
-          <select value={sortOrder} onChange={e => setSortOrder(e.target.value as any)} className="border rounded px-2 py-1 text-sm">
-            <option value="desc">Descending</option>
-            <option value="asc">Ascending</option>
-          </select>
+        <div className="mt-2 flex flex-wrap gap-4 items-center">
+          <div className="flex gap-2 items-center">
+            <label htmlFor="sortQuotes" className="text-sm font-medium">Sort by:</label>
+            <select
+              id="sortQuotes"
+              className="border rounded px-2 py-1 text-sm"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'newest' | 'status' | 'name')}
+            >
+              <option value="newest">Newest First</option>
+              <option value="status">Status</option>
+              <option value="name">Name</option>
+            </select>
+          </div>
+          <div className="flex gap-2 items-center">
+            <label htmlFor="dateFilterType" className="text-sm font-medium">Filter by date:</label>
+            <select
+              id="dateFilterType"
+              className="border rounded px-2 py-1 text-sm"
+              value={dateFilterType}
+              onChange={e => setDateFilterType(e.target.value as 'range' | 'day' | '')}
+            >
+              <option value="">None</option>
+              <option value="range">Date Range</option>
+              <option value="day">Specific Day</option>
+            </select>
+          </div>
+          {dateFilterType === 'range' && (
+            <div className="flex gap-2 items-center">
+              <label className="text-sm">From:</label>
+              <input type="date" value={filterStart} onChange={e => setFilterStart(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+              <label className="text-sm">To:</label>
+              <input type="date" value={filterEnd} onChange={e => setFilterEnd(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+            </div>
+          )}
+          {dateFilterType === 'day' && (
+            <div className="flex gap-2 items-center">
+              <label className="text-sm">Day:</label>
+              <input type="date" value={filterDay} onChange={e => setFilterDay(e.target.value)} className="border rounded px-2 py-1 text-sm" />
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -186,8 +219,8 @@ const Quotes = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedQuotes.map((q) => (
-                <TableRow key={q._id} className={q.status === 'closed' ? 'bg-gray-50' : q.status === 'declined' ? 'bg-red-50' : ''}>
+              {filteredQuotes.map((q) => (
+                <TableRow key={q._id}>
                   <TableCell>{q.name}</TableCell>
                   <TableCell>{q.email}</TableCell>
                   <TableCell>
@@ -203,10 +236,27 @@ const Quotes = () => {
                   <TableCell>{new Date(q.createdAt).toLocaleString()}</TableCell>
                   <TableCell>
                     {(q.status === 'pending' || q.status === 'responded') && (
-                      <Button size="sm" onClick={() => { setSelectedQuote(q); setResponse(q.adminResponse || ''); setStatus(q.status || 'responded'); }}>Respond</Button>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setSelectedQuote(q);
+                          setResponse(q.adminResponse || '');
+                          setStatus(q.status || 'responded');
+                        }}
+                      >
+                        Respond
+                      </Button>
                     )}
                     {q.status === 'closed' && (
-                      <Button size="sm" variant="outline" className="ml-2" onClick={() => { setSelectedQuote(q); setShowCreateOrder(true); }}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="ml-2"
+                        onClick={() => {
+                          setSelectedQuote(q);
+                          setShowCreateOrder(true);
+                        }}
+                      >
                         <FilePlus className="w-4 h-4 mr-1" /> Create Order
                       </Button>
                     )}
@@ -236,10 +286,21 @@ const Quotes = () => {
                 <h3 className="text-sm font-semibold text-muted-foreground">Conversation History</h3>
                 <div className="max-h-48 space-y-3 overflow-y-auto rounded-lg border p-3">
                   {selectedQuote.messages.map((msg: any) => (
-                    <div key={msg._id} className={`flex items-end gap-2 text-sm ${msg.sender === 'admin' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-xs rounded-xl px-3 py-2 ${msg.sender === 'admin' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                    <div
+                      key={msg._id}
+                      className={`flex items-end gap-2 text-sm ${
+                        msg.sender === 'admin' ? 'justify-end' : 'justify-start'
+                      }`}
+                    >
+                      <div
+                        className={`max-w-xs rounded-xl px-3 py-2 ${
+                          msg.sender === 'admin' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                        }`}
+                      >
                         <p>{msg.text}</p>
-                        <p className="text-xs opacity-70 mt-1 text-right">{new Date(msg.createdAt).toLocaleTimeString()}</p>
+                        <p className="text-xs opacity-70 mt-1 text-right">
+                          {new Date(msg.createdAt).toLocaleTimeString()}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -252,13 +313,17 @@ const Quotes = () => {
                   className="w-full min-h-[80px] rounded-md border p-2 text-sm"
                   placeholder="Type your response or decline reason..."
                   value={response}
-                  onChange={e => setResponse(e.target.value)}
+                  onChange={(e) => setResponse(e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-muted-foreground">Update Status</h3>
-                <select className="w-full rounded-md border p-2 text-sm bg-background" value={status} onChange={e => setStatus(e.target.value)}>
+                <select
+                  className="w-full rounded-md border p-2 text-sm bg-background"
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                >
                   <option value="pending">Pending</option>
                   <option value="responded">Responded</option>
                   <option value="closed">Closed</option>
@@ -281,7 +346,12 @@ const Quotes = () => {
           </DialogHeader>
           <div className="space-y-3">
             <label>Final Price (KES)</label>
-            <input type="number" className="w-full border rounded p-2" value={finalPrice} onChange={e => setFinalPrice(Number(e.target.value))} />
+            <input
+              type="number"
+              className="w-full border rounded p-2"
+              value={finalPrice}
+              onChange={(e) => setFinalPrice(Number(e.target.value))}
+            />
           </div>
           <DialogFooter>
             <Button onClick={handleCreateOrder}>Create Order</Button>
@@ -292,4 +362,4 @@ const Quotes = () => {
   );
 };
 
-export default Quotes; 
+export default Quotes;

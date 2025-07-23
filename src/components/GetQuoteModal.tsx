@@ -91,12 +91,12 @@ const GetQuoteModal: React.FC<GetQuoteModalProps> = ({ open, onOpenChange, items
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">Phone (Optional)</label>
-              <input className="w-full rounded-md border p-2 text-sm" value={phone} onChange={e => setPhone(e.target.value)} />
+              <label className="text-sm font-medium">Phone</label>
+              <input className="w-full rounded-md border p-2 text-sm" required value={phone} onChange={e => setPhone(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <label className="text-sm font-medium">Message (Optional)</label>
-              <textarea className="w-full rounded-md border p-2 text-sm" rows={3} value={message} onChange={e => setMessage(e.target.value)} />
+              <label className="text-sm font-medium">Message</label>
+              <textarea className="w-full rounded-md border p-2 text-sm" rows={3} required value={message} onChange={e => setMessage(e.target.value)} />
             </div>
             <DialogFooter>
               <Button type="submit" disabled={submitting} className="w-full">
