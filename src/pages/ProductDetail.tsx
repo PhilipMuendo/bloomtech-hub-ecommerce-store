@@ -118,7 +118,7 @@ const ProductDetail = () => {
       : false;
 
   return (
-    <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
       {/* Breadcrumb */}
       <div className="sticky top-0 z-30 bg-white py-2 mb-4 sm:mb-6 shadow-sm flex items-center">
         <Button variant="default" asChild size="lg" className="flex items-center space-x-2 px-5 py-2 text-base font-semibold">
@@ -129,24 +129,24 @@ const ProductDetail = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Product Image */}
         <div className="space-y-4">
-          <div className="relative overflow-hidden rounded-lg">
+          <div className="relative overflow-hidden rounded-lg bg-white shadow-md flex flex-col items-center justify-center p-2" style={{ minWidth: '300px', maxWidth: '340px', margin: '0 auto' }}>
             <img
               src={product.imageUrl || product.image || '/placeholder.svg'}
               srcSet={
                 product.imageUrl || product.image
-                  ? `${product.imageUrl || product.image}?w=400 400w, ${product.imageUrl || product.image}?w=800 800w, ${product.imageUrl || product.image}?w=1200 1200w`
+                  ? `${product.imageUrl || product.image}?w=320 320w, ${product.imageUrl || product.image}?w=400 400w, ${product.imageUrl || product.image}?w=600 600w`
                   : undefined
               }
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
+              sizes="(max-width: 640px) 100vw, 340px"
               alt={product.name || 'Product image'}
-              className="w-full h-64 sm:h-96 lg:h-[500px] object-cover"
+              className="w-[320px] h-[320px] sm:w-[340px] sm:h-[340px] object-contain border rounded-lg bg-white"
               loading="lazy"
             />
             {product.featured && (
-              <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-accent text-white px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded">
+              <div className="absolute top-3 left-3 bg-accent text-white px-2 py-1 text-xs font-medium rounded">
                 Featured
               </div>
             )}
@@ -155,50 +155,39 @@ const ProductDetail = () => {
 
         {/* Product Details */}
         <div className="space-y-5 sm:space-y-6">
-          <div>
+          <div className="space-y-2">
             <span className="text-xs sm:text-sm bg-muted px-2 sm:px-3 py-1 rounded capitalize text-muted-foreground">
               {product.category === 'ict' ? 'ICT Equipment' : 
                product.category === 'security' ? 'Security Systems' :
                product.category === 'power' ? 'Power Solutions' : 
                'Electrical Materials'}
             </span>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mt-3 sm:mt-4 mb-3 sm:mb-4">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mt-2 sm:mt-3 mb-2 sm:mb-3">
               {product.name}
             </h1>
-            <p className="text-2xl sm:text-3xl font-bold text-primary mb-4 sm:mb-6">
+            <p className="text-2xl sm:text-3xl font-bold text-primary mb-2 sm:mb-3">
               {formatPrice(product.price)}
             </p>
           </div>
 
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">Description</h2>
-            <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">
-              {product.description}
-            </p>
-          </div>
+          <Card className="mb-2">
+            <CardContent className="p-3">
+              <h2 className="text-lg sm:text-xl font-semibold mb-2">Product details</h2>
+              {product.description ? (
+                <ul className="list-disc pl-5 space-y-1 text-muted-foreground text-sm sm:text-base">
+                  {product.description.split(/\.|\n|\r/).filter(point => point.trim().length > 0).map((point, idx) => (
+                    <li key={idx}>{point.trim()}</li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-muted-foreground text-sm">No description available.</div>
+              )}
+            </CardContent>
+          </Card>
 
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">Specifications</h2>
-            <Card>
-              <CardContent className="p-3 sm:p-4">
-                {Array.isArray(product.specifications) && product.specifications.length > 0 ? (
-                  <ul className="space-y-2">
-                    {product.specifications.map((spec, index) => (
-                      <li key={index} className="flex items-start space-x-2">
-                        <span className="text-accent font-medium">•</span>
-                        <span>{spec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="text-muted-foreground text-sm">No specifications available.</div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
 
-          <div className="space-y-3 sm:space-y-4">
-            <div className="flex items-center space-x-3 sm:space-x-4">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
               <span className="text-xs sm:text-sm font-medium">
                 Stock Status:
               </span>
@@ -216,8 +205,8 @@ const ProductDetail = () => {
               </div>
             )}
 
-            <div className="flex flex-col sm:flex-row gap-2">
-              <div className="flex items-center mb-2 sm:mb-0">
+            <div className="flex flex-row gap-2 mt-2">
+              <div className="flex items-center">
                 <label htmlFor="quantity" className="mr-2 text-sm font-medium">Qty:</label>
                 <input
                   id="quantity"
@@ -226,22 +215,22 @@ const ProductDetail = () => {
                   max={typeof product.stock === 'number' ? product.stock : 99}
                   value={quantity}
                   onChange={e => setQuantity(Math.max(1, Math.min(Number(e.target.value), typeof product.stock === 'number' ? product.stock : 99)))}
-                  className="w-16 border rounded px-2 py-1 text-center"
+                  className="w-12 border rounded px-2 py-1 text-center text-sm"
                   disabled={!isInStock}
                 />
               </div>
               <Button
                 onClick={handleAddToCart}
                 disabled={!isInStock}
-                size="lg"
-                className="flex-1 bg-accent hover:bg-accent/90 text-base"
+                className="bg-accent hover:bg-accent/90 text-sm font-medium py-2 px-4 rounded-md min-w-[100px]"
+                style={{ height: '36px' }}
               >
                 {isInStock ? 'Add to Cart' : 'Out of Stock'}
               </Button>
-              <WishlistButton productId={product.id} />
+              <WishlistButton productId={product.id} buttonClassName="text-sm font-medium py-2 px-4 rounded-md min-w-[100px] h-[36px]" />
             </div>
 
-            <div className="text-xs sm:text-sm text-muted-foreground space-y-1">
+            <div className="text-xs sm:text-sm text-muted-foreground space-y-1 mt-2">
               <p>• Free delivery within Nairobi</p>
               <p>• 30-day return policy</p>
               <p>• Warranty included</p>
@@ -295,15 +284,18 @@ const ProductDetail = () => {
         )}
       </div>
 
-      {/* Add below Add to Cart button */}
-      <Button
-        variant="secondary"
-        className="w-full flex items-center gap-2 mt-4 border-dashed border-2 border-accent hover:bg-accent/10"
-        onClick={() => setShowQuote(true)}
-      >
-        <Tag className="w-5 h-5 text-accent" />
-        Request Bulk Quote
-      </Button>
+      {/* Request Bulk Quote button below product actions, above reviews */}
+      <div className="flex justify-center mt-6 mb-2">
+        <Button
+          variant="secondary"
+          className="px-6 py-2 flex items-center gap-2 border-dashed border-2 border-accent hover:bg-accent/10 rounded-md text-base"
+          style={{ minWidth: '220px', maxWidth: '320px' }}
+          onClick={() => setShowQuote(true)}
+        >
+          <Tag className="w-5 h-5 text-accent" />
+          Request Bulk Quote
+        </Button>
+      </div>
       <GetQuoteModal
         open={showQuote}
         onOpenChange={setShowQuote}

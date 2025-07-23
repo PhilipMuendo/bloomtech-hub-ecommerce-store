@@ -313,6 +313,13 @@ const Dashboard = () => {
                 color="bg-emerald-500"
               />
             )}
+            <StatCard
+              title="Newsletter"
+              value={stats?.subscribers || 0}
+              icon={Mail}
+              description="Subscribers"
+              color="bg-pink-500"
+            />
           </div>
 
           {/* Charts Section - Top Row */}
