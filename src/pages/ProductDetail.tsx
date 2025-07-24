@@ -1,10 +1,9 @@
 import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-// import { getProductById } from '@/data/products'; // Remove static import
 import { useCart } from '@/context/CartContext';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Home, ChevronRight, Tag } from 'lucide-react';
 import WishlistButton from '@/components/WishlistButton';
 import ReviewForm from '@/components/ReviewForm';
 import ReviewsList from '@/components/ReviewsList';
@@ -13,13 +12,29 @@ import { useToast } from '@/hooks/use-toast';
 import ProductCard from '@/components/ProductCard';
 import GetQuoteModal from '@/components/GetQuoteModal';
 import { useAuth } from '@/context/AuthContext';
-import { Tag } from 'lucide-react';
+
+// Skeleton loader for product
+const ProductSkeleton = () => (
+  <div className="container mx-auto px-4 py-8">
+    <div className="animate-pulse grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="bg-gray-200 h-[340px] w-full rounded-lg" />
+      <div className="space-y-4">
+        <div className="h-8 bg-gray-200 rounded w-1/2" />
+        <div className="h-6 bg-gray-200 rounded w-1/3" />
+        <div className="h-10 bg-gray-200 rounded w-1/4" />
+        <div className="h-32 bg-gray-200 rounded" />
+        <div className="h-10 bg-gray-200 rounded w-1/2" />
+      </div>
+    </div>
+  </div>
+);
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { addToCart } = useCart();
   const { toast } = useToast();
   const { user } = useAuth();
+  const location = useLocation();
   const [showQuote, setShowQuote] = React.useState(false);
 
   const [product, setProduct] = React.useState<any>(null);
@@ -27,6 +42,16 @@ const ProductDetail = () => {
   const [error, setError] = React.useState<string | null>(null);
   const [quantity, setQuantity] = React.useState(1);
   const [relatedProducts, setRelatedProducts] = React.useState<any[]>([]);
+
+  // Sticky Add to Cart bar (mobile)
+  const [showStickyBar, setShowStickyBar] = React.useState(false);
+  React.useEffect(() => {
+    const handleScroll = () => {
+      setShowStickyBar(window.innerWidth < 768 && window.scrollY > 350);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   React.useEffect(() => {
     if (!id) return;
@@ -66,11 +91,7 @@ const ProductDetail = () => {
   }, [product]);
 
   if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8 text-center">
-        <div className="text-lg">Loading product...</div>
-      </div>
-    );
+    return <ProductSkeleton />;
   }
 
   if (error || !product) {
@@ -110,17 +131,36 @@ const ProductDetail = () => {
     }).format(price);
   };
 
-  // Add after product is loaded
   const isInStock = typeof product.inStock === 'boolean'
     ? product.inStock
     : typeof product.stock === 'number'
       ? product.stock > 0
       : false;
 
+  // Breadcrumbs
+  const breadcrumbs = [
+    { name: 'Home', to: '/' },
+    { name: 'Shop', to: '/shop' },
+    { name: product.category, to: `/shop?category=${product.category}` },
+    { name: product.name, to: location.pathname }
+  ];
+
   return (
     <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
-      {/* Breadcrumb */}
-      <div className="sticky top-0 z-30 bg-white py-2 mb-4 sm:mb-6 shadow-sm flex items-center">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center text-sm text-muted-foreground mb-4 gap-2" aria-label="Breadcrumb">
+        {breadcrumbs.map((crumb, idx) => (
+          <span key={crumb.to} className="flex items-center gap-1">
+            {idx > 0 && <ChevronRight className="w-4 h-4" />}
+            <Link to={crumb.to} className={idx === breadcrumbs.length - 1 ? "font-semibold text-primary" : "hover:underline"}>
+              {idx === 0 ? <Home className="w-4 h-4 inline" /> : crumb.name}
+            </Link>
+          </span>
+        ))}
+      </nav>
+
+      {/* Back to Shop */}
+      <div className="mb-4">
         <Button variant="default" asChild size="lg" className="flex items-center space-x-2 px-5 py-2 text-base font-semibold">
           <Link to="/shop">
             <ArrowLeft className="w-5 h-5 mr-2" />
@@ -129,9 +169,9 @@ const ProductDetail = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10">
         {/* Product Image */}
-        <div className="space-y-4">
+        <div className="space-y-4 flex flex-col items-center">
           <div className="relative overflow-hidden rounded-lg bg-white shadow-md flex flex-col items-center justify-center p-2" style={{ minWidth: '300px', maxWidth: '340px', margin: '0 auto' }}>
             <img
               src={product.imageUrl || product.image || '/placeholder.svg'}
@@ -153,8 +193,8 @@ const ProductDetail = () => {
           </div>
         </div>
 
-        {/* Product Details */}
-        <div className="space-y-5 sm:space-y-6">
+        {/* Product Details & Actions */}
+        <div className="space-y-6">
           <div className="space-y-2">
             <span className="text-xs sm:text-sm bg-muted px-2 sm:px-3 py-1 rounded capitalize text-muted-foreground">
               {product.category === 'ict' ? 'ICT Equipment' : 
@@ -185,8 +225,7 @@ const ProductDetail = () => {
             </CardContent>
           </Card>
 
-
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center space-x-2">
               <span className="text-xs sm:text-sm font-medium">
                 Stock Status:
@@ -205,8 +244,9 @@ const ProductDetail = () => {
               </div>
             )}
 
-            <div className="flex flex-row gap-2 mt-2">
-              <div className="flex items-center">
+            {/* Grouped Actions */}
+            <div className="flex flex-col sm:flex-row gap-2 mt-2">
+              <div className="flex items-center gap-2">
                 <label htmlFor="quantity" className="mr-2 text-sm font-medium">Qty:</label>
                 <input
                   id="quantity"
@@ -215,20 +255,30 @@ const ProductDetail = () => {
                   max={typeof product.stock === 'number' ? product.stock : 99}
                   value={quantity}
                   onChange={e => setQuantity(Math.max(1, Math.min(Number(e.target.value), typeof product.stock === 'number' ? product.stock : 99)))}
-                  className="w-12 border rounded px-2 py-1 text-center text-sm"
+                  className="w-14 border rounded px-2 py-1 text-center text-sm"
                   disabled={!isInStock}
                 />
               </div>
               <Button
                 onClick={handleAddToCart}
                 disabled={!isInStock}
-                className="bg-accent hover:bg-accent/90 text-sm font-medium py-2 px-4 rounded-md min-w-[100px]"
-                style={{ height: '36px' }}
+                className="bg-accent hover:bg-accent/90 text-sm font-medium py-2 px-4 rounded-md min-w-[120px] h-[40px]"
               >
                 {isInStock ? 'Add to Cart' : 'Out of Stock'}
               </Button>
-              <WishlistButton productId={product.id} buttonClassName="text-sm font-medium py-2 px-4 rounded-md min-w-[100px] h-[36px]" />
+              <WishlistButton productId={product.id || product._id} className="text-sm font-medium py-2 px-4 rounded-md min-w-[120px] h-[40px]" />
             </div>
+
+            {/* Request Bulk Quote Button */}
+            <Button
+              variant="secondary"
+              className="px-6 py-2 flex items-center gap-2 border-dashed border-2 border-accent hover:bg-accent/10 rounded-md text-base mt-2"
+              style={{ minWidth: '220px', maxWidth: '320px' }}
+              onClick={() => setShowQuote(true)}
+            >
+              <Tag className="w-5 h-5 text-accent" />
+              Request Bulk Quote
+            </Button>
 
             <div className="text-xs sm:text-sm text-muted-foreground space-y-1 mt-2">
               <p>• Free delivery within Nairobi</p>
@@ -241,22 +291,39 @@ const ProductDetail = () => {
 
       {/* Back in Stock Alert */}
       {!isInStock && (
-        <div className="mt-6 sm:mt-8">
+        <div className="mt-8">
           <BackInStockAlert productId={product.id} />
         </div>
       )}
 
       {/* Reviews Section */}
-      <div className="mt-10 sm:mt-16 space-y-6 sm:space-y-8">
-        <h2 className="text-xl sm:text-2xl font-bold">Customer Reviews</h2>
-        <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-2">
+      <div className="mt-8 sm:mt-10">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          Customer Reviews
+          <span className="text-base font-normal text-muted-foreground">
+            ({product.reviews?.length || 0} reviews)
+          </span>
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Write a Review</h3>
+            {user ? (
           <ReviewForm productId={product._id} />
+            ) : (
+              <div className="text-muted-foreground mb-4">
+                <Link to="/login" className="text-primary underline">Log in</Link> to write a review.
+              </div>
+            )}
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold mb-2">All Reviews</h3>
           <ReviewsList productId={product._id} />
+          </div>
         </div>
       </div>
 
       {/* Related Products */}
-      <div className="mt-10 sm:mt-16">
+      <div className="mt-16 sm:mt-20">
         <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Related Products</h2>
         {relatedProducts.length > 0 ? (
           <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
@@ -284,24 +351,38 @@ const ProductDetail = () => {
         )}
       </div>
 
-      {/* Request Bulk Quote button below product actions, above reviews */}
-      <div className="flex justify-center mt-6 mb-2">
-        <Button
-          variant="secondary"
-          className="px-6 py-2 flex items-center gap-2 border-dashed border-2 border-accent hover:bg-accent/10 rounded-md text-base"
-          style={{ minWidth: '220px', maxWidth: '320px' }}
-          onClick={() => setShowQuote(true)}
-        >
-          <Tag className="w-5 h-5 text-accent" />
-          Request Bulk Quote
-        </Button>
-      </div>
+      {/* Bulk Quote Modal */}
       <GetQuoteModal
         open={showQuote}
         onOpenChange={setShowQuote}
         items={[{ productId: product.id || product._id, name: product.name, quantity }]}
-        userInfo={user ? { name: user.name, email: user.email, ...(user.phone ? { phone: user.phone } : {}) } : {}}
+        userInfo={user ? { name: user.name, email: user.email } : {}}
       />
+
+      {/* Sticky Add to Cart Bar (Mobile) */}
+      {showStickyBar && (
+        <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow-lg z-50 flex items-center justify-between px-4 py-3 md:hidden">
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={typeof product.stock === 'number' ? product.stock : 99}
+              value={quantity}
+              onChange={e => setQuantity(Math.max(1, Math.min(Number(e.target.value), typeof product.stock === 'number' ? product.stock : 99)))}
+              className="w-12 border rounded px-2 py-1 text-center text-sm"
+              disabled={!isInStock}
+            />
+            <span className="font-medium">{product.name}</span>
+          </div>
+          <Button
+            onClick={handleAddToCart}
+            disabled={!isInStock}
+            className="bg-accent hover:bg-accent/90 text-sm font-medium py-2 px-4 rounded-md min-w-[100px] h-[40px]"
+          >
+            {isInStock ? 'Add to Cart' : 'Out of Stock'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

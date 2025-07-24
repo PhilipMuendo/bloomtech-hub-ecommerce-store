@@ -279,13 +279,16 @@ const Dashboard = () => {
               description="Registered users"
               color="bg-purple-500"
             />
-            <StatCard
-              title="Reviews"
-              value={stats?.totalReviews || 0}
-              icon={MessageSquare}
-              description="Customer reviews"
-              color="bg-orange-500"
-            />
+            {/* Only show Reviews and Newsletter cards if NOT superadmin */}
+            {!isSuperAdmin() && (
+              <StatCard
+                title="Reviews"
+                value={stats?.totalReviews || 0}
+                icon={MessageSquare}
+                description="Customer reviews"
+                color="bg-orange-500"
+              />
+            )}
             {isSuperAdmin() && (
               <>
                 <StatCard
@@ -302,24 +305,25 @@ const Dashboard = () => {
                   description="This month"
                   color="bg-blue-500"
                 />
+                <StatCard
+                  title="Revenue"
+                  value={stats?.revenue || 0}
+                  icon={TrendingUp}
+                  description="Total revenue (KES)"
+                  color="bg-emerald-500"
+                />
               </>
             )}
-            {isSuperAdmin() && (
+            {/* Only show Newsletter card if NOT superadmin */}
+            {!isSuperAdmin() && (
               <StatCard
-                title="Revenue"
-                value={stats?.revenue || 0}
-                icon={TrendingUp}
-                description="Total revenue (KES)"
-                color="bg-emerald-500"
+                title="Newsletter"
+                value={stats?.subscribers || 0}
+                icon={Mail}
+                description="Subscribers"
+                color="bg-pink-500"
               />
             )}
-            <StatCard
-              title="Newsletter"
-              value={stats?.subscribers || 0}
-              icon={Mail}
-              description="Subscribers"
-              color="bg-pink-500"
-            />
           </div>
 
           {/* Charts Section - Top Row */}
