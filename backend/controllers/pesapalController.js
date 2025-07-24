@@ -43,7 +43,7 @@ export const initiatePesapalPayment = async (req, res, next) => {
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    if (order.status !== 'Awaiting Payment' && order.status !== 'Pending') {
+    if (order.status !== 'awaiting_payment' && order.status !== 'pending') {
       return res.status(400).json({ error: 'Order is not in a payable state' });
     }
 
@@ -103,7 +103,7 @@ export const initiatePesapalPayment = async (req, res, next) => {
     const baseStringParams = Object.keys(oauthParams)
       .sort()
       .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(oauthParams[key])}`)
-      .join('&');
+      // .join('&');
 
     // Generate OAuth signature
     const oauthSignature = generateOAuthSignature(url, 'GET', baseStringParams);
@@ -171,15 +171,15 @@ export const handlePesapalCallback = async (req, res, next) => {
     }
 
     if (paymentStatus === 'COMPLETED') {
-      order.status = 'Paid';
+      order.status = 'paid';
       // TODO: Implement a function to send a confirmation email to the customer
       // sendConfirmationEmail(order.customer.email, order);
       await order.save();
     } else if (paymentStatus === 'PENDING') {
-      order.status = 'Awaiting Payment';
+      order.status = 'awaiting_payment';
       await order.save();
     } else if (paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED') {
-      order.status = 'Pending';
+      order.status = 'pending';
       await order.save();
     }
 

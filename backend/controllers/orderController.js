@@ -110,6 +110,36 @@ export const updateOrderStatus = async (req, res, next) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
     const { status, shippingAddress, trackingNumber } = req.body;
+    
+    // Find the current order first to check existing status
+    const currentOrder = await Order.findById(req.params.id);
+    if (!currentOrder) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    // Define status transition rules
+    const statusTransitions = {
+      'pending': ['processing', 'cancelled', 'awaiting_payment'],
+      'awaiting_payment': ['paid', 'cancelled', 'pending'],
+      'paid': ['processing', 'cancelled'],
+      'processing': ['delivered', 'cancelled'],
+      'delivered': [], // Cannot change from delivered
+      'cancelled': []  // Cannot change from cancelled
+    };
+    
+    // Validate status transition if status is being updated
+    if (status && currentOrder.status !== status) {
+      const allowedTransitions = statusTransitions[currentOrder.status] || [];
+      
+
+      
+      if (!allowedTransitions.includes(status)) {
+        return res.status(400).json({ 
+          error: `Cannot change order status from '${currentOrder.status}' to '${status}'. Allowed transitions: [${allowedTransitions.join(', ')}]` 
+        });
+      }
+    }
+    
     const allowedFields = {};
     if (status) allowedFields.status = status;
     if (shippingAddress) allowedFields.shippingAddress = shippingAddress;
@@ -117,13 +147,50 @@ export const updateOrderStatus = async (req, res, next) => {
     if (Object.keys(allowedFields).length === 0) {
       return res.status(400).json({ error: 'No valid fields to update' });
     }
+    
     const order = await Order.findByIdAndUpdate(
       req.params.id,
       { $set: allowedFields },
       { new: true }
     );
-    if (!order) return res.status(404).json({ error: 'Order not found' });
+    
     res.json(order);
+  } catch (err) {
+    next(err);
+  }
+}; 
+
+// Get recent orders for admin notifications
+export const getRecentOrdersForNotifications = async (req, res, next) => {
+  try {
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    
+    // Get orders from the last 24 hours
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    
+    const recentOrders = await Order.find({
+      createdAt: { $gte: twentyFourHoursAgo },
+      status: { $in: ['pending', 'awaiting_payment', 'processing'] } // Include payment statuses
+    })
+    .populate('userId', 'name email')
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .lean();
+    
+    // Format for frontend
+    const formattedOrders = recentOrders.map(order => ({
+      id: order._id,
+      customerName: order.userId?.name || 'Unknown',
+      customerEmail: order.userId?.email || 'Unknown',
+      total: order.total,
+      status: order.status,
+      createdAt: order.createdAt,
+      itemCount: order.items?.length || 0
+    }));
+    
+    res.json(formattedOrders);
   } catch (err) {
     next(err);
   }

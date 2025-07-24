@@ -15,7 +15,7 @@ const orderSchema = new mongoose.Schema({
   total: { type: Number, required: true, min: [0.01, 'Order total must be greater than zero.'] },
   status: {
     type: String,
-    enum: ['pending', 'processing', 'delivered', 'cancelled'],
+    enum: ['pending', 'processing', 'delivered', 'cancelled', 'awaiting_payment', 'paid'],
     default: 'pending'
   },
   shippingAddress: { type: String, default: '' }, // Added field

@@ -47,15 +47,28 @@ const Register = () => {
   };
 
   if (successMessage) {
+    // Redirect to login after 5 seconds
+    React.useEffect(() => {
+      const timer = setTimeout(() => {
+        navigate('/login');
+      }, 5000);
+      return () => clearTimeout(timer);
+    }, [navigate]);
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Registration Successful</CardTitle>
+        <Card className="w-full max-w-md shadow-lg border-2 border-primary/20 animate-fade-in">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold text-primary mb-2">Registration Successful</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="mb-4">{successMessage}</p>
-            <p className="text-muted-foreground text-sm mb-4">Didn't receive the email? Check your spam folder or <a href="/resend-verification" className="text-primary underline">resend verification</a>.</p>
+            <div className="flex flex-col items-center gap-4">
+              <svg width="64" height="64" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#e0f2fe"/><path d="M7 13l3 3 7-7" stroke="#0ea5e9" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <p className="mb-2 text-lg text-green-700 font-semibold">{successMessage}</p>
+              <p className="text-muted-foreground text-sm mb-4">Didn't receive the email? Check your spam folder or <a href="/resend-verification" className="text-primary underline">resend verification</a>.</p>
+              <Button onClick={() => navigate('/login')} className="w-full max-w-xs">Go to Login</Button>
+              <p className="text-xs text-muted-foreground mt-2">You will be redirected to the login page shortly...</p>
+            </div>
           </CardContent>
         </Card>
       </div>
