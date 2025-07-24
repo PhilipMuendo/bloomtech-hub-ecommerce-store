@@ -1,57 +1,64 @@
 import React, { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { useWishlist } from '@/hooks/useWishlist';
 import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
-import { useWishlist } from '@/hooks/useWishlist';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface WishlistButtonProps {
   productId: string;
   className?: string;
-  iconOnly?: boolean;
 }
 
-const WishlistButton: React.FC<WishlistButtonProps> = ({ productId, className, iconOnly }) => {
-  const { isInWishlist, addToWishlist, removeFromWishlist, wishlistItems } = useWishlist();
-  const { toast } = useToast();
+const WishlistButton: React.FC<WishlistButtonProps> = ({ productId, className }) => {
   const { user } = useAuth();
-  const [showModal, setShowModal] = useState(false);
+  const { wishlist, addToWishlist, removeFromWishlist, isInWishlist, loading: wishlistLoading } = useWishlist();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
-  const inWishlist = isInWishlist(productId);
-  const wishlistItem = wishlistItems.find(item => item.productId === productId);
+  // Determine if the product is in the wishlist
+  const inWishlist = isInWishlist ? isInWishlist(productId) : wishlist?.some((item: any) => item.productId === productId);
 
-  const handleWishlistClick = async () => {
+  const handleClick = async () => {
     if (!user) {
-      toast({ title: 'Please log in to add items to your wishlist.' });
+      toast({ title: 'Please log in to use your wishlist.' });
+      navigate('/login');
       return;
     }
+    setLoading(true);
     try {
-      if (inWishlist && productId) {
+      if (inWishlist) {
         await removeFromWishlist(productId);
-        toast({ title: "Removed from wishlist" });
-      } else if (!inWishlist) {
+        toast({ title: 'Removed from wishlist.' });
+      } else {
         await addToWishlist(productId);
-        toast({ title: "Added to wishlist" });
+        toast({ title: 'Added to wishlist!' });
       }
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to update wishlist", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err?.message || 'Failed to update wishlist', variant: 'destructive' });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <>
-      <Button
-        variant="outline"
-        size={iconOnly ? "icon" : "sm"}
-        onClick={handleWishlistClick}
-        className={`${inWishlist ? "text-red-500 border-red-500" : ""} ${className || ''}`}
-        aria-label={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
-        title={inWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
-      >
-        <Heart className={`w-4 h-4 ${iconOnly ? '' : 'mr-2'} ${inWishlist ? "fill-current" : ""}`} />
-        {!iconOnly && (inWishlist ? "Remove from Wishlist" : "Add to Wishlist")}
-      </Button>
-    </>
+    <Button
+      variant={inWishlist ? 'destructive' : 'outline'}
+      onClick={handleClick}
+      disabled={loading || wishlistLoading}
+      className={className}
+      aria-pressed={inWishlist}
+      aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+    >
+      <Heart className={`w-4 h-4 mr-2 ${inWishlist ? 'fill-red-500 text-red-500' : ''}`} />
+      {loading || wishlistLoading
+        ? 'Processing...'
+        : inWishlist
+        ? 'Remove from Wishlist'
+        : 'Add to Wishlist'}
+    </Button>
   );
 };
 
