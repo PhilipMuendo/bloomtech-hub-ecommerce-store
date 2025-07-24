@@ -14,14 +14,14 @@ interface Order {
   customerName: string;
   customerEmail: string;
   date: string;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'pending' | 'processing' | 'delivered' | 'cancelled' | 'awaiting_payment' | 'paid';
   total: number;
   items: Array<{
     productName: string;
     quantity: number;
     price: number;
   }>;
-  shippingAddress?: string; // Added for shipping address
+  shippingAddress?: string;
 }
 
 const AdminOrders = () => {
@@ -65,10 +65,10 @@ const AdminOrders = () => {
           customerName: o.customerName || (o.userId?.name ?? 'N/A'),
           customerEmail: o.customerEmail || (o.userId?.email ?? 'N/A'),
           date: o.createdAt,
-          status: o.status as 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled',
+          status: o.status as 'pending' | 'processing' | 'delivered' | 'cancelled' | 'awaiting_payment' | 'paid',
           total: o.total,
           items: o.items || [],
-          shippingAddress: o.shippingAddress, // Normalize shipping address
+          shippingAddress: o.shippingAddress,
         }));
         setOrders(normalized);
         setTotalPages(data.totalPages || 1);
@@ -110,9 +110,23 @@ const AdminOrders = () => {
   const handlePrevPage = () => setPage((p) => Math.max(1, p - 1));
   const handleNextPage = () => setPage((p) => Math.min(totalPages, p + 1));
 
+  const formatStatusDisplay = (status: string): string => {
+    switch (status) {
+      case 'pending': return 'Pending';
+      case 'awaiting_payment': return 'Awaiting Payment';
+      case 'paid': return 'Paid';
+      case 'processing': return 'Processing';
+      case 'delivered': return 'Delivered';
+      case 'cancelled': return 'Cancelled';
+      default: return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'secondary';
+      case 'awaiting_payment': return 'outline';
+      case 'paid': return 'default';
       case 'processing': return 'default';
       case 'delivered': return 'default';
       case 'cancelled': return 'destructive';
@@ -127,6 +141,7 @@ const AdminOrders = () => {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         token = user.token;
       }
+      
       const res = await fetch(`/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: {
@@ -135,24 +150,35 @@ const AdminOrders = () => {
         },
         body: JSON.stringify({ status: newStatus }),
       });
-      if (!res.ok) throw new Error('Failed to update order status');
+      
+      if (!res.ok) {
+        const errorData = await res.text();
+        let errorMessage = `HTTP ${res.status}`;
+        try {
+          const errorJson = JSON.parse(errorData);
+          errorMessage = errorJson.error || errorJson.message || errorData;
+        } catch {
+          errorMessage = errorData;
+        }
+        throw new Error(`Failed to update order status: ${errorMessage}`);
+      }
+      
       toast({
         title: "Order Updated",
-        description: `Order ${orderId} status changed to ${newStatus}`,
-        duration: 1000,
+        description: `Order ${orderId} status changed to ${formatStatusDisplay(newStatus)}`,
+        duration: 2000,
       });
+      
       // Update the order's status in local state immediately
       setOrders(prevOrders => prevOrders.map(order =>
-        order.id === orderId ? { ...order, status: newStatus } : order
+        order.id === orderId ? { ...order, status: newStatus as 'pending' | 'processing' | 'delivered' | 'cancelled' | 'awaiting_payment' | 'paid' } : order
       ));
-      // Optionally refresh orders from server:
-      // setPage(1);
     } catch (err: any) {
       toast({
         title: 'Error',
         description: err.message || 'Failed to update order status',
         variant: 'destructive',
-        duration: 1000,
+        duration: 3000,
       });
     }
   };
@@ -188,10 +214,12 @@ const AdminOrders = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="processing">Processing</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="awaiting_payment">Awaiting Payment</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
             <div className="flex items-center gap-2">
@@ -244,7 +272,7 @@ const AdminOrders = () => {
                   <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Badge variant={getStatusColor(order.status)}>
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      {formatStatusDisplay(order.status)}
                     </Badge>
                   </TableCell>
                   <TableCell>KES {order.total.toLocaleString()}</TableCell>
@@ -257,17 +285,43 @@ const AdminOrders = () => {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Select onValueChange={(value) => updateOrderStatus(order.id, value)}>
-                        <SelectTrigger className="w-[120px] h-8">
-                          <Package className="h-4 w-4" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="processing">Processing</SelectItem>
-                          <SelectItem value="delivered">Delivered</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      {order.status === 'cancelled' || order.status === 'delivered' ? (
+                                                  <div className="flex items-center px-3 py-1 rounded-md bg-gray-100 text-gray-700 text-sm min-w-[120px]">
+                            <Package className="h-4 w-4 mr-2" />
+                            {formatStatusDisplay(order.status)}
+                          </div>
+                      ) : (
+                        <Select 
+                          onValueChange={(value) => updateOrderStatus(order.id, value)}
+                        >
+                          <SelectTrigger className="w-[40px] h-8">
+                            <div className="flex items-center justify-center w-full">
+                              <Package className="h-4 w-4" />
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {/* Always show all possible statuses */}
+                            <SelectItem value="pending" disabled={order.status === 'pending'}>
+                              {order.status === 'pending' ? '✓ Pending (Current)' : 'Pending'}
+                            </SelectItem>
+                            <SelectItem value="awaiting_payment" disabled={order.status === 'awaiting_payment'}>
+                              {order.status === 'awaiting_payment' ? '✓ Awaiting Payment (Current)' : 'Awaiting Payment'}
+                            </SelectItem>
+                            <SelectItem value="paid" disabled={order.status === 'paid'}>
+                              {order.status === 'paid' ? '✓ Paid (Current)' : 'Paid'}
+                            </SelectItem>
+                            <SelectItem value="processing" disabled={order.status === 'processing'}>
+                              {order.status === 'processing' ? '✓ Processing (Current)' : 'Processing'}
+                            </SelectItem>
+                            <SelectItem value="delivered" disabled={order.status === 'delivered'}>
+                              {order.status === 'delivered' ? '✓ Delivered (Current)' : 'Delivered'}
+                            </SelectItem>
+                            <SelectItem value="cancelled" disabled={order.status === 'cancelled'}>
+                              {order.status === 'cancelled' ? '✓ Cancelled (Current)' : 'Cancelled'}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -304,7 +358,7 @@ const AdminOrders = () => {
                   <h4 className="font-semibold">Order Information</h4>
                   <p>Date: {new Date(selectedOrder.date).toLocaleDateString()}</p>
                   <p>Status: <Badge variant={getStatusColor(selectedOrder.status)}>
-                    {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
+                    {formatStatusDisplay(selectedOrder.status)}
                   </Badge></p>
                 </div>
               </div>

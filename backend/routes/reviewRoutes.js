@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllReviews, createReview, updateReviewStatus, deleteReview } from '../controllers/reviewController.js';
+import { getAllReviews, createReview, updateReviewStatus, deleteReview, getApprovedReviewsForProduct } from '../controllers/reviewController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireAdmin } from '../middleware/roleAuth.js';
 
@@ -13,5 +13,7 @@ router.post('/', requireAuth, createReview);
 router.put('/:id/status', requireAuth, requireAdmin, updateReviewStatus);
 // Admin: delete review
 router.delete('/:id', requireAuth, requireAdmin, deleteReview);
+// Public: get approved reviews for a product
+router.get('/public/:productId', getApprovedReviewsForProduct);
 
 export default router; 

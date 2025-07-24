@@ -72,4 +72,27 @@ export const deleteReview = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+};
+
+// GET /api/reviews/public/:productId (public)
+export const getApprovedReviewsForProduct = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const reviews = await Review.find({ productId, status: 'approved' })
+      .populate('userId', 'name email');
+    // Format for frontend
+    const formatted = reviews.map(r => ({
+      id: r._id,
+      userId: r.userId?._id?.toString() || '',
+      productId: r.productId?.toString() || '',
+      rating: r.rating,
+      comment: r.comment,
+      createdAt: r.createdAt,
+      status: r.status,
+      customerName: r.userId?.name || '',
+    }));
+    res.json(formatted);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 }; 

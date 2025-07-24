@@ -39,7 +39,9 @@ const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
   const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [newOrders, setNewOrders] = useState([]);
   const [showNotif, setShowNotif] = useState(false);
+  const [notificationTab, setNotificationTab] = useState<'stock' | 'orders'>('stock');
   const [adminQuoteNotifications, setAdminQuoteNotifications] = useState(0);
 
   useEffect(() => {
@@ -47,8 +49,25 @@ const AdminLayout = () => {
       const data = await fetchLowStockProducts(user?.token);
       setLowStockProducts(data);
     }
+    
+    async function fetchNewOrders() {
+      if (!user?.token || (user.role !== 'admin' && user.role !== 'superadmin')) return;
+      try {
+        const res = await fetch('/api/orders/notifications', {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        if (!res.ok) throw new Error('Failed to fetch new orders');
+        const data = await res.json();
+        setNewOrders(data);
+      } catch (error) {
+        console.error("Failed to fetch new order notifications:", error);
+        setNewOrders([]);
+      }
+    }
+    
     if (user && (user.role === 'admin' || user.role === 'superadmin')) {
       fetchLowStock();
+      fetchNewOrders();
     }
     // Listen for lowStockUpdated event
     function handleLowStockUpdated(e) {
@@ -197,29 +216,55 @@ const AdminLayout = () => {
                 </h1>
             </div>
             <div className="flex items-center gap-4">
-              {lowStockProducts.length > 0 && (
-                  <button
-                    className="relative focus:outline-none"
-                    onClick={() => setShowNotif((v) => !v)}
-                    aria-label="Low stock notifications"
-                  >
-                    <Bell className="h-6 w-6 text-gray-600" />
-                      <span className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
-                        {lowStockProducts.length}
-                      </span>
+              {(lowStockProducts.length > 0 || newOrders.length > 0) && (
+                <button
+                  className="relative focus:outline-none"
+                  onClick={() => setShowNotif((v) => !v)}
+                  aria-label="Admin notifications"
+                >
+                  <Bell className="h-6 w-6 text-gray-600" />
+                  <span className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+                    {lowStockProducts.length + newOrders.length}
+                  </span>
                 </button>
-                    )}
+              )}
               {/* User Profile and other header items can go here */}
-                  {showNotif && typeof window !== 'undefined' && ReactDOM.createPortal(
-                    <div className="fixed top-20 right-8 w-72 bg-white border rounded-xl shadow-2xl z-[9999] overflow-hidden animate-fade-in">
-                      <div className="p-4 font-semibold border-b bg-gray-50 rounded-t-xl">Low Stock Products</div>
+              {showNotif && typeof window !== 'undefined' && ReactDOM.createPortal(
+                <div className="fixed top-20 right-8 w-80 bg-white border rounded-xl shadow-2xl z-[9999] overflow-hidden animate-fade-in">
+                  {/* Notification Tabs */}
+                  <div className="flex border-b bg-gray-50">
+                    <button
+                      className={`flex-1 p-3 text-sm font-medium transition-colors ${
+                        notificationTab === 'stock'
+                          ? 'bg-white border-b-2 border-primary text-primary'
+                          : 'text-gray-600 hover:text-gray-800'
+                      }`}
+                      onClick={() => setNotificationTab('stock')}
+                    >
+                      Low Stock ({lowStockProducts.length})
+                    </button>
+                    <button
+                      className={`flex-1 p-3 text-sm font-medium transition-colors ${
+                        notificationTab === 'orders'
+                          ? 'bg-white border-b-2 border-primary text-primary'
+                          : 'text-gray-600 hover:text-gray-800'
+                      }`}
+                      onClick={() => setNotificationTab('orders')}
+                    >
+                      New Orders ({newOrders.length})
+                    </button>
+                  </div>
+                  
+                  {/* Stock Notifications */}
+                  {notificationTab === 'stock' && (
+                    <>
                       {lowStockProducts.length === 0 ? (
-                        <div className="p-4 text-sm text-muted-foreground">No low stock products.</div>
+                        <div className="p-4 text-sm text-muted-foreground text-center">No low stock products.</div>
                       ) : (
                         <ul className="max-h-64 overflow-y-auto divide-y divide-gray-100">
                           {lowStockProducts.map((p) => (
                             <li key={p._id} className="flex justify-between items-center px-4 py-3 hover:bg-gray-50 transition-colors">
-                              <span className="truncate max-w-[140px] font-medium text-gray-800">{p.name}</span>
+                              <span className="truncate max-w-[160px] font-medium text-gray-800">{p.name}</span>
                               <span className="text-red-600 font-bold">{p.stock}</span>
                             </li>
                           ))}
@@ -233,8 +278,53 @@ const AdminLayout = () => {
                           View Low Stock Products
                         </button>
                       </div>
-                    </div>,
-                    document.body
+                    </>
+                  )}
+                  
+                  {/* Order Notifications */}
+                  {notificationTab === 'orders' && (
+                    <>
+                      {newOrders.length === 0 ? (
+                        <div className="p-4 text-sm text-muted-foreground text-center">No new orders.</div>
+                      ) : (
+                        <ul className="max-h-64 overflow-y-auto divide-y divide-gray-100">
+                          {newOrders.map((order) => (
+                            <li key={order.id} className="px-4 py-3 hover:bg-gray-50 transition-colors">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <p className="font-medium text-gray-800 text-sm">{order.customerName}</p>
+                                  <p className="text-xs text-gray-600">{order.customerEmail}</p>
+                                  <p className="text-xs text-green-600 font-medium">KES {order.total.toLocaleString()}</p>
+                                </div>
+                                <div className="text-right">
+                                  <span className={`px-2 py-1 text-xs rounded-full ${
+                                    order.status === 'pending' 
+                                      ? 'bg-yellow-100 text-yellow-800' 
+                                      : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {order.status}
+                                  </span>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {new Date(order.createdAt).toLocaleDateString()}
+                                  </p>
+                                </div>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <div className="p-2 border-t bg-gray-50 text-center">
+                        <button
+                          className="text-primary font-semibold hover:underline text-sm"
+                          onClick={() => { setShowNotif(false); navigate('/admin/orders'); }}
+                        >
+                          View All Orders
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>,
+                document.body
               )}
             </div>
           </header>

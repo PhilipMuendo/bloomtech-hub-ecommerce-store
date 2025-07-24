@@ -183,7 +183,7 @@ export const handleMpesaCallback = async (req, res, next) => {
 
       // Update order status
       await Order.findByIdAndUpdate(transaction.orderId, { 
-        status: 'Paid' 
+        status: 'paid' 
       });
 
     } else {
@@ -278,7 +278,7 @@ export const mockMpesaPayment = async (req, res) => {
       transaction.mpesaReceiptNumber = `MOCK${Date.now()}`;
       transaction.transactionDate = new Date();
 
-      await Order.findByIdAndUpdate(orderId, { status: 'Paid' });
+      await Order.findByIdAndUpdate(orderId, { status: 'paid' });
     } else {
       transaction.status = 'failed';
       transaction.resultCode = '1';

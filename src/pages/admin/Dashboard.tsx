@@ -188,14 +188,15 @@ const Dashboard = () => {
     },
   };
 
-  const StatCard = ({ title, value, icon: Icon, description, color }: {
+  const StatCard = ({ title, value, icon: Icon, description, color, className }: {
     title: string;
     value: string | number;
     icon: any;
     description: string;
     color?: string;
+    className?: string;
   }) => (
-    <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105 cursor-pointer">
+    <Card className={`transition-all duration-200 hover:shadow-lg hover:scale-105 cursor-pointer ${className || ''}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <div className={`p-2 rounded-full ${color || 'bg-primary/10'}`}>
@@ -311,6 +312,7 @@ const Dashboard = () => {
                   icon={TrendingUp}
                   description="Total revenue (KES)"
                   color="bg-emerald-500"
+                  className="min-w-[180px] max-w-[220px]"
                 />
               </>
             )}
@@ -340,17 +342,17 @@ const Dashboard = () => {
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={revenueData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis 
-                          dataKey="month" 
+                        <XAxis
+                          dataKey="month"
                           stroke="hsl(var(--muted-foreground))"
                           fontSize={12}
                         />
-                        <YAxis 
+                        <YAxis
                           stroke="hsl(var(--muted-foreground))"
                           fontSize={12}
                           tickFormatter={(value) => `${value / 1000}K`}
                         />
-                        <ChartTooltip 
+                        <ChartTooltip
                           content={<ChartTooltipContent />}
                           formatter={(value) => [`KES ${value.toLocaleString()}`, 'Revenue']}
                         />
@@ -379,16 +381,16 @@ const Dashboard = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={userSignupsData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis 
-                        dataKey="month" 
+                      <XAxis
+                        dataKey="month"
                         stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
                       />
-                      <YAxis 
+                      <YAxis
                         stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
                       />
-                      <ChartTooltip 
+                      <ChartTooltip
                         content={<ChartTooltipContent />}
                         formatter={(value) => [`${value} users`, 'New Signups']}
                       />

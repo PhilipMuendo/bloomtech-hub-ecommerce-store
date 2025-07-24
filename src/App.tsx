@@ -11,6 +11,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./components/AdminLayout";
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from "react";
+import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 
 // Lazy load all pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
@@ -270,6 +272,8 @@ const AnimatedRoutes = () => {
             </Suspense>
           </ProtectedRoute>
         } />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<Suspense fallback={<div>Loading...</div>}><VerifyEmail /></Suspense>} />
         <Route path="/admin" element={
           <ProtectedRoute requireAdmin>
             <Suspense fallback={<LoadingSpinner />}>

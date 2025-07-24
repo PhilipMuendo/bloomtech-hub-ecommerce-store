@@ -151,7 +151,12 @@ const Products = () => {
         })
       });
       if (!res.ok) throw new Error('Failed to add product');
-      toast({ title: 'Product Added', description: `${formData.name} has been added to the catalog.` });
+      const newProductData = await res.json();
+      toast({ 
+        title: 'Product Added', 
+        description: `${formData.name} has been added to the catalog. Product ID: ${newProductData._id}`,
+        duration: 8000
+      });
       setIsAddDialogOpen(false);
       fetchProducts();
     } catch (err: any) {
