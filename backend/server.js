@@ -3,7 +3,6 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import express from 'express';
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -18,7 +17,7 @@ import userRoutes from './routes/userRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import campaignRoutes from './routes/campaignRoutes.js';
 import blogRoutes from './routes/blogRoutes.js';
-import connectDB from './config/db.js';
+import db, { sequelize } from './sequelize_models/index.js';
 import fs from 'fs';
 import reviewRoutes from './routes/reviewRoutes.js';
 import newsletterRoutes from './routes/newsletterRoutes.js';
@@ -87,11 +86,10 @@ app.use((err, req, res, next) => {
 // MongoDB connection
 const PORT = process.env.PORT || 5000;
 
-connectDB().then(() => {
+sequelize.sync().then(() => {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
-})
-.catch((err) => {
-  console.error('MongoDB connection error:', err);
+}).catch((err) => {
+  console.error('Sequelize connection error:', err);
 });

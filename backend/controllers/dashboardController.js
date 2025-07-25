@@ -1,22 +1,16 @@
-import Product from '../models/Product.js';
-import Order from '../models/Order.js';
-import User from '../models/User.js';
-import Review from '../models/Review.js';
-import Newsletter from '../models/Newsletter.js';
-import Quote from '../models/Quote.js';
+import db from '../sequelize_models/index.js';
+const { Product, Order, User, Review, Newsletter, Quote, OrderItem } = db;
 
 // GET /api/dashboard/summary
 export const getDashboardSummary = async (req, res, next) => {
   try {
     const [totalProducts, totalOrders, totalUsers, totalReviews, totalRevenue, totalSubscribers] = await Promise.all([
-      Product.countDocuments(),
-      Order.countDocuments(),
-      User.countDocuments(),
-      Review.countDocuments(),
-      Order.aggregate([{ $group: { _id: null, total: { $sum: '$total' } } }]).then(r => r[0]?.total || 0),
-      Newsletter.countDocuments(),
-      // Add logic for total revenue if superadmin
-      req.user.role === 'superadmin' ? Order.aggregate([{ $group: { _id: null, total: { $sum: '$total' } } }]).then(r => r[0]?.total || 0) : Promise.resolve([{ totalRevenue: 0 }]),
+      Product.count(),
+      Order.count(),
+      User.count(),
+      Review.count(),
+      Order.sum('total'),
+      Newsletter.count(),
     ]);
     res.json({ totalProducts, totalOrders, totalUsers, totalReviews, revenue: totalRevenue, subscribers: totalSubscribers });
   } catch (err) {
@@ -29,18 +23,16 @@ export const getQuoteSummary = async (req, res, next) => {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Forbidden' });
     }
-
-    const pendingQuotes = await Quote.countDocuments({ status: 'pending' });
-
+    const pendingQuotes = await Quote.count({ where: { status: 'pending' } });
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
-
-    const closedThisMonth = await Quote.countDocuments({
-      status: 'closed',
-      updatedAt: { $gte: startOfMonth },
+    const closedThisMonth = await Quote.count({
+      where: {
+        status: 'closed',
+        updatedAt: { [db.Sequelize.Op.gte]: startOfMonth },
+      },
     });
-
     res.json({
       pendingQuotes,
       closedThisMonth,
@@ -64,17 +56,20 @@ export const getRevenueTrend = async (req, res) => {
         month: d.getMonth(),
       });
     }
-    const pipeline = [
-      { $match: { createdAt: { $gte: new Date(now.getFullYear(), now.getMonth() - 5, 1) } } },
-      { $group: {
-        _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
-        revenue: { $sum: '$total' },
-      } },
-    ];
-    const data = await Order.aggregate(pipeline);
+    const startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const data = await Order.findAll({
+      attributes: [
+        [db.Sequelize.fn('YEAR', db.Sequelize.col('createdAt')), 'year'],
+        [db.Sequelize.fn('MONTH', db.Sequelize.col('createdAt')), 'month'],
+        [db.Sequelize.fn('SUM', db.Sequelize.col('total')), 'revenue'],
+      ],
+      where: { createdAt: { [db.Sequelize.Op.gte]: startDate } },
+      group: [db.Sequelize.fn('YEAR', db.Sequelize.col('createdAt')), db.Sequelize.fn('MONTH', db.Sequelize.col('createdAt'))],
+      raw: true,
+    });
     const trend = months.map(({ label, year, month }) => {
-      const found = data.find(d => d._id.year === year && d._id.month === month + 1);
-      return { month: label, revenue: found ? found.revenue : 0 };
+      const found = data.find(d => d.year == year && d.month == month + 1);
+      return { month: label, revenue: found ? parseFloat(found.revenue) : 0 };
     });
     res.json(trend);
   } catch (err) {
@@ -86,22 +81,18 @@ export const getRevenueTrend = async (req, res) => {
 export const getOrdersByCategory = async (req, res) => {
   try {
     // Group orders by product category
-    const pipeline = [
-      { $unwind: '$items' },
-      { $lookup: {
-        from: 'products',
-        localField: 'items.productId',
-        foreignField: '_id',
-        as: 'product',
-      } },
-      { $unwind: '$product' },
-      { $group: {
-        _id: '$product.category',
-        orders: { $sum: 1 },
-      } },
-      { $project: { category: '$_id', orders: 1, _id: 0 } },
-    ];
-    const data = await Order.aggregate(pipeline);
+    const orderItems = await OrderItem.findAll({
+      include: [{ model: Product, attributes: ['category'] }],
+      raw: true,
+    });
+    const categoryCounts = {};
+    orderItems.forEach(item => {
+      const category = item['Product.category'];
+      if (category) {
+        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+      }
+    });
+    const data = Object.entries(categoryCounts).map(([category, orders]) => ({ category, orders }));
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch orders by category', error: err.message });
@@ -122,17 +113,20 @@ export const getUserSignups = async (req, res) => {
         month: d.getMonth(),
       });
     }
-    const pipeline = [
-      { $match: { createdAt: { $gte: new Date(now.getFullYear(), now.getMonth() - 5, 1) } } },
-      { $group: {
-        _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
-        signups: { $sum: 1 },
-      } },
-    ];
-    const data = await User.aggregate(pipeline);
+    const startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const data = await User.findAll({
+      attributes: [
+        [db.Sequelize.fn('YEAR', db.Sequelize.col('createdAt')), 'year'],
+        [db.Sequelize.fn('MONTH', db.Sequelize.col('createdAt')), 'month'],
+        [db.Sequelize.fn('COUNT', db.Sequelize.col('id')), 'signups'],
+      ],
+      where: { createdAt: { [db.Sequelize.Op.gte]: startDate } },
+      group: [db.Sequelize.fn('YEAR', db.Sequelize.col('createdAt')), db.Sequelize.fn('MONTH', db.Sequelize.col('createdAt'))],
+      raw: true,
+    });
     const trend = months.map(({ label, year, month }) => {
-      const found = data.find(d => d._id.year === year && d._id.month === month + 1);
-      return { month: label, signups: found ? found.signups : 0 };
+      const found = data.find(d => d.year == year && d.month == month + 1);
+      return { month: label, signups: found ? parseInt(found.signups) : 0 };
     });
     res.json(trend);
   } catch (err) {

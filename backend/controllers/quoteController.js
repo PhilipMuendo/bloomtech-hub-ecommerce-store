@@ -1,7 +1,7 @@
-import Quote from '../models/Quote.js';
-import Product from '../models/Product.js';
+import db from '../sequelize_models/index.js';
 import nodemailer from 'nodemailer';
-import Order from '../models/Order.js';
+
+const { Quote, QuoteItem, Message, Product, Order, OrderItem } = db;
 
 // Configure nodemailer (replace with real SMTP credentials in production)
 const transporter = nodemailer.createTransport({
@@ -22,24 +22,45 @@ export const createQuote = async (req, res) => {
     if (!name || !email || !items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'Name, email, and at least one item are required.' });
     }
+    
     // Validate product IDs
     for (const item of items) {
       if (!item.productId || !item.quantity || item.quantity < 1) {
         return res.status(400).json({ error: 'Each item must have a valid productId and quantity.' });
       }
-      const product = await Product.findById(item.productId);
+      const product = await Product.findByPk(item.productId);
       if (!product) {
         return res.status(400).json({ error: `Product not found: ${item.productId}` });
       }
     }
-    const quote = await Quote.create({
-      userId: req.user?._id,
-      name,
-      email,
-      phone,
-      items,
-      messages: [{ sender: 'user', text: message }],
+    
+    // Create quote and related data in a transaction
+    const result = await db.sequelize.transaction(async (t) => {
+      const quote = await Quote.create({
+        userId: req.user?.id,
+        name,
+        email,
+        phone,
+      }, { transaction: t });
+      
+      // Create quote items
+      const quoteItems = items.map(item => ({
+        quoteId: quote.id,
+        productId: item.productId,
+        quantity: item.quantity
+      }));
+      await QuoteItem.bulkCreate(quoteItems, { transaction: t });
+      
+      // Create initial message
+      await Message.create({
+        quoteId: quote.id,
+        sender: 'user',
+        text: message
+      }, { transaction: t });
+      
+      return quote;
     });
+    
     // Send admin notification email
     try {
       const itemList = items.map(item => `- ${item.quantity} x ${item.productId}`).join('\n');
@@ -52,7 +73,8 @@ export const createQuote = async (req, res) => {
     } catch (mailErr) {
       console.error('Failed to send admin quote notification:', mailErr);
     }
-    res.status(201).json(quote);
+    
+    res.status(201).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -65,7 +87,15 @@ export const getQuotes = async (req, res) => {
     if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    const quotes = await Quote.find().sort({ createdAt: -1 }).populate('items.productId', 'name price');
+    
+    const quotes = await Quote.findAll({
+      include: [
+        { model: QuoteItem, include: [{ model: Product, attributes: ['name', 'price'] }] },
+        { model: Message }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    
     res.json(quotes);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -76,40 +106,88 @@ export const getQuotes = async (req, res) => {
 export const getUserQuotes = async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    const quotes = await Quote.find({ userId: req.user._id }).sort({ createdAt: -1 }).populate('items.productId', 'name');
+    
+    const quotes = await Quote.findAll({
+      where: { userId: req.user.id },
+      include: [
+        { model: QuoteItem, include: [{ model: Product, attributes: ['name'] }] },
+        { model: Message }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    
     res.json(quotes);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// PATCH /api/quotes/:id - Admin: respond to a quote
-export const respondToQuote = async (req, res) => {
+// GET /api/quotes/:id - Get specific quote
+export const getQuoteById = async (req, res) => {
   try {
-    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
+    const quote = await Quote.findByPk(req.params.id, {
+      include: [
+        { model: QuoteItem, include: [{ model: Product }] },
+        { model: Message, order: [['createdAt', 'ASC']] }
+      ]
+    });
+    
+    if (!quote) {
+      return res.status(404).json({ error: 'Quote not found' });
+    }
+    
+    // Check if user has access to this quote
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin' && quote.userId !== req.user.id) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    const { adminResponse, status } = req.body;
-    const quote = await Quote.findById(req.params.id);
-    if (!quote) return res.status(404).json({ error: 'Quote not found' });
-    if (adminResponse) {
-      quote.messages.push({ sender: 'admin', text: adminResponse });
-      quote.userSeen = false;
-    }
-    if (status) quote.status = status;
-    await quote.save();
+    
     res.json(quote);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// PATCH /api/quotes/mark-seen - User marks all responded quotes as seen
-export const markQuotesSeen = async (req, res) => {
+// POST /api/quotes/:id/message - Add message to quote
+export const addMessage = async (req, res) => {
   try {
-    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    await Quote.updateMany({ userId: req.user._id, status: 'responded', userSeen: false }, { $set: { userSeen: true } });
-    res.json({ success: true });
+    const { text } = req.body;
+    if (!text) return res.status(400).json({ error: 'Message text required' });
+    
+    const quote = await Quote.findByPk(req.params.id);
+    if (!quote) return res.status(404).json({ error: 'Quote not found' });
+    
+    // Check if user has access to this quote
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin' && quote.userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    
+    const sender = req.user.role === 'admin' || req.user.role === 'superadmin' ? 'admin' : 'user';
+    
+    const message = await Message.create({
+      quoteId: quote.id,
+      sender,
+      text
+    });
+    
+    res.status(201).json(message);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// PUT /api/quotes/:id/status - Update quote status
+export const updateQuoteStatus = async (req, res) => {
+  try {
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    
+    const { status } = req.body;
+    const quote = await Quote.findByPk(req.params.id);
+    if (!quote) return res.status(404).json({ error: 'Quote not found' });
+    
+    await quote.update({ status });
+    res.json(quote);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -121,22 +199,39 @@ export const createOrderFromQuote = async (req, res) => {
     if (!req.user || req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Forbidden' });
     }
+    
     const { finalPrice } = req.body;
-    const quote = await Quote.findById(req.params.id).populate('userId');
-    if (!quote) return res.status(404).json({ error: 'Quote not found' });
-    // Create order
-    const order = await Order.create({
-      userId: quote.userId,
-      items: quote.items,
-      total: finalPrice,
-      status: 'pending', // Use valid status
+    const quote = await Quote.findByPk(req.params.id, {
+      include: [{ model: QuoteItem, include: [{ model: Product }] }]
     });
-    // Close quote
-    quote.status = 'closed';
-    await quote.save();
+    
+    if (!quote) return res.status(404).json({ error: 'Quote not found' });
+    
+    // Create order and order items in a transaction
+    const result = await db.sequelize.transaction(async (t) => {
+      const order = await Order.create({
+        userId: quote.userId,
+        total: finalPrice,
+        status: 'pending',
+      }, { transaction: t });
+      
+      // Create order items
+      const orderItems = quote.QuoteItems.map(item => ({
+        orderId: order.id,
+        productId: item.productId,
+        quantity: item.quantity
+      }));
+      await OrderItem.bulkCreate(orderItems, { transaction: t });
+      
+      // Close quote
+      await quote.update({ status: 'closed' }, { transaction: t });
+      
+      return order;
+    });
+    
     // Send customer email with checkout link
     try {
-      const checkoutUrl = `${process.env.FRONTEND_URL || 'http://localhost:8081'}/checkout/${order._id}`;
+      const checkoutUrl = `${process.env.FRONTEND_URL || 'http://localhost:8081'}/checkout/${result.id}`;
       await transporter.sendMail({
         from: `Bloomtech Hub <${process.env.SMTP_USER || 'admin@example.com'}>`,
         to: quote.email,
@@ -146,39 +241,8 @@ export const createOrderFromQuote = async (req, res) => {
     } catch (mailErr) {
       console.error('Failed to send client payment email:', mailErr);
     }
-    res.status(201).json(order);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-export const replyToQuote = async (req, res) => {
-  try {
-    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
-    const { message } = req.body;
-    const quote = await Quote.findById(req.params.id);
-    if (!quote) return res.status(404).json({ error: 'Quote not found' });
-    if (quote.userId.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    quote.messages.push({ sender: 'user', text: message });
-    quote.status = 'pending'; // Re-open for admin
-    quote.adminSeen = false; // Mark as unseen for admin
-    await quote.save();
-    res.json(quote);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-// PATCH /api/quotes/admin-seen - Admin marks all quotes as seen
-export const markAdminSeen = async (req, res) => {
-  try {
-    if (!req.user || req.user.role !== 'superadmin') {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    await Quote.updateMany({ adminSeen: false }, { $set: { adminSeen: true } });
-    res.json({ success: true });
+    
+    res.status(201).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
