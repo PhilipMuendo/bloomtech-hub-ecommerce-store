@@ -1,51 +1,59 @@
-import Order from '../models/Order.js';
-import mongoose from 'mongoose';
-import Product from '../models/Product.js';
+import db from '../sequelize_models/index.js';
+import { Op } from 'sequelize';
+
+const { Order, OrderItem, Product, User } = db;
 
 // Get current user's orders or all orders for admin
 export const getOrders = async (req, res, next) => {
   try {
     const { page = 1, limit = 20, status, sort = '-createdAt', userId } = req.query;
-    const query = {};
+    const where = {};
     // If not admin, only allow user's own orders
     if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
-      query.userId = req.user._id;
+      where.userId = req.user.id;
     } else if (userId) {
-      query.userId = userId;
+      where.userId = userId;
     }
-    if (status) query.status = status;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const sortObj = {};
+    if (status) where.status = status;
+    
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const order = [];
     if (sort.startsWith('-')) {
-      sortObj[sort.substring(1)] = -1;
+      order.push([sort.substring(1), 'DESC']);
     } else {
-      sortObj[sort] = 1;
+      order.push([sort, 'ASC']);
     }
-    const [orders, total] = await Promise.all([
-      Order.find(query)
-        .populate('userId', 'name email')
-        .populate('items.productId', 'name price')
-        .sort(sortObj)
-        .skip(skip)
-        .limit(parseInt(limit))
-        .lean(),
-      Order.countDocuments(query)
-    ]);
+    
+    const { count, rows: orders } = await Order.findAndCountAll({
+      where,
+      include: [
+        { model: User, attributes: ['name', 'email'] },
+        { 
+          model: OrderItem, 
+          include: [{ model: Product, attributes: ['name', 'price'] }]
+        }
+      ],
+      order,
+      offset,
+      limit: parseInt(limit)
+    });
+    
     // Map productName into each item for frontend compatibility
     const ordersWithProductNames = orders.map(order => ({
-      ...order,
-      items: order.items.map(item => ({
-        ...item,
-        productName: item.productId?.name || item.productName || 'N/A',
-        price: item.productId?.price || item.price || 0,
+      ...order.toJSON(),
+      items: order.OrderItems.map(item => ({
+        ...item.toJSON(),
+        productName: item.Product?.name || 'N/A',
+        price: item.Product?.price || 0,
       })),
     }));
+    
     res.json({
       orders: ordersWithProductNames,
-      total,
+      total: count,
       page: parseInt(page),
       limit: parseInt(limit),
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(count / limit)
     });
   } catch (err) {
     next(err);
@@ -55,9 +63,18 @@ export const getOrders = async (req, res, next) => {
 // Get order details
 export const getOrderById = async (req, res, next) => {
   try {
-  const order = await Order.findOne({ _id: req.params.id, userId: req.user._id });
+    const order = await Order.findOne({ 
+      where: { id: req.params.id, userId: req.user.id },
+      include: [
+        { model: User, attributes: ['name', 'email'] },
+        { 
+          model: OrderItem, 
+          include: [{ model: Product, attributes: ['name', 'price'] }]
+        }
+      ]
+    });
     if (!order) return res.status(404).json({ error: 'Order not found' });
-  res.json(order);
+    res.json(order);
   } catch (err) {
     next(err);
   }
@@ -68,15 +85,13 @@ export const createOrder = async (req, res, next) => {
   try {
     const { items, total, shippingAddress } = req.body;
     if (!items || !total) return res.status(400).json({ error: 'Items and total required' });
-    // Validate and convert productId
+    
+    // Validate and check stock for all items first
     for (const item of items) {
-      if (!mongoose.Types.ObjectId.isValid(item.productId)) {
+      if (!item.productId || isNaN(item.productId)) {
         return res.status(400).json({ error: `Invalid productId: ${item.productId}` });
       }
-    }
-    // Check stock for all items first
-    for (const item of items) {
-      const product = await Product.findById(item.productId);
+      const product = await Product.findByPk(item.productId);
       if (!product) {
         return res.status(400).json({ error: `Product not found: ${item.productId}` });
       }
@@ -84,20 +99,36 @@ export const createOrder = async (req, res, next) => {
         return res.status(400).json({ error: `Insufficient stock for product: ${product.name}` });
       }
     }
-    const normalizedItems = items.map(item => ({
-      ...item,
-      productId: new mongoose.Types.ObjectId(item.productId)
-    }));
-    const order = await Order.create({ userId: req.user._id, items: normalizedItems, total, shippingAddress });
-    // Decrement stock for each product
-    for (const item of items) {
-      await Product.findByIdAndUpdate(
-        item.productId,
-        { $inc: { stock: -item.quantity } },
-        { new: true }
-      );
-    }
-    res.status(201).json(order);
+    
+    // Create order and order items in a transaction
+    const result = await db.sequelize.transaction(async (t) => {
+      const order = await Order.create({ 
+        userId: req.user.id, 
+        total, 
+        shippingAddress 
+      }, { transaction: t });
+      
+      // Create order items
+      const orderItems = items.map(item => ({
+        orderId: order.id,
+        productId: item.productId,
+        quantity: item.quantity
+      }));
+      await OrderItem.bulkCreate(orderItems, { transaction: t });
+      
+      // Decrement stock for each product
+      for (const item of items) {
+        await Product.decrement('stock', {
+          by: item.quantity,
+          where: { id: item.productId },
+          transaction: t
+        });
+      }
+      
+      return order;
+    });
+    
+    res.status(201).json(result);
   } catch (err) {
     next(err);
   }
@@ -112,7 +143,7 @@ export const updateOrderStatus = async (req, res, next) => {
     const { status, shippingAddress, trackingNumber } = req.body;
     
     // Find the current order first to check existing status
-    const currentOrder = await Order.findById(req.params.id);
+    const currentOrder = await Order.findByPk(req.params.id);
     if (!currentOrder) {
       return res.status(404).json({ error: 'Order not found' });
     }
@@ -131,8 +162,6 @@ export const updateOrderStatus = async (req, res, next) => {
     if (status && currentOrder.status !== status) {
       const allowedTransitions = statusTransitions[currentOrder.status] || [];
       
-
-      
       if (!allowedTransitions.includes(status)) {
         return res.status(400).json({ 
           error: `Cannot change order status from '${currentOrder.status}' to '${status}'. Allowed transitions: [${allowedTransitions.join(', ')}]` 
@@ -140,25 +169,21 @@ export const updateOrderStatus = async (req, res, next) => {
       }
     }
     
-    const allowedFields = {};
-    if (status) allowedFields.status = status;
-    if (shippingAddress) allowedFields.shippingAddress = shippingAddress;
-    if (trackingNumber) allowedFields.trackingNumber = trackingNumber;
-    if (Object.keys(allowedFields).length === 0) {
+    const updateData = {};
+    if (status) updateData.status = status;
+    if (shippingAddress) updateData.shippingAddress = shippingAddress;
+    if (trackingNumber) updateData.trackingNumber = trackingNumber;
+    
+    if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: 'No valid fields to update' });
     }
     
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { $set: allowedFields },
-      { new: true }
-    );
-    
-    res.json(order);
+    await currentOrder.update(updateData);
+    res.json(currentOrder);
   } catch (err) {
     next(err);
   }
-}; 
+};
 
 // Get recent orders for admin notifications
 export const getRecentOrdersForNotifications = async (req, res, next) => {
@@ -170,24 +195,25 @@ export const getRecentOrdersForNotifications = async (req, res, next) => {
     // Get orders from the last 24 hours
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
-    const recentOrders = await Order.find({
-      createdAt: { $gte: twentyFourHoursAgo },
-      status: { $in: ['pending', 'awaiting_payment', 'processing'] } // Include payment statuses
-    })
-    .populate('userId', 'name email')
-    .sort({ createdAt: -1 })
-    .limit(10)
-    .lean();
+    const recentOrders = await Order.findAll({
+      where: {
+        createdAt: { [Op.gte]: twentyFourHoursAgo },
+        status: { [Op.in]: ['pending', 'awaiting_payment', 'processing'] }
+      },
+      include: [{ model: User, attributes: ['name', 'email'] }],
+      order: [['createdAt', 'DESC']],
+      limit: 10
+    });
     
     // Format for frontend
     const formattedOrders = recentOrders.map(order => ({
-      id: order._id,
-      customerName: order.userId?.name || 'Unknown',
-      customerEmail: order.userId?.email || 'Unknown',
+      id: order.id,
+      customerName: order.User?.name || 'Unknown',
+      customerEmail: order.User?.email || 'Unknown',
       total: order.total,
       status: order.status,
       createdAt: order.createdAt,
-      itemCount: order.items?.length || 0
+      itemCount: order.OrderItems?.length || 0
     }));
     
     res.json(formattedOrders);

@@ -1,10 +1,9 @@
 import express from 'express';
 import { 
-  initiateMpesaPayment, 
-  handleMpesaCallback, 
-  checkPaymentStatus, 
-  getAllTransactions,
-  mockMpesaPayment 
+  initiatePayment, 
+  mpesaCallback, 
+  getTransactionStatus, 
+  getAllTransactions
 } from '../controllers/paymentController.js';
 import { 
   initiatePesapalPayment,
@@ -17,13 +16,13 @@ import { requireAdmin } from '../middleware/roleAuth.js';
 const router = express.Router();
 
 // Initiate M-Pesa payment (requires auth)
-router.post('/mpesa', requireAuth, initiateMpesaPayment);
+router.post('/mpesa', requireAuth, initiatePayment);
 
 // M-Pesa callback (public endpoint for Safaricom)
-router.post('/mpesa/callback', handleMpesaCallback);
+router.post('/mpesa/callback', mpesaCallback);
 
-// Check payment status
-router.get('/mpesa/status/:checkoutRequestId', requireAuth, checkPaymentStatus);
+// Check transaction status
+router.get('/transaction/:transactionId', requireAuth, getTransactionStatus);
 
 // Pesapal payment routes
 router.post('/pesapal', requireAuth, initiatePesapalPayment);
@@ -32,11 +31,5 @@ router.get('/pesapal/status/:orderId', requireAuth, checkPesapalPaymentStatus);
 
 // Get all transactions (admin only)
 router.get('/transactions', requireAuth, requireAdmin, getAllTransactions);
-
-// Mock payment for development
-if (process.env.NODE_ENV !== 'production') {
-  router.post('/mpesa/mock', requireAuth, mockMpesaPayment);
-  
-}
 
 export default router;

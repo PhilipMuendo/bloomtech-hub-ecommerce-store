@@ -1,7 +1,9 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js';
+import db from '../sequelize_models/index.js';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
+
+const { User } = db;
 
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: '30d' });
@@ -31,7 +33,7 @@ export const sendVerificationEmail = async (user, req) => {
 export const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ where: { email } });
     if (userExists) {
       return res.status(400).json({ error: 'User already exists' });
     }
@@ -48,7 +50,7 @@ export const register = async (req, res, next) => {
     });
     await sendVerificationEmail(user, req);
     res.status(201).json({
-      _id: user._id,
+      id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
@@ -62,13 +64,18 @@ export const register = async (req, res, next) => {
 export const verifyEmail = async (req, res, next) => {
   try {
     const { token } = req.query;
-    const user = await User.findOne({ verificationToken: token, verificationTokenExpires: { $gt: Date.now() } });
+    const user = await User.findOne({ 
+      where: { 
+        verificationToken: token, 
+        verificationTokenExpires: { [db.Sequelize.Op.gt]: Date.now() } 
+      } 
+    });
     if (!user) {
       return res.status(400).json({ error: 'Invalid or expired verification token.' });
     }
     user.verified = true;
-    user.verificationToken = undefined;
-    user.verificationTokenExpires = undefined;
+    user.verificationToken = null;
+    user.verificationTokenExpires = null;
     await user.save();
     res.json({ message: 'Email verified successfully. You can now log in.' });
   } catch (error) {
@@ -79,7 +86,7 @@ export const verifyEmail = async (req, res, next) => {
 export const resendVerification = async (req, res, next) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ where: { email } });
     if (!user) return res.status(404).json({ error: 'User not found.' });
     if (user.verified) return res.status(400).json({ error: 'Email already verified.' });
     user.verificationToken = generateVerificationToken();
@@ -95,7 +102,7 @@ export const resendVerification = async (req, res, next) => {
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ where: { email } });
     if (user && (await user.matchPassword(password))) {
       if (user.status !== 'active') {
         return res.status(403).json({
@@ -105,9 +112,9 @@ export const login = async (req, res, next) => {
       if (!user.verified) {
         return res.status(403).json({ error: 'Please verify your email before logging in.' });
       }
-      const token = generateToken(user._id, user.role);
+      const token = generateToken(user.id, user.role);
       res.json({
-        _id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -124,7 +131,7 @@ export const login = async (req, res, next) => {
 export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ where: { email } });
     if (!user) return res.status(404).json({ error: 'User not found.' });
     user.resetPasswordToken = generateVerificationToken();
     user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
@@ -154,11 +161,16 @@ export const forgotPassword = async (req, res, next) => {
 export const resetPassword = async (req, res, next) => {
   try {
     const { token, password } = req.body;
-    const user = await User.findOne({ resetPasswordToken: token, resetPasswordExpires: { $gt: Date.now() } });
+    const user = await User.findOne({ 
+      where: { 
+        resetPasswordToken: token, 
+        resetPasswordExpires: { [db.Sequelize.Op.gt]: Date.now() } 
+      } 
+    });
     if (!user) return res.status(400).json({ error: 'Invalid or expired reset token.' });
     user.password = password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
     await user.save();
     res.json({ message: 'Password reset successful. You can now log in.' });
   } catch (error) {
@@ -168,7 +180,7 @@ export const resetPassword = async (req, res, next) => {
 
 export const getProfile = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
+    const user = await User.findByPk(req.user.id, { attributes: { exclude: ['password'] } });
     res.json(user);
   } catch (error) {
     next(error);
