@@ -37,26 +37,45 @@ export const register = async (req, res, next) => {
     if (userExists) {
       return res.status(400).json({ error: 'User already exists' });
     }
+    
     const verificationToken = generateVerificationToken();
     const verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    
+    // In development mode, auto-verify users to avoid email issues
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
     const user = await User.create({
       name,
       email,
       password,
       role: 'user',
-      verified: false,
-      verificationToken,
-      verificationTokenExpires
+      verified: isDevelopment, // Auto-verify in development
+      verificationToken: isDevelopment ? null : verificationToken,
+      verificationTokenExpires: isDevelopment ? null : verificationTokenExpires
     });
-    await sendVerificationEmail(user, req);
+    
+    // Only try to send verification email in production
+    if (!isDevelopment) {
+      try {
+        await sendVerificationEmail(user, req);
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError.message);
+        // Continue with registration even if email fails
+      }
+    }
+    
     res.status(201).json({
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
-      message: 'Registration successful. Please check your email to verify your account.'
+      verified: user.verified,
+      message: isDevelopment 
+        ? 'Registration successful! You can now log in.' 
+        : 'Registration successful. Please check your email to verify your account.'
     });
   } catch (error) {
+    console.error('Registration error:', error);
     next(error);
   }
 };

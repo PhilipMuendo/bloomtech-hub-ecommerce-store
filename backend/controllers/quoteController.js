@@ -1,4 +1,4 @@
-import db from '../sequelize_models/index.js';
+import db, { sequelize } from '../sequelize_models/index.js';
 import nodemailer from 'nodemailer';
 
 const { Quote, QuoteItem, Message, Product, Order, OrderItem } = db;
@@ -35,7 +35,7 @@ export const createQuote = async (req, res) => {
     }
     
     // Create quote and related data in a transaction
-    const result = await db.sequelize.transaction(async (t) => {
+    const result = await sequelize.transaction(async (t) => {
       const quote = await Quote.create({
         userId: req.user?.id,
         name,
