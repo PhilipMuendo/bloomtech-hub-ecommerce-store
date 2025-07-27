@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
 interface User {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   role: 'user' | 'admin' | 'superadmin';

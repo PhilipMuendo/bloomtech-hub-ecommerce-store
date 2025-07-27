@@ -101,7 +101,7 @@ const AdminOrders = () => {
     if (from && orderDate < from) return false;
     if (to && orderDate > to) return false;
     // Also apply search filter
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = order.id?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;

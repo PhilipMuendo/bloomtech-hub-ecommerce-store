@@ -111,7 +111,9 @@ const Header = () => {
         });
         if (!res.ok) return setQuoteNotifications(0);
         const data = await res.json();
-        const unseen = data.filter((q: any) => q.status === 'responded' && q.userSeen === false).length;
+        // Handle both array and object responses
+        const quotes = Array.isArray(data) ? data : (data.quotes || []);
+        const unseen = quotes.filter((q: any) => q.status === 'responded' && q.userSeen === false).length;
         setQuoteNotifications(unseen);
       } catch {
         setQuoteNotifications(0);

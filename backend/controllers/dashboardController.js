@@ -1,4 +1,5 @@
-import db from '../sequelize_models/index.js';
+import db, { sequelize } from '../sequelize_models/index.js';
+import { Op, fn } from 'sequelize';
 const { Product, Order, User, Review, Newsletter, Quote, OrderItem } = db;
 
 // GET /api/dashboard/summary
@@ -30,7 +31,7 @@ export const getQuoteSummary = async (req, res, next) => {
     const closedThisMonth = await Quote.count({
       where: {
         status: 'closed',
-        updatedAt: { [db.Sequelize.Op.gte]: startOfMonth },
+        updatedAt: { [Op.gte]: startOfMonth },
       },
     });
     res.json({
@@ -59,12 +60,12 @@ export const getRevenueTrend = async (req, res) => {
     const startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
     const data = await Order.findAll({
       attributes: [
-        [db.Sequelize.fn('YEAR', db.Sequelize.col('createdAt')), 'year'],
-        [db.Sequelize.fn('MONTH', db.Sequelize.col('createdAt')), 'month'],
-        [db.Sequelize.fn('SUM', db.Sequelize.col('total')), 'revenue'],
+        [fn('YEAR', sequelize.col('createdAt')), 'year'],
+        [fn('MONTH', sequelize.col('createdAt')), 'month'],
+        [fn('SUM', sequelize.col('total')), 'revenue'],
       ],
-      where: { createdAt: { [db.Sequelize.Op.gte]: startDate } },
-      group: [db.Sequelize.fn('YEAR', db.Sequelize.col('createdAt')), db.Sequelize.fn('MONTH', db.Sequelize.col('createdAt'))],
+      where: { createdAt: { [Op.gte]: startDate } },
+      group: [fn('YEAR', sequelize.col('createdAt')), fn('MONTH', sequelize.col('createdAt'))],
       raw: true,
     });
     const trend = months.map(({ label, year, month }) => {
@@ -116,12 +117,12 @@ export const getUserSignups = async (req, res) => {
     const startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
     const data = await User.findAll({
       attributes: [
-        [db.Sequelize.fn('YEAR', db.Sequelize.col('createdAt')), 'year'],
-        [db.Sequelize.fn('MONTH', db.Sequelize.col('createdAt')), 'month'],
-        [db.Sequelize.fn('COUNT', db.Sequelize.col('id')), 'signups'],
+        [fn('YEAR', sequelize.col('createdAt')), 'year'],
+        [fn('MONTH', sequelize.col('createdAt')), 'month'],
+        [fn('COUNT', sequelize.col('id')), 'signups'],
       ],
-      where: { createdAt: { [db.Sequelize.Op.gte]: startDate } },
-      group: [db.Sequelize.fn('YEAR', db.Sequelize.col('createdAt')), db.Sequelize.fn('MONTH', db.Sequelize.col('createdAt'))],
+      where: { createdAt: { [Op.gte]: startDate } },
+      group: [fn('YEAR', sequelize.col('createdAt')), fn('MONTH', sequelize.col('createdAt'))],
       raw: true,
     });
     const trend = months.map(({ label, year, month }) => {

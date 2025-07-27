@@ -23,8 +23,8 @@ export const useWishlist = () => {
     mutationFn: async (productId: string) => {
       if (!user?.token) throw new Error('Not authenticated');
       if (!productId) throw new Error('No productId provided');
-      // Validate ObjectId format (24 hex chars)
-      if (!/^[a-f\d]{24}$/i.test(productId)) throw new Error('Invalid productId format');
+      // Validate productId is a valid number (MySQL uses integer IDs)
+      if (!productId || isNaN(Number(productId))) throw new Error('Invalid productId format');
       const res = await fetch('/api/wishlist', {
         method: 'POST',
         headers: {

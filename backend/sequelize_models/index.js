@@ -79,6 +79,10 @@ if (db.Quote && db.QuoteItem) {
   db.Quote.hasMany(db.QuoteItem, { foreignKey: 'quoteId' });
   db.QuoteItem.belongsTo(db.Quote, { foreignKey: 'quoteId' });
 }
+if (db.Product && db.QuoteItem) {
+  db.Product.hasMany(db.QuoteItem, { foreignKey: 'productId' });
+  db.QuoteItem.belongsTo(db.Product, { foreignKey: 'productId' });
+}
 if (db.Quote && db.Message) {
   db.Quote.hasMany(db.Message, { foreignKey: 'quoteId' });
   db.Message.belongsTo(db.Quote, { foreignKey: 'quoteId' });
