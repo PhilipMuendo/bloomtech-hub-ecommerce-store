@@ -84,7 +84,11 @@ const ProductDetail = () => {
         if (!res.ok) return setRelatedProducts([]);
         const data = await res.json();
         // Exclude current product and limit to 4
-        const filtered = (data.products || data).filter((p: any) => p.id !== product.id && p._id !== product.id).slice(0, 4);
+        const filtered = (data.products || data).filter((p: any) => {
+          const pId = p.id || p._id || p.productId;
+          const currentId = product.id || product._id || product.productId;
+          return pId !== currentId;
+        }).slice(0, 4);
         setRelatedProducts(filtered);
       })
       .catch(() => setRelatedProducts([]));

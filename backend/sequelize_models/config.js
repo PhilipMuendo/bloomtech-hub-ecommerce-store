@@ -4,16 +4,16 @@ dotenv.config();
 const config = {
   development: {
     username: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || null,
-    database: process.env.MYSQL_DATABASE || 'ecommerce_dev',
+    password: process.env.MYSQL_PASSWORD || '',
+    database: process.env.MYSQL_DATABASE || 'bloomtech_hub',
     host: process.env.MYSQL_HOST || '127.0.0.1',
     dialect: 'mysql',
     logging: false
   },
   test: {
     username: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || null,
-    database: process.env.MYSQL_DATABASE_TEST || 'ecommerce_test',
+    password: process.env.MYSQL_PASSWORD || '',
+    database: process.env.MYSQL_DATABASE_TEST || 'bloomtech_hub_test',
     host: process.env.MYSQL_HOST || '127.0.0.1',
     dialect: 'mysql',
     logging: false

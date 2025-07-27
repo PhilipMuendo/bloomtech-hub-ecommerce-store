@@ -26,7 +26,7 @@ import quoteRoutes from './routes/quoteRoutes.js';
 // Load environment variables
 dotenv.config();
 
-console.log('MONGO_URI:', process.env.MONGO_URI);
+console.log('Database:', process.env.DB_NAME || 'bloomtech_db');
 
 const app = express();
 
@@ -83,7 +83,7 @@ app.use((err, req, res, next) => {
   res.status(status).json({ error: message });
 });
 
-// MongoDB connection
+// Database connection
 const PORT = process.env.PORT || 5000;
 
 sequelize.sync().then(() => {

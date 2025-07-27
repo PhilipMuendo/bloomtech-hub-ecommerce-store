@@ -40,7 +40,7 @@ const CustomCheckout = () => {
     <div className="container py-8">
       <h1 className="text-2xl font-bold mb-4">Complete Your Custom Order</h1>
       <div className="border p-4 rounded">
-        <h2>Order #{order._id.slice(-6)}</h2>
+        <h2>Order #{order._id ? order._id.slice(-6) : (order.id ? order.id.toString().slice(-6) : 'N/A')}</h2>
         <ul>
           {order.items.map((item: any) => (
             <li key={item.productId}>
@@ -56,7 +56,7 @@ const CustomCheckout = () => {
       <MpesaPaymentModal
         isOpen={showMpesa}
         onClose={() => setShowMpesa(false)}
-        orderId={order._id}
+        orderId={order._id || order.id}
         amount={order.total}
         onSuccess={() => alert('Payment successful!')}
       />

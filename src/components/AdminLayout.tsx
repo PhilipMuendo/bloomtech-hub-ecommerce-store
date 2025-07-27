@@ -86,8 +86,14 @@ const AdminLayout = () => {
         const res = await fetch('/api/quotes', {
           headers: { Authorization: `Bearer ${user.token}` },
         });
+        if (!res.ok) {
+          console.error("Failed to fetch quotes:", res.status, res.statusText);
+          return;
+        }
         const data = await res.json();
-        const unseen = data.filter((q: any) => !q.adminSeen).length;
+        // Handle both array and object responses
+        const quotes = Array.isArray(data) ? data : (data.quotes || []);
+        const unseen = quotes.filter((q: any) => !q.adminSeen).length;
         setAdminQuoteNotifications(unseen);
       } catch (error) {
         console.error("Failed to fetch admin notifications:", error);
