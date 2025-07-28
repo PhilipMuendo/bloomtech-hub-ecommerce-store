@@ -226,11 +226,11 @@ const Quotes = () => {
                   <TableCell>{q.name}</TableCell>
                   <TableCell>{q.email}</TableCell>
                   <TableCell>
-                    {q.items.map((item: any) => (
-                      <div key={item.productId?._id || item.productId}>
+                    {q.items?.map((item: any) => (
+                      <div key={item._id || item.productId?._id || item.productId}>
                         {item.productId?.name || item.productId} x {item.quantity}
                       </div>
-                    ))}
+                    )) || 'No items'}
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={q.status} />
@@ -287,7 +287,7 @@ const Quotes = () => {
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-muted-foreground">Conversation History</h3>
                 <div className="max-h-48 space-y-3 overflow-y-auto rounded-lg border p-3">
-                  {selectedQuote.messages.map((msg: any) => (
+                  {selectedQuote.messages?.map((msg: any) => (
                     <div
                       key={msg._id}
                       className={`flex items-end gap-2 text-sm ${
@@ -305,7 +305,7 @@ const Quotes = () => {
                         </p>
                       </div>
                     </div>
-                  ))}
+                  )) || []}
                 </div>
               </div>
 

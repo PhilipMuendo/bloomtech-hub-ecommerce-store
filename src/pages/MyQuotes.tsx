@@ -132,7 +132,7 @@ const MyQuotes = () => {
                       className={`p-3 rounded-lg cursor-pointer border ${selectedQuote?._id === q._id ? 'bg-muted border-primary' : 'hover:bg-muted/50'}`}
                       onClick={() => setSelectedQuote(q)}
                     >
-                      <div className="font-semibold">{q.items[0]?.productId?.name || 'Quote Request'}</div>
+                      <div className="font-semibold">{q.items?.[0]?.productId?.name || 'Quote Request'}</div>
                       <div className="text-sm text-muted-foreground">{new Date(q.createdAt).toLocaleDateString()}</div>
                       <StatusBadge status={q.status} />
                     </div>
@@ -143,14 +143,14 @@ const MyQuotes = () => {
                 {selectedQuote ? (
                   <div className="flex flex-col h-full">
                     <div className="flex-grow space-y-4 overflow-y-auto p-4 border rounded-lg h-96">
-                      {selectedQuote.messages.map((msg: any) => (
+                      {selectedQuote.messages?.map((msg: any) => (
                         <div key={msg._id} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                           <div className={`max-w-md rounded-xl px-4 py-2 ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                             <p>{msg.text}</p>
                             <p className="text-xs opacity-70 mt-1">{new Date(msg.createdAt).toLocaleString()}</p>
                           </div>
                         </div>
-                      ))}
+                      )) || []}
                     </div>
                     {(selectedQuote.status === 'responded' || selectedQuote.status === 'pending') && (
                       <div className="mt-4 flex gap-2">
