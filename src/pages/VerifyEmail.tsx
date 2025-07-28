@@ -1,60 +1,130 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { CheckCircle, XCircle, Clock } from 'lucide-react';
 
-const VerifyEmail: React.FC = () => {
+const VerifyEmail = () => {
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [status, setStatus] = useState<'pending' | 'success' | 'error'>('pending');
-  const [message, setMessage] = useState('Verifying your email...');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get('token');
-    if (!token) {
-      setStatus('error');
-      setMessage('Invalid or missing verification token.');
-      return;
-    }
-    fetch(`/api/auth/verify-email?token=${encodeURIComponent(token)}`)
-      .then(async (res) => {
-        const data = await res.json();
-        if (res.ok) {
+    const verifyEmail = async () => {
+      const token = searchParams.get('token');
+      
+      if (!token) {
+        setStatus('error');
+        setMessage('Invalid verification link. Please check your email and try again.');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/auth/verify-email?token=${token}`);
+        const data = await response.json();
+
+        if (response.ok) {
           setStatus('success');
-          setMessage(data.message || 'Email verified successfully! You can now log in.');
-          setTimeout(() => navigate('/login'), 3000);
+          setMessage(data.message || 'Email verified successfully!');
         } else {
           setStatus('error');
-          setMessage(data.error || 'Verification failed.');
+          setMessage(data.error || 'Verification failed. Please try again.');
         }
-      })
-      .catch(() => {
+      } catch (error) {
         setStatus('error');
-        setMessage('Verification failed.');
-      });
-  }, [location.search, navigate]);
+        setMessage('Verification failed. Please try again.');
+      }
+    };
+
+    verifyEmail();
+  }, [searchParams]);
+
+  const getIcon = () => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="w-16 h-16 text-green-500" />;
+      case 'error':
+        return <XCircle className="w-16 h-16 text-red-500" />;
+      default:
+        return <Clock className="w-16 h-16 text-blue-500 animate-spin" />;
+    }
+  };
+
+  const getTitle = () => {
+    switch (status) {
+      case 'success':
+        return 'Email Verified Successfully!';
+      case 'error':
+        return 'Verification Failed';
+      default:
+        return 'Verifying Your Email...';
+    }
+  };
+
+  const getDescription = () => {
+    switch (status) {
+      case 'success':
+        return 'Your email has been verified. You can now log in to your account.';
+      case 'error':
+        return 'There was a problem verifying your email. Please try again or contact support.';
+      default:
+        return 'Please wait while we verify your email address...';
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
-      <Card className="w-full max-w-md shadow-lg border-2 border-primary/20 animate-fade-in">
+      <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-primary mb-2">Email Verification</CardTitle>
+          <div className="flex justify-center mb-4">
+            {getIcon()}
+          </div>
+          <CardTitle className="text-2xl font-bold">{getTitle()}</CardTitle>
+          <CardDescription className="text-base">
+            {getDescription()}
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col items-center gap-4 py-6">
-            {status === 'pending' && (
-              <svg width="48" height="48" fill="none" viewBox="0 0 24 24" className="animate-spin"><circle cx="12" cy="12" r="10" stroke="#0ea5e9" strokeWidth="4" fill="none" /></svg>
-            )}
+        <CardContent className="text-center">
+          {message && (
+            <p className="mb-6 text-sm text-muted-foreground">
+              {message}
+            </p>
+          )}
+          
+          <div className="space-y-3">
             {status === 'success' && (
-              <svg width="48" height="48" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#e0f2fe"/><path d="M7 13l3 3 7-7" stroke="#0ea5e9" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <Button 
+                onClick={() => navigate('/login')} 
+                className="w-full"
+              >
+                Go to Login
+              </Button>
             )}
+            
             {status === 'error' && (
-              <svg width="48" height="48" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#fee2e2"/><path d="M8 8l8 8M8 16L16 8" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round"/></svg>
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => navigate('/login')} 
+                  variant="outline"
+                  className="w-full"
+                >
+                  Go to Login
+                </Button>
+                <Button 
+                  onClick={() => navigate('/register')} 
+                  className="w-full"
+                >
+                  Register Again
+                </Button>
+              </div>
             )}
-            <p className={`text-lg font-semibold ${status === 'success' ? 'text-green-700' : status === 'error' ? 'text-red-600' : 'text-primary'}`}>{message}</p>
-            <Button onClick={() => navigate('/login')} className="w-full max-w-xs">Go to Login</Button>
-            {status === 'success' && <p className="text-xs text-muted-foreground mt-2">You will be redirected to the login page shortly...</p>}
+            
+            {status === 'loading' && (
+              <div className="text-sm text-muted-foreground">
+                Please wait...
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

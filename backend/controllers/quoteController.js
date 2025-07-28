@@ -1,7 +1,7 @@
 import db, { sequelize } from '../sequelize_models/index.js';
 import nodemailer from 'nodemailer';
 
-const { Quote, QuoteItem, Message, Product, Order, OrderItem } = db;
+const { Quote, QuoteItem, Message, Product, Order, OrderItem, User } = db;
 
 // Configure nodemailer (replace with real SMTP credentials in production)
 const transporter = nodemailer.createTransport({
@@ -51,15 +51,56 @@ export const createQuote = async (req, res) => {
       }));
       await QuoteItem.bulkCreate(quoteItems, { transaction: t });
       
-      // Create initial message
-      await Message.create({
-        quoteId: quote.id,
-        sender: 'user',
-        text: message
-      }, { transaction: t });
+      // Create initial message if provided
+      if (message) {
+        await Message.create({
+          quoteId: quote.id,
+          sender: 'user',
+          text: message
+        }, { transaction: t });
+      }
       
       return quote;
     });
+    
+    // Fetch the complete quote with all relations
+    const completeQuote = await Quote.findByPk(result.id, {
+      include: [
+        { model: QuoteItem, include: [{ model: Product, attributes: ['id', 'name', 'price'] }] },
+        { model: Message, order: [['createdAt', 'ASC']] }
+      ]
+    });
+    
+    // Transform the data to match frontend expectations
+    const quoteData = completeQuote.toJSON();
+    const transformedQuote = {
+      _id: quoteData.id,
+      userId: quoteData.userId,
+      name: quoteData.name,
+      email: quoteData.email,
+      phone: quoteData.phone,
+      status: quoteData.status,
+      userSeen: quoteData.userSeen,
+      adminSeen: quoteData.adminSeen,
+      createdAt: quoteData.createdAt,
+      updatedAt: quoteData.updatedAt,
+      items: quoteData.QuoteItems?.map(item => ({
+        _id: item.id,
+        productId: {
+          _id: item.Product?.id,
+          name: item.Product?.name,
+          price: item.Product?.price
+        },
+        quantity: item.quantity
+      })) || [],
+      messages: quoteData.Messages?.map(msg => ({
+        _id: msg.id,
+        sender: msg.sender,
+        text: msg.text,
+        createdAt: msg.createdAt,
+        updatedAt: msg.updatedAt
+      })) || []
+    };
     
     // Send admin notification email
     try {
@@ -74,7 +115,7 @@ export const createQuote = async (req, res) => {
       console.error('Failed to send admin quote notification:', mailErr);
     }
     
-    res.status(201).json(result);
+    res.status(201).json(transformedQuote);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -90,13 +131,46 @@ export const getQuotes = async (req, res) => {
     
     const quotes = await Quote.findAll({
       include: [
-        { model: QuoteItem, include: [{ model: Product, attributes: ['name', 'price'] }] },
-        { model: Message }
+        { model: QuoteItem, include: [{ model: Product, attributes: ['id', 'name', 'price'] }] },
+        { model: Message, order: [['createdAt', 'ASC']] }
       ],
       order: [['createdAt', 'DESC']]
     });
     
-    res.json(quotes);
+    // Transform the data to match frontend expectations
+    const transformedQuotes = quotes.map(quote => {
+      const quoteData = quote.toJSON();
+      return {
+        _id: quoteData.id,
+        userId: quoteData.userId,
+        name: quoteData.name,
+        email: quoteData.email,
+        phone: quoteData.phone,
+        status: quoteData.status,
+        userSeen: quoteData.userSeen,
+        adminSeen: quoteData.adminSeen,
+        createdAt: quoteData.createdAt,
+        updatedAt: quoteData.updatedAt,
+        items: quoteData.QuoteItems?.map(item => ({
+          _id: item.id,
+          productId: {
+            _id: item.Product?.id,
+            name: item.Product?.name,
+            price: item.Product?.price
+          },
+          quantity: item.quantity
+        })) || [],
+        messages: quoteData.Messages?.map(msg => ({
+          _id: msg.id,
+          sender: msg.sender,
+          text: msg.text,
+          createdAt: msg.createdAt,
+          updatedAt: msg.updatedAt
+        })) || []
+      };
+    });
+    
+    res.json(transformedQuotes);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -110,13 +184,45 @@ export const getUserQuotes = async (req, res) => {
     const quotes = await Quote.findAll({
       where: { userId: req.user.id },
       include: [
-        { model: QuoteItem, include: [{ model: Product, attributes: ['name'] }] },
-        { model: Message }
+        { model: QuoteItem, include: [{ model: Product, attributes: ['id', 'name'] }] },
+        { model: Message, order: [['createdAt', 'ASC']] }
       ],
       order: [['createdAt', 'DESC']]
     });
     
-    res.json(quotes);
+    // Transform the data to match frontend expectations
+    const transformedQuotes = quotes.map(quote => {
+      const quoteData = quote.toJSON();
+      return {
+        _id: quoteData.id,
+        userId: quoteData.userId,
+        name: quoteData.name,
+        email: quoteData.email,
+        phone: quoteData.phone,
+        status: quoteData.status,
+        userSeen: quoteData.userSeen,
+        adminSeen: quoteData.adminSeen,
+        createdAt: quoteData.createdAt,
+        updatedAt: quoteData.updatedAt,
+        items: quoteData.QuoteItems?.map(item => ({
+          _id: item.id,
+          productId: {
+            _id: item.Product?.id,
+            name: item.Product?.name
+          },
+          quantity: item.quantity
+        })) || [],
+        messages: quoteData.Messages?.map(msg => ({
+          _id: msg.id,
+          sender: msg.sender,
+          text: msg.text,
+          createdAt: msg.createdAt,
+          updatedAt: msg.updatedAt
+        })) || []
+      };
+    });
+    
+    res.json(transformedQuotes);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -141,7 +247,38 @@ export const getQuoteById = async (req, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
     
-    res.json(quote);
+    // Transform the data to match frontend expectations
+    const quoteData = quote.toJSON();
+    const transformedQuote = {
+      _id: quoteData.id,
+      userId: quoteData.userId,
+      name: quoteData.name,
+      email: quoteData.email,
+      phone: quoteData.phone,
+      status: quoteData.status,
+      userSeen: quoteData.userSeen,
+      adminSeen: quoteData.adminSeen,
+      createdAt: quoteData.createdAt,
+      updatedAt: quoteData.updatedAt,
+      items: quoteData.QuoteItems?.map(item => ({
+        _id: item.id,
+        productId: {
+          _id: item.Product?.id,
+          name: item.Product?.name,
+          price: item.Product?.price
+        },
+        quantity: item.quantity
+      })) || [],
+      messages: quoteData.Messages?.map(msg => ({
+        _id: msg.id,
+        sender: msg.sender,
+        text: msg.text,
+        createdAt: msg.createdAt,
+        updatedAt: msg.updatedAt
+      })) || []
+    };
+    
+    res.json(transformedQuote);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -196,7 +333,7 @@ export const updateQuoteStatus = async (req, res) => {
 // POST /api/quotes/:id/create-order - Admin creates an order from a quote
 export const createOrderFromQuote = async (req, res) => {
   try {
-    if (!req.user || req.user.role !== 'superadmin') {
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
       return res.status(403).json({ error: 'Forbidden' });
     }
     
@@ -207,10 +344,25 @@ export const createOrderFromQuote = async (req, res) => {
     
     if (!quote) return res.status(404).json({ error: 'Quote not found' });
     
+    // For guest quotes (no userId), we need to handle this differently
+    // Either create a guest user or use a default user ID
+    let orderUserId = quote.userId;
+    
+    if (!orderUserId) {
+      // For guest quotes, we'll use a default user ID or create a guest user
+      // For now, let's use a default user ID (you might want to create a guest user system)
+      const defaultUser = await User.findOne({ where: { role: 'user' } });
+      if (defaultUser) {
+        orderUserId = defaultUser.id;
+      } else {
+        return res.status(400).json({ error: 'Cannot create order for guest quote without a valid user' });
+      }
+    }
+    
     // Create order and order items in a transaction
-    const result = await db.sequelize.transaction(async (t) => {
+    const result = await sequelize.transaction(async (t) => {
       const order = await Order.create({
-        userId: quote.userId,
+        userId: orderUserId,
         total: finalPrice,
         status: 'pending',
       }, { transaction: t });
@@ -229,20 +381,315 @@ export const createOrderFromQuote = async (req, res) => {
       return order;
     });
     
-    // Send customer email with checkout link
+    // Send customer email with payment link
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
+    const paymentUrl = `${frontendUrl}/checkout/${result.trackingNumber}`;
+    
+    // Create order items list for email
+    const orderItemsList = quote.QuoteItems.map(item => 
+      `• ${item.Product?.name || 'Product'} x ${item.quantity}`
+    ).join('\n');
+    
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #0ea5e9; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; font-size: 24px;">Bloomtech Hub</h1>
+          <p style="margin: 5px 0 0 0; font-size: 16px;">Your Quote Has Been Approved!</p>
+        </div>
+        
+        <div style="background-color: #f8fafc; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #e2e8f0;">
+          <h2 style="color: #1e293b; margin-top: 0;">Dear ${quote.name},</h2>
+          
+          <p style="color: #475569; line-height: 1.6;">
+            Great news! Your quote request has been approved and converted to an order. 
+            We're excited to fulfill your custom order.
+          </p>
+          
+          <div style="background-color: white; padding: 15px; border-radius: 6px; margin: 20px 0; border: 1px solid #e2e8f0;">
+            <h3 style="color: #1e293b; margin-top: 0;">Order Details</h3>
+            <p style="margin: 5px 0;"><strong>Order ID:</strong> ${result.trackingNumber}</p>
+            <p style="margin: 5px 0;"><strong>Total Amount:</strong> KES ${finalPrice.toLocaleString()}</p>
+            <p style="margin: 5px 0;"><strong>Status:</strong> Pending Payment</p>
+            
+            <h4 style="color: #1e293b; margin: 15px 0 10px 0;">Items:</h4>
+            <div style="background-color: #f1f5f9; padding: 10px; border-radius: 4px;">
+              ${orderItemsList}
+            </div>
+          </div>
+          
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${paymentUrl}" 
+               style="background-color: #0ea5e9; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+              Complete Payment
+            </a>
+          </div>
+          
+          <p style="color: #475569; line-height: 1.6;">
+            Click the button above to proceed to our secure payment page. 
+            You can pay using M-Pesa or other available payment methods.
+          </p>
+          
+          <div style="background-color: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <p style="color: #92400e; margin: 0; font-size: 14px;">
+              <strong>Important:</strong> Please complete your payment within 24 hours to secure your order. 
+              If you have any questions, please contact our support team.
+            </p>
+          </div>
+          
+          <p style="color: #475569; line-height: 1.6;">
+            Thank you for choosing Bloomtech Hub! We look forward to serving you.
+          </p>
+          
+          <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+            <p style="color: #64748b; font-size: 12px; margin: 0;">
+              If you have any questions, please contact us at support@bloomtech.com
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    const emailText = `
+Dear ${quote.name},
+
+Great news! Your quote request has been approved and converted to an order.
+
+ORDER DETAILS:
+Order ID: ${result.trackingNumber}
+Total Amount: KES ${finalPrice.toLocaleString()}
+Status: Pending Payment
+
+ITEMS:
+${orderItemsList}
+
+PAYMENT LINK:
+${paymentUrl}
+
+Please complete your payment within 24 hours to secure your order.
+
+Thank you for choosing Bloomtech Hub!
+
+Best regards,
+The Bloomtech Hub Team
+    `;
+    
     try {
-      const checkoutUrl = `${process.env.FRONTEND_URL || 'http://localhost:8081'}/checkout/${result.id}`;
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: 465, // Try port 465 with SSL
+        secure: true, // Use SSL
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        }
+      });
+      
       await transporter.sendMail({
         from: `Bloomtech Hub <${process.env.SMTP_USER || 'admin@example.com'}>`,
         to: quote.email,
-        subject: 'Your Quote Has Been Approved - Complete Your Payment',
-        text: `Dear ${quote.name},\n\nYour quote request has been approved. Please complete your payment using the following link:\n\n${checkoutUrl}\n\nThank you for choosing Bloomtech Hub!`,
+        subject: 'Your Quote Approved - Complete Payment Now',
+        text: emailText,
+        html: emailHtml,
       });
+      
+      console.log('Payment email sent successfully to:', quote.email);
     } catch (mailErr) {
-      console.error('Failed to send client payment email:', mailErr);
+      console.error('Failed to send payment email:', mailErr);
+      
+      // Fallback: Log email content to file for manual sending
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      const emailLog = {
+        to: quote.email,
+        subject: 'Your Quote Approved - Complete Payment Now',
+        text: emailText,
+        html: emailHtml,
+        timestamp: new Date().toISOString(),
+        error: mailErr.message
+      };
+      
+      const logDir = path.join(process.cwd(), 'email-logs');
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+      
+      const logFile = path.join(logDir, `email-${Date.now()}.json`);
+      fs.writeFileSync(logFile, JSON.stringify(emailLog, null, 2));
+      
+      console.log('Email content logged to:', logFile);
+      console.log('You can manually send this email or check the SMTP configuration');
+      
+      // Don't fail the order creation if email fails
     }
     
     res.status(201).json(result);
+  } catch (err) {
+    console.error('Error creating order from quote:', err);
+    res.status(500).json({ error: err.message });
+  }
+}; 
+
+// PATCH /api/quotes/:id - Admin responds to quote
+export const respondToQuote = async (req, res) => {
+  try {
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    
+    const { adminResponse, status } = req.body;
+    const quote = await Quote.findByPk(req.params.id, {
+      include: [
+        { model: QuoteItem, include: [{ model: Product }] },
+        { model: Message, order: [['createdAt', 'ASC']] }
+      ]
+    });
+    
+    if (!quote) return res.status(404).json({ error: 'Quote not found' });
+    
+    // Update quote status
+    await quote.update({ status });
+    
+    // Add admin message if provided
+    if (adminResponse) {
+      await Message.create({
+        quoteId: quote.id,
+        sender: 'admin',
+        text: adminResponse
+      });
+    }
+    
+    // Fetch updated quote with all relations
+    const updatedQuote = await Quote.findByPk(quote.id, {
+      include: [
+        { model: QuoteItem, include: [{ model: Product }] },
+        { model: Message, order: [['createdAt', 'ASC']] }
+      ]
+    });
+    
+    // Transform the data to match frontend expectations
+    const quoteData = updatedQuote.toJSON();
+    const transformedQuote = {
+      _id: quoteData.id,
+      userId: quoteData.userId,
+      name: quoteData.name,
+      email: quoteData.email,
+      phone: quoteData.phone,
+      status: quoteData.status,
+      userSeen: quoteData.userSeen,
+      adminSeen: quoteData.adminSeen,
+      createdAt: quoteData.createdAt,
+      updatedAt: quoteData.updatedAt,
+      items: quoteData.QuoteItems?.map(item => ({
+        _id: item.id,
+        productId: {
+          _id: item.Product?.id,
+          name: item.Product?.name,
+          price: item.Product?.price
+        },
+        quantity: item.quantity
+      })) || [],
+      messages: quoteData.Messages?.map(msg => ({
+        _id: msg.id,
+        sender: msg.sender,
+        text: msg.text,
+        createdAt: msg.createdAt,
+        updatedAt: msg.updatedAt
+      })) || []
+    };
+    
+    res.json(transformedQuote);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}; 
+
+// POST /api/quotes/:id/reply - User replies to quote
+export const replyToQuote = async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: 'Message required' });
+    
+    const quote = await Quote.findByPk(req.params.id, {
+      include: [
+        { model: QuoteItem, include: [{ model: Product }] },
+        { model: Message, order: [['createdAt', 'ASC']] }
+      ]
+    });
+    
+    if (!quote) return res.status(404).json({ error: 'Quote not found' });
+    
+    // Check if user has access to this quote
+    if (quote.userId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    
+    // Add user message
+    await Message.create({
+      quoteId: quote.id,
+      sender: 'user',
+      text: message
+    });
+    
+    // Fetch updated quote with all relations
+    const updatedQuote = await Quote.findByPk(quote.id, {
+      include: [
+        { model: QuoteItem, include: [{ model: Product }] },
+        { model: Message, order: [['createdAt', 'ASC']] }
+      ]
+    });
+    
+    // Transform the data to match frontend expectations
+    const quoteData = updatedQuote.toJSON();
+    const transformedQuote = {
+      _id: quoteData.id,
+      userId: quoteData.userId,
+      name: quoteData.name,
+      email: quoteData.email,
+      phone: quoteData.phone,
+      status: quoteData.status,
+      userSeen: quoteData.userSeen,
+      adminSeen: quoteData.adminSeen,
+      createdAt: quoteData.createdAt,
+      updatedAt: quoteData.updatedAt,
+      items: quoteData.QuoteItems?.map(item => ({
+        _id: item.id,
+        productId: {
+          _id: item.Product?.id,
+          name: item.Product?.name,
+          price: item.Product?.price
+        },
+        quantity: item.quantity
+      })) || [],
+      messages: quoteData.Messages?.map(msg => ({
+        _id: msg.id,
+        sender: msg.sender,
+        text: msg.text,
+        createdAt: msg.createdAt,
+        updatedAt: msg.updatedAt
+      })) || []
+    };
+    
+    res.json(transformedQuote);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}; 
+
+// PATCH /api/quotes/mark-seen - Mark quotes as seen by user
+export const markSeen = async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    
+    // Mark all user's quotes as seen
+    await Quote.update(
+      { userSeen: true },
+      { where: { userId: req.user.id } }
+    );
+    
+    res.json({ message: 'Quotes marked as seen' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

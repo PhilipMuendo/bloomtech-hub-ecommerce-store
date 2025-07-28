@@ -221,3 +221,49 @@ export const getRecentOrdersForNotifications = async (req, res, next) => {
     next(err);
   }
 }; 
+
+// Get order details by tracking number (for quote-based orders)
+export const getOrderByTrackingNumber = async (req, res, next) => {
+  try {
+    const order = await Order.findOne({ 
+      where: { trackingNumber: req.params.trackingNumber },
+      include: [
+        { model: User, attributes: ['name', 'email'] },
+        { 
+          model: OrderItem, 
+          include: [{ model: Product, attributes: ['name', 'price'] }]
+        }
+      ]
+    });
+    
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    // Transform the data to match frontend expectations
+    const orderData = order.toJSON();
+    const transformedOrder = {
+      _id: orderData.id,
+      id: orderData.id,
+      userId: orderData.userId,
+      total: orderData.total,
+      status: orderData.status,
+      trackingNumber: orderData.trackingNumber,
+      shippingAddress: orderData.shippingAddress,
+      createdAt: orderData.createdAt,
+      updatedAt: orderData.updatedAt,
+      items: orderData.OrderItems?.map(item => ({
+        _id: item.id,
+        id: item.id,
+        productId: item.Product?.id,
+        productName: item.Product?.name,
+        price: item.Product?.price,
+        quantity: item.quantity
+      })) || []
+    };
+    
+    res.json(transformedOrder);
+  } catch (err) {
+    next(err);
+  }
+}; 
