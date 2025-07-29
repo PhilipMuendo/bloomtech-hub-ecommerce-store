@@ -339,10 +339,19 @@ export const createOrderFromQuote = async (req, res) => {
     
     const { finalPrice } = req.body;
     const quote = await Quote.findByPk(req.params.id, {
-      include: [{ model: QuoteItem, include: [{ model: Product }] }]
+      include: [{ 
+        model: QuoteItem, 
+        include: [{ model: Product, attributes: ['id', 'name', 'price'] }] 
+      }]
     });
     
     if (!quote) return res.status(404).json({ error: 'Quote not found' });
+    
+    console.log('Creating order from quote:', {
+      quoteId: quote.id,
+      finalPrice,
+      items: quote.QuoteItems?.length || 0
+    });
     
     // For guest quotes (no userId), we need to handle this differently
     // Either create a guest user or use a default user ID
@@ -365,7 +374,10 @@ export const createOrderFromQuote = async (req, res) => {
         userId: orderUserId,
         total: finalPrice,
         status: 'pending',
+        shippingAddress: quote.email // Use email as shipping address for now
       }, { transaction: t });
+      
+      console.log('Order created:', order.id);
       
       // Create order items
       const orderItems = quote.QuoteItems.map(item => ({
@@ -373,13 +385,20 @@ export const createOrderFromQuote = async (req, res) => {
         productId: item.productId,
         quantity: item.quantity
       }));
+      
+      console.log('Creating order items:', orderItems);
       await OrderItem.bulkCreate(orderItems, { transaction: t });
       
       // Close quote
       await quote.update({ status: 'closed' }, { transaction: t });
       
+      // Mark quote as having an order created
+      await quote.update({ orderCreated: true }, { transaction: t });
+      
       return order;
     });
+    
+    console.log('Order creation successful:', result.id);
     
     // Send customer email with payment link
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';

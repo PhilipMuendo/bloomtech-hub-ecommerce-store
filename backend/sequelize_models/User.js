@@ -33,6 +33,16 @@ export default (sequelize) => {
         isEmail: true
       }
     },
+    phone: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      validate: {
+        is: {
+          args: /^(\+254|0)?[17]\d{8}$/,
+          msg: 'Please enter a valid Kenyan phone number.'
+        }
+      }
+    },
     password: {
       type: DataTypes.STRING,
       allowNull: false,

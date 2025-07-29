@@ -53,6 +53,12 @@ export const initiatePayment = async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
     
+    // Validate phone number format
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    if (!formattedPhone) {
+      return res.status(400).json({ error: 'Invalid phone number format' });
+    }
+    
     // Get M-Pesa access token
     const accessToken = await getMpesaToken();
     
@@ -67,9 +73,9 @@ export const initiatePayment = async (req, res) => {
       Timestamp: timestamp,
       TransactionType: 'CustomerPayBillOnline',
       Amount: Math.round(order.total),
-      PartyA: phoneNumber,
+      PartyA: formattedPhone,
       PartyB: MPESA_CONFIG.shortcode,
-      PhoneNumber: phoneNumber,
+      PhoneNumber: formattedPhone,
       CallBackURL: MPESA_CONFIG.callback_url,
       AccountReference: `Order-${orderId}`,
       TransactionDesc: `Payment for order ${orderId}`
@@ -84,7 +90,7 @@ export const initiatePayment = async (req, res) => {
     const transaction = await Transaction.create({
       orderId: order.id,
       userId: req.user.id,
-      phoneNumber,
+      phoneNumber: formattedPhone,
       amount: order.total,
       checkoutRequestId: response.data.CheckoutRequestID,
       merchantRequestId: response.data.MerchantRequestID,
@@ -92,15 +98,35 @@ export const initiatePayment = async (req, res) => {
     });
     
     res.json({
+      success: true,
       message: 'Payment initiated successfully',
-      checkoutRequestId: response.data.CheckoutRequestID,
-      transactionId: transaction.id
+      data: {
+        checkoutRequestId: response.data.CheckoutRequestID,
+        transactionId: transaction.id
+      }
     });
     
   } catch (error) {
     console.error('Payment initiation error:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to initiate payment' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to initiate payment',
+      message: error.response?.data?.errorMessage || error.message 
+    });
   }
+};
+
+// Helper function to format phone number
+const formatPhoneNumber = (phone) => {
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.startsWith('254')) {
+    return cleaned;
+  } else if (cleaned.startsWith('0')) {
+    return '254' + cleaned.substring(1);
+  } else if (cleaned.length === 9) {
+    return '254' + cleaned;
+  }
+  return null;
 };
 
 // M-Pesa callback
@@ -180,9 +206,20 @@ export const getTransactionStatus = async (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
     
-    res.json(transaction);
+    res.json({
+      success: true,
+      data: {
+        status: transaction.status,
+        resultDesc: transaction.resultDesc,
+        mpesaReceiptNumber: transaction.mpesaReceiptNumber
+      }
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to get transaction status' });
+    console.error('Transaction status error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to get transaction status' 
+    });
   }
 };
 
@@ -202,6 +239,7 @@ export const getAllTransactions = async (req, res) => {
     
     res.json(transactions);
   } catch (error) {
+    console.error('Get all transactions error:', error);
     res.status(500).json({ error: 'Failed to get transactions' });
   }
 };

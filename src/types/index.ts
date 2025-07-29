@@ -43,6 +43,8 @@ export interface Quote {
   status: 'pending' | 'responded' | 'closed' | 'declined';
   userSeen: boolean;
   adminSeen: boolean;
+  orderCreated?: boolean;
+  adminResponse?: string;
   createdAt: string;
   updatedAt: string;
 }
