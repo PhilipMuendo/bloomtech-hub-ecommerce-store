@@ -31,7 +31,7 @@ export default (sequelize) => {
     },
     adminSeen: {
       type: DataTypes.BOOLEAN,
-      defaultValue: true
+      defaultValue: false
     },
     orderCreated: {
       type: DataTypes.BOOLEAN,

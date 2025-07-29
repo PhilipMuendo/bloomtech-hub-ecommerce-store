@@ -149,6 +149,8 @@ export const getQuotes = async (req, res) => {
         status: quoteData.status,
         userSeen: quoteData.userSeen,
         adminSeen: quoteData.adminSeen,
+        orderCreated: quoteData.orderCreated,
+        finalPrice: quoteData.finalPrice ? Number(quoteData.finalPrice) : null,
         createdAt: quoteData.createdAt,
         updatedAt: quoteData.updatedAt,
         items: quoteData.QuoteItems?.map(item => ({
@@ -202,6 +204,8 @@ export const getUserQuotes = async (req, res) => {
         status: quoteData.status,
         userSeen: quoteData.userSeen,
         adminSeen: quoteData.adminSeen,
+        orderCreated: quoteData.orderCreated,
+        finalPrice: quoteData.finalPrice ? Number(quoteData.finalPrice) : null,
         createdAt: quoteData.createdAt,
         updatedAt: quoteData.updatedAt,
         items: quoteData.QuoteItems?.map(item => ({
@@ -258,6 +262,8 @@ export const getQuoteById = async (req, res) => {
       status: quoteData.status,
       userSeen: quoteData.userSeen,
       adminSeen: quoteData.adminSeen,
+      orderCreated: quoteData.orderCreated,
+      finalPrice: quoteData.finalPrice ? Number(quoteData.finalPrice) : null,
       createdAt: quoteData.createdAt,
       updatedAt: quoteData.updatedAt,
       items: quoteData.QuoteItems?.map(item => ({
@@ -569,11 +575,19 @@ export const respondToQuote = async (req, res) => {
     
     if (!quote) return res.status(404).json({ error: 'Quote not found' });
     
+    // Determine the new status
+    let newStatus = status;
+    
+    // If admin is sending a response (not closing/canceling), automatically set to 'responded'
+    if (adminResponse && adminResponse.trim() && status !== 'closed' && status !== 'declined') {
+      newStatus = 'responded';
+    }
+    
     // Update quote status
-    await quote.update({ status });
+    await quote.update({ status: newStatus });
     
     // Add admin message if provided
-    if (adminResponse) {
+    if (adminResponse && adminResponse.trim()) {
       await Message.create({
         quoteId: quote.id,
         sender: 'admin',
@@ -655,6 +669,12 @@ export const replyToQuote = async (req, res) => {
       text: message
     });
     
+    // Automatically change status back to 'pending' when customer replies
+    // This helps admins identify which quotes need their attention
+    if (quote.status === 'responded') {
+      await quote.update({ status: 'pending' });
+    }
+    
     // Fetch updated quote with all relations
     const updatedQuote = await Quote.findByPk(quote.id, {
       include: [
@@ -712,6 +732,25 @@ export const markSeen = async (req, res) => {
     );
     
     res.json({ message: 'Quotes marked as seen' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}; 
+
+// PATCH /api/quotes/mark-admin-seen - Mark quotes as seen by admin
+export const markAdminSeen = async (req, res) => {
+  try {
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    
+    // Mark all quotes as seen by admin
+    await Quote.update(
+      { adminSeen: true },
+      { where: {} }
+    );
+    
+    res.json({ message: 'Quotes marked as seen by admin' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

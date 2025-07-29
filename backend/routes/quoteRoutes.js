@@ -1,5 +1,5 @@
 import express from 'express';
-import { createQuote, getQuotes, getUserQuotes, getQuoteById, addMessage, updateQuoteStatus, createOrderFromQuote, respondToQuote, markSeen, replyToQuote } from '../controllers/quoteController.js';
+import { createQuote, getQuotes, getUserQuotes, getQuoteById, addMessage, updateQuoteStatus, createOrderFromQuote, respondToQuote, markSeen, markAdminSeen, replyToQuote } from '../controllers/quoteController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/roleAuth.js';
 
@@ -13,6 +13,8 @@ router.get('/', requireAuth, requireAdmin, getQuotes);
 router.get('/user', requireAuth, getUserQuotes);
 // Mark quotes as seen by user
 router.patch('/mark-seen', requireAuth, markSeen);
+// Mark quotes as seen by admin
+router.patch('/mark-admin-seen', requireAuth, requireAdmin, markAdminSeen);
 // Get specific quote (user or admin)
 router.get('/:id', requireAuth, getQuoteById);
 // Add message to quote (user or admin)

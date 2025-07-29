@@ -40,7 +40,7 @@ const Account = () => {
     setSaving(true);
     try {
       // Replace with your real API endpoint
-      const res = await fetch('/api/users/me', {
+      const res = await fetch('/api/auth/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -52,10 +52,10 @@ const Account = () => {
       const updated = await res.json();
       toast({ title: 'Success', description: 'Profile updated successfully!' });
       // Update context/localStorage with new user info
-      if (updated && updated.name && updated.email) {
-        const newUser = { ...user, name: updated.name, email: updated.email };
+      if (updated && updated.user && updated.user.name && updated.user.email) {
+        const newUser = { ...user, name: updated.user.name, email: updated.user.email };
         updateUser(newUser);
-        if (updated.verified === false) {
+        if (updated.user.verified === false) {
           setEmailChanged(true);
           localStorage.removeItem('user');
         }
@@ -78,7 +78,7 @@ const Account = () => {
     setPasswordLoading(true);
     try {
       // Replace with your real API endpoint
-      const res = await fetch('/api/users/change-password', {
+      const res = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
