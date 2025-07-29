@@ -430,6 +430,24 @@ const Quotes = () => {
                 </div>
               </div>
 
+              {/* Final Agreed Price */}
+              {selectedQuote.orderCreated && selectedQuote.finalPrice && (
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold">Final Agreed Price</h3>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-medium text-green-800">Agreed Amount:</span>
+                      <span className="text-2xl font-bold text-green-800">
+                        KES {selectedQuote.finalPrice.toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-green-600 mt-2">
+                      This amount was sent to the customer via email for payment.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Conversation History */}
               <div className="space-y-4">
                 <h3 className="text-xl font-semibold">Conversation History</h3>
@@ -491,7 +509,8 @@ const Quotes = () => {
                 <Button
                   variant="outline"
                   onClick={() => setShowQuoteDetails(false)}
-                  className="flex-1 py-3 text-base"
+                  size="sm"
+                  className="px-6"
                 >
                   Close
                 </Button>

@@ -36,6 +36,10 @@ export default (sequelize) => {
     orderCreated: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
+    },
+    finalPrice: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true
     }
   }, {
     sequelize,

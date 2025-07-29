@@ -392,8 +392,11 @@ export const createOrderFromQuote = async (req, res) => {
       // Close quote
       await quote.update({ status: 'closed' }, { transaction: t });
       
-      // Mark quote as having an order created
-      await quote.update({ orderCreated: true }, { transaction: t });
+      // Mark quote as having an order created and save final price
+      await quote.update({ 
+        orderCreated: true,
+        finalPrice: finalPrice
+      }, { transaction: t });
       
       return order;
     });

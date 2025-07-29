@@ -30,6 +30,9 @@ console.log('Database:', process.env.DB_NAME || 'bloomtech_db');
 
 const app = express();
 
+// Trust proxy for ngrok
+app.set('trust proxy', true);
+
 // Middleware
 app.use(cors({
   origin: [
