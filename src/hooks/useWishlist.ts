@@ -21,15 +21,22 @@ export const useWishlist = () => {
 
   const addMutation = useMutation({
     mutationFn: async (productId: string) => {
+      if (!user?.token) throw new Error('Not authenticated');
+      if (!productId) throw new Error('No productId provided');
+      // Validate productId is a valid number (MySQL uses integer IDs)
+      if (!productId || isNaN(Number(productId))) throw new Error('Invalid productId format');
       const res = await fetch('/api/wishlist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
+          'Authorization': `Bearer ${user.token}`,
         },
-        body: JSON.stringify({ productId }),
+        body: JSON.stringify({ productId }), // <-- this is correct
       });
-      if (!res.ok) throw new Error('Failed to add to wishlist');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to add to wishlist');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -39,11 +46,17 @@ export const useWishlist = () => {
 
   const removeMutation = useMutation({
     mutationFn: async (productId: string) => {
+      if (!user?.token) throw new Error('Not authenticated');
       const res = await fetch(`/api/wishlist/${productId}`, {
         method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers: {
+          'Authorization': `Bearer ${user.token}`,
+        },
       });
-      if (!res.ok) throw new Error('Failed to remove from wishlist');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to remove from wishlist');
+      }
       return productId;
     },
     onSuccess: () => {

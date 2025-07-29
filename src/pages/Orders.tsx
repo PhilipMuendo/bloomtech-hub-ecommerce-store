@@ -154,7 +154,7 @@ const Orders = () => {
               <div className="flex items-center gap-3">
                 <span>{statusIcons[order.status]}</span>
                 <div>
-                  <CardTitle className="text-lg">Order #{order.id.slice(-6)}</CardTitle>
+                  <CardTitle className="text-lg">Order #{order.id?.toString().slice(-6)}</CardTitle>
                   <CardDescription className="text-xs sm:text-sm">Date: {new Date(order.date).toLocaleDateString()}</CardDescription>
                 </div>
               </div>
@@ -175,7 +175,7 @@ const Orders = () => {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                Order Details - {selectedOrder.id.slice(-6)}
+                Order Details - {selectedOrder.id?.toString().slice(-6)}
                 <span className="ml-2 text-xs text-muted-foreground font-normal">
                   (Full ID: <span id="fullOrderId" className="font-mono">{selectedOrder.id}</span>)
                   <button

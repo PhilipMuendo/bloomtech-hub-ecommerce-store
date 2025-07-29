@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import PasswordInput from '@/components/PasswordInput';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -15,6 +16,10 @@ const Login = () => {
   const [unverifiedEmail, setUnverifiedEmail] = useState('');
   const [inlineError, setInlineError] = useState('');
   const [resendSuccess, setResendSuccess] = useState('');
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [forgotError, setForgotError] = useState('');
   const { login, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -103,6 +108,11 @@ const Login = () => {
                 aria-invalid={!!fieldErrors.password}
               />
               {fieldErrors.password && <p className="text-destructive text-xs mt-1">{fieldErrors.password}</p>}
+              <div className="text-right mt-1">
+                <button type="button" className="text-primary underline text-xs" onClick={() => setShowForgot(true)}>
+                  Forgot password?
+                </button>
+              </div>
             </div>
             {inlineError && <p className="text-destructive text-sm mt-2">{inlineError}</p>}
             {unverifiedEmail && (
@@ -119,6 +129,53 @@ const Login = () => {
           </form>
         </CardContent>
       </Card>
+      {/* Forgot Password Dialog */}
+      <Dialog open={showForgot} onOpenChange={setShowForgot}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset Your Password</DialogTitle>
+          </DialogHeader>
+          {forgotSuccess ? (
+            <div className="text-green-700 font-semibold text-center py-6">{forgotSuccess}</div>
+          ) : (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setForgotError('');
+                setForgotSuccess('');
+                try {
+                  const res = await fetch('/api/auth/forgot-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: forgotEmail })
+                  });
+                  const data = await res.json();
+                  if (res.ok) {
+                    setForgotSuccess('Password reset email sent! Please check your inbox.');
+                  } else {
+                    setForgotError(data.error || 'Failed to send reset email.');
+                  }
+                } catch (err) {
+                  setForgotError('Failed to send reset email.');
+                }
+              }}
+              className="space-y-4"
+            >
+              <Label htmlFor="forgot-email">Email</Label>
+              <Input
+                id="forgot-email"
+                type="email"
+                value={forgotEmail}
+                onChange={e => setForgotEmail(e.target.value)}
+                required
+                placeholder="Enter your email"
+              />
+              {forgotError && <p className="text-destructive text-xs mt-1">{forgotError}</p>}
+              <Button type="submit" className="w-full">Send Reset Email</Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

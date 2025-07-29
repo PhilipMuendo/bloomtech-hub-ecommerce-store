@@ -72,12 +72,9 @@ const Dashboard = () => {
       setLoading(true);
       setError(null);
       try {
-        // Correctly retrieve the token from the 'user' object in localStorage
-        let token = localStorage.getItem('jwt');
-        if (!token) {
-          const userObj = JSON.parse(localStorage.getItem('user') || '{}');
-          token = userObj.token;
-        }
+        // Get token from user object in localStorage (consistent with AuthContext)
+        const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+        const token = userObj.token;
 
         if (!token) {
           throw new Error('Authentication token not found. Please log in again.');
@@ -130,7 +127,8 @@ const Dashboard = () => {
     const fetchQuoteStats = async () => {
       if (!isSuperAdmin()) return;
       try {
-        const token = localStorage.getItem('jwt');
+        const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+        const token = userObj.token;
         const res = await fetch('/api/dashboard/quote-summary', {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -150,12 +148,10 @@ const Dashboard = () => {
       setRecentOrdersLoading(true);
       setRecentOrdersError(null);
       try {
-        // Look for token in both 'jwt' and 'user' keys
-        let token = localStorage.getItem('jwt');
-        if (!token) {
-          const user = JSON.parse(localStorage.getItem('user') || '{}');
-          token = user.token;
-        }
+        // Get token from user object in localStorage (consistent with AuthContext)
+        const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+        const token = userObj.token;
+        
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
         };
@@ -188,14 +184,15 @@ const Dashboard = () => {
     },
   };
 
-  const StatCard = ({ title, value, icon: Icon, description, color }: {
+  const StatCard = ({ title, value, icon: Icon, description, color, className }: {
     title: string;
     value: string | number;
     icon: any;
     description: string;
     color?: string;
+    className?: string;
   }) => (
-    <Card className="transition-all duration-200 hover:shadow-lg hover:scale-105 cursor-pointer">
+    <Card className={`transition-all duration-200 hover:shadow-lg hover:scale-105 cursor-pointer ${className || ''}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <div className={`p-2 rounded-full ${color || 'bg-primary/10'}`}>
@@ -279,13 +276,16 @@ const Dashboard = () => {
               description="Registered users"
               color="bg-purple-500"
             />
-            <StatCard
-              title="Reviews"
-              value={stats?.totalReviews || 0}
-              icon={MessageSquare}
-              description="Customer reviews"
-              color="bg-orange-500"
-            />
+            {/* Only show Reviews and Newsletter cards if NOT superadmin */}
+            {!isSuperAdmin() && (
+              <StatCard
+                title="Reviews"
+                value={stats?.totalReviews || 0}
+                icon={MessageSquare}
+                description="Customer reviews"
+                color="bg-orange-500"
+              />
+            )}
             {isSuperAdmin() && (
               <>
                 <StatCard
@@ -302,24 +302,26 @@ const Dashboard = () => {
                   description="This month"
                   color="bg-blue-500"
                 />
+                <StatCard
+                  title="Revenue"
+                  value={stats?.revenue || 0}
+                  icon={TrendingUp}
+                  description="Total revenue (KES)"
+                  color="bg-emerald-500"
+                  className="min-w-[180px] max-w-[220px]"
+                />
               </>
             )}
-            {isSuperAdmin() && (
+            {/* Only show Newsletter card if NOT superadmin */}
+            {!isSuperAdmin() && (
               <StatCard
-                title="Revenue"
-                value={stats?.revenue || 0}
-                icon={TrendingUp}
-                description="Total revenue (KES)"
-                color="bg-emerald-500"
+                title="Newsletter"
+                value={stats?.subscribers || 0}
+                icon={Mail}
+                description="Subscribers"
+                color="bg-pink-500"
               />
             )}
-            <StatCard
-              title="Newsletter"
-              value={stats?.subscribers || 0}
-              icon={Mail}
-              description="Subscribers"
-              color="bg-pink-500"
-            />
           </div>
 
           {/* Charts Section - Top Row */}
@@ -336,17 +338,17 @@ const Dashboard = () => {
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={revenueData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                        <XAxis 
-                          dataKey="month" 
+                        <XAxis
+                          dataKey="month"
                           stroke="hsl(var(--muted-foreground))"
                           fontSize={12}
                         />
-                        <YAxis 
+                        <YAxis
                           stroke="hsl(var(--muted-foreground))"
                           fontSize={12}
                           tickFormatter={(value) => `${value / 1000}K`}
                         />
-                        <ChartTooltip 
+                        <ChartTooltip
                           content={<ChartTooltipContent />}
                           formatter={(value) => [`KES ${value.toLocaleString()}`, 'Revenue']}
                         />
@@ -375,16 +377,16 @@ const Dashboard = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={userSignupsData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis 
-                        dataKey="month" 
+                      <XAxis
+                        dataKey="month"
                         stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
                       />
-                      <YAxis 
+                      <YAxis
                         stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
                       />
-                      <ChartTooltip 
+                      <ChartTooltip
                         content={<ChartTooltipContent />}
                         formatter={(value) => [`${value} users`, 'New Signups']}
                       />
@@ -463,11 +465,11 @@ const Dashboard = () => {
                 ) : (
                   <div className="space-y-3">
                     {recentOrders.map((order) => (
-                      <div key={order._id || order.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div key={order._id || order.id?.toString() || `order-${Math.random()}`} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                         <div className="flex items-center space-x-3">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <div>
-                            <p className="font-medium">Order #{order._id?.slice(-6) || order.id?.slice(-6) || 'N/A'}</p>
+                            <p className="font-medium">Order #{order._id ? order._id.slice(-6) : (order.id ? order.id.toString().slice(-6) : 'N/A')}</p>
                             <p className="text-sm text-muted-foreground">{order.userId?.name || 'N/A'}</p>
                           </div>
                         </div>

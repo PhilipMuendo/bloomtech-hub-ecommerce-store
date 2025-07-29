@@ -94,6 +94,7 @@ const Header = () => {
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<{id: string, name: string}[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1); // For keyboard navigation
   const debounceTimeout = React.useRef<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -110,7 +111,9 @@ const Header = () => {
         });
         if (!res.ok) return setQuoteNotifications(0);
         const data = await res.json();
-        const unseen = data.filter((q: any) => q.status === 'responded' && q.userSeen === false).length;
+        // Handle both array and object responses
+        const quotes = Array.isArray(data) ? data : (data.quotes || []);
+        const unseen = quotes.filter((q: any) => q.status === 'responded' && q.userSeen === false).length;
         setQuoteNotifications(unseen);
       } catch {
         setQuoteNotifications(0);
@@ -130,8 +133,40 @@ const Header = () => {
     }
   };
 
+  // Clean up debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    };
+  }, []);
+
+  // Handle keyboard navigation for suggestions
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (suggestions.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      setHighlightedIndex((prev) => (prev + 1) % suggestions.length);
+    } else if (e.key === 'ArrowUp') {
+      setHighlightedIndex((prev) => (prev - 1 + suggestions.length) % suggestions.length);
+    } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+      const selected = suggestions[highlightedIndex];
+      setSearchQuery('');
+      setSuggestions([]);
+      setSearchError(null);
+      setHighlightedIndex(-1);
+      navigate(`/product/${selected.id}`);
+    }
+  };
+
+  // Reset highlighted index when suggestions change
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [suggestions]);
+
   const distinctProducts = cartItems.length;
   const isHomePage = location.pathname === '/';
+
+  // 1. Use the same endpoint for both desktop and mobile
+  const SEARCH_API = '/api/products/search?q=';
 
   return (
     <header className="bg-white shadow-lg sticky top-0 z-50">
@@ -167,8 +202,8 @@ const Header = () => {
             </motion.div>
           </Link>
 
-          {/* Search Bar */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-8" role="search">
+          {/* Search Bar (Desktop) */}
+          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-8" role="search" autoComplete="off">
             <div className="relative w-full">
               <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
@@ -182,22 +217,22 @@ const Header = () => {
                   if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
                   debounceTimeout.current = setTimeout(async () => {
                     if (e.target.value.trim().length > 1) {
+                      setLoading(true); // Show loading
                       try {
-                        const res = await fetch(`/api/products/search?q=${encodeURIComponent(e.target.value.trim())}`);
+                        const res = await fetch(`${SEARCH_API}${encodeURIComponent(e.target.value.trim())}`);
                         if (res.ok) {
                           const data = await res.json();
-                          setSuggestions(data.map((p: any) => ({ id: p.id, name: p.name })));
-                          setSearchError(null);
+                          setSuggestions(data.map((p: any) => ({ id: p._id || p.id, name: p.name })));
+                          setSearchError(data.length === 0 ? 'No products found.' : null);
                         } else {
                           setSuggestions([]);
                           setSearchError('No products found or server error.');
-                          console.error('Search API error:', res.status, await res.text());
                         }
                       } catch (err) {
                         setSuggestions([]);
                         setSearchError('Network error or server unavailable.');
-                        console.error('Search fetch error:', err);
                       }
+                      setLoading(false); // Hide loading
                     } else {
                       setSuggestions([]);
                       setSearchError(null);
@@ -205,9 +240,7 @@ const Header = () => {
                   }, 350);
                 }}
                 className="pl-10 pr-10 py-2 w-full border-2 focus:border-primary"
-                onKeyDown={e => {
-                  if (e.key === 'Enter') handleSearch(e as any);
-                }}
+                onKeyDown={handleKeyDown}
               />
               {/* Clear button */}
               {searchQuery && (
@@ -234,25 +267,33 @@ const Header = () => {
               {/* Suggestions dropdown */}
               {(suggestions.length > 0 || searchError) && (
                 <div className="absolute left-0 top-full mt-1 w-full bg-white border rounded shadow z-10">
-                  {suggestions.map((s, i) => (
-                    <div
-                      key={s.id}
-                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-                      onClick={() => {
-                        setSearchQuery(s.name);
-                        setSuggestions([]);
-                        setSearchError(null);
-                        navigate(`/product/${s.id}`);
-                      }}
-                    >
-                      {s.name}
+                  {loading && (
+                    <div className="px-4 py-2 text-sm text-gray-500 flex items-center">
+                      <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>
+                      Loading...
                     </div>
-                  ))}
-                  {searchError && suggestions.length === 0 && (
+                  )}
+                  {searchError && !loading && (
                     <div className="px-4 py-2 text-sm text-red-500">
                       {searchError}
                     </div>
                   )}
+                  {suggestions.map((s, i) => (
+                    <div
+                      key={s.id}
+                      className={`px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm ${highlightedIndex === i ? 'bg-gray-100' : ''}`}
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSuggestions([]);
+                        setSearchError(null);
+                        setHighlightedIndex(-1);
+                        navigate(`/product/${s.id}`);
+                      }}
+                      onMouseEnter={() => setHighlightedIndex(i)}
+                    >
+                      {s.name}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -327,7 +368,7 @@ const Header = () => {
           {isMenuOpen && (
             <div className="md:hidden mt-4 py-4 border-t">
               <div className="flex flex-col space-y-4">
-                <form onSubmit={handleSearch} className="flex mb-4" role="search">
+                <form onSubmit={handleSearch} className="flex mb-4 relative" role="search" autoComplete="off">
                   <Input
                     type="text"
                     aria-label="Search for products"
@@ -339,10 +380,10 @@ const Header = () => {
                       debounceTimeout.current = setTimeout(async () => {
                         if (e.target.value.trim().length > 1) {
                           try {
-                            const res = await fetch(`/api/products?search=${encodeURIComponent(e.target.value.trim())}`);
+                            const res = await fetch(`${SEARCH_API}${encodeURIComponent(e.target.value.trim())}`);
                             if (res.ok) {
                               const data = await res.json();
-                              setSuggestions(data.map((p: any) => ({ id: p.id, name: p.name })));
+                              setSuggestions(data.map((p: any) => ({ id: p._id || p.id, name: p.name })));
                             } else {
                               setSuggestions([]);
                             }
@@ -355,9 +396,7 @@ const Header = () => {
                       }, 350);
                     }}
                     className="flex-1 mr-2 pr-10"
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') handleSearch(e as any);
-                    }}
+                    onKeyDown={handleKeyDown}
                   />
                   {/* Clear button */}
                   {searchQuery && (
@@ -376,17 +415,30 @@ const Header = () => {
                     ) : 'Search'}
                   </Button>
                   {/* Suggestions dropdown */}
-                  {suggestions.length > 0 && (
+                  {(suggestions.length > 0 || searchError) && (
                     <div className="absolute left-0 top-full mt-1 w-full bg-white border rounded shadow z-10">
+                      {loading && (
+                        <div className="px-4 py-2 text-sm text-gray-500 flex items-center">
+                          <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>
+                          Loading...
+                        </div>
+                      )}
+                      {searchError && !loading && (
+                        <div className="px-4 py-2 text-sm text-red-500">
+                          {searchError}
+                        </div>
+                      )}
                       {suggestions.map((s, i) => (
                         <div
                           key={s.id}
-                          className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                          className={`px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm ${highlightedIndex === i ? 'bg-gray-100' : ''}`}
                           onClick={() => {
-                            setSearchQuery(s.name);
+                            setSearchQuery('');
                             setSuggestions([]);
+                            setHighlightedIndex(-1);
                             navigate(`/product/${s.id}`);
                           }}
+                          onMouseEnter={() => setHighlightedIndex(i)}
                         >
                           {s.name}
                         </div>

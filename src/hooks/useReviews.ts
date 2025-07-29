@@ -20,19 +20,15 @@ export const useReviews = (productId: string) => {
   const fetchReviews = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/reviews', {
-        headers: user?.token ? { 'Authorization': `Bearer ${user.token}` } : {}
-      });
+      const res = await fetch(`/api/reviews/public/${productId}`);
       if (!res.ok) throw new Error('Failed to fetch reviews');
       const data = await res.json();
-      // Filter reviews for this product and ensure createdAt is a Date object
+      console.log('[useReviews] productId:', productId, 'Fetched reviews:', data); // Debug log
       setReviews(
-        data
-          .filter((r: Review) => String(r.productId) === String(productId))
-          .map((r: any) => ({
-            ...r,
-            createdAt: r.createdAt ? new Date(r.createdAt) : undefined
-          }))
+        data.map((r: any) => ({
+          ...r,
+          createdAt: r.createdAt ? new Date(r.createdAt) : undefined
+        }))
       );
     } finally {
       setLoading(false);
@@ -63,9 +59,14 @@ export const useReviews = (productId: string) => {
     }
   };
 
+  // Star breakdown for summary
+  const starBreakdown = [1, 2, 3, 4, 5].map(star =>
+    reviews.filter(r => r.rating === star).length
+  );
+
   const averageRating = reviews.length > 0 
     ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length 
     : 0;
 
-  return { reviews, loading, addReview, averageRating };
+  return { reviews, loading, addReview, averageRating, starBreakdown };
 };

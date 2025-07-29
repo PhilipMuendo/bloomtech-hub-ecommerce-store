@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 
 interface User {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   role: 'user' | 'admin' | 'superadmin';
@@ -15,7 +15,7 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<any>;
   logout: () => void;
   isAdmin: () => boolean;
   isSuperAdmin: () => boolean;
@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (name: string, email: string, password: string): Promise<any> => {
     dispatch({ type: 'LOGIN_START' });
     try {
       const response = await fetch('/api/auth/register', {
@@ -101,10 +101,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const data = await response.json();
       if (response.ok) {
-        localStorage.setItem('user', JSON.stringify(data));
-        dispatch({ type: 'LOGIN_SUCCESS', payload: data });
+        // Don't automatically log in after registration
+        // User needs to verify email first (unless in development mode)
+        dispatch({ type: 'LOGIN_FAILURE' });
+        return data; // Return the response data for the registration page to handle
       } else {
-        throw new Error(data.message);
+        throw new Error(data.error || 'Registration failed');
       }
     } catch (error) {
       dispatch({ type: 'LOGIN_FAILURE' });

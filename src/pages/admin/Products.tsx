@@ -22,7 +22,7 @@ import { fetchLowStockProducts } from '@/components/AdminLayout';
 import './category-badge.css';
 
 export interface Product {
-  _id: string;
+  id: string;
   name: string;
   price: number;
   imageUrl: string;
@@ -116,7 +116,7 @@ const Products = () => {
     if (products.length > 0) {
       const editId = searchParams.get('edit');
       if (editId) {
-        const prod = products.find(p => p._id === editId);
+        const prod = products.find(p => p.id === editId || p._id === editId);
         if (prod) setEditingProduct(prod);
       }
     }
@@ -151,7 +151,12 @@ const Products = () => {
         })
       });
       if (!res.ok) throw new Error('Failed to add product');
-      toast({ title: 'Product Added', description: `${formData.name} has been added to the catalog.` });
+      const newProductData = await res.json();
+              toast({ 
+          title: 'Product Added', 
+          description: `${formData.name} has been added to the catalog. Product ID: ${newProductData.id || newProductData._id}`,
+          duration: 8000
+        });
       setIsAddDialogOpen(false);
       fetchProducts();
     } catch (err: any) {
@@ -182,7 +187,7 @@ const Products = () => {
         featured: !!formData.featured,
       };
       console.log('Updating product with payload:', updatePayload);
-      const res = await fetch(`/api/products/${editingProduct._id}`, {
+      const res = await fetch(`/api/products/${editingProduct.id || editingProduct._id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

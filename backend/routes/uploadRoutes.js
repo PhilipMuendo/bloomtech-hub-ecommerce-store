@@ -30,9 +30,25 @@ router.post('/', upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
-  // Return the full URL for the uploaded file
-  const fileUrl = `${req.protocol}://${req.get('host')}/public/lovable-uploads/${req.file.filename}`;
-  res.json({ url: fileUrl });
+  
+  // Get the correct host for the file URL
+  let host = req.get('host');
+  
+  // Check if we're behind ngrok
+  const forwardedHost = req.get('x-forwarded-host');
+  const forwardedProto = req.get('x-forwarded-proto');
+  
+  if (forwardedHost && forwardedProto) {
+    // Use ngrok URL if available
+    host = forwardedHost;
+    const protocol = forwardedProto;
+    const fileUrl = `${protocol}://${host}/public/lovable-uploads/${req.file.filename}`;
+    res.json({ url: fileUrl });
+  } else {
+    // Fallback to regular host
+    const fileUrl = `${req.protocol}://${host}/public/lovable-uploads/${req.file.filename}`;
+    res.json({ url: fileUrl });
+  }
 });
 
 export default router; 
