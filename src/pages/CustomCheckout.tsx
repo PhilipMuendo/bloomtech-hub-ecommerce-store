@@ -6,14 +6,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import MpesaPaymentModal from '@/components/MpesaPaymentModal';
+import PesapalPaymentModal from '@/components/PesapalPaymentModal';
+import PaymentMethodSelector from '@/components/PaymentMethodSelector';
+import { useToast } from '@/hooks/use-toast';
 
 const CustomCheckout = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const { user } = useAuth();
+  const { toast } = useToast();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showMpesa, setShowMpesa] = useState(false);
+  const [showPesapal, setShowPesapal] = useState(false);
+  const [showPaymentSelector, setShowPaymentSelector] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -47,6 +54,31 @@ const CustomCheckout = () => {
     
     if (orderId) fetchOrder();
   }, [user, orderId]);
+
+  const handlePaymentMethodSelect = (method: string) => {
+    setSelectedPaymentMethod(method);
+  };
+
+  const handlePaymentProceed = () => {
+    if (selectedPaymentMethod === 'mpesa') {
+      setShowMpesa(true);
+      setShowPaymentSelector(false);
+    } else if (selectedPaymentMethod === 'pesapal') {
+      setShowPesapal(true);
+      setShowPaymentSelector(false);
+    }
+  };
+
+  const handlePaymentSuccess = () => {
+    toast({ 
+      title: "Payment successful!", 
+      description: "Your order has been processed successfully." 
+    });
+    setShowMpesa(false);
+    setShowPesapal(false);
+    // Refresh the page to update status
+    window.location.reload();
+  };
 
   if (loading) {
     return (
@@ -159,14 +191,14 @@ const CustomCheckout = () => {
             {order.status === 'pending' && (
               <div className="pt-4">
                 <Button 
-                  onClick={() => setShowMpesa(true)} 
+                  onClick={() => setShowPaymentSelector(true)} 
                   className="w-full"
                   size="lg"
                 >
                   Proceed to Payment
                 </Button>
                 <p className="text-sm text-muted-foreground text-center mt-2">
-                  Secure payment via M-Pesa
+                  Secure payment via M-Pesa or Pesapal
                 </p>
               </div>
             )}
@@ -186,18 +218,38 @@ const CustomCheckout = () => {
           </CardContent>
         </Card>
         
+        {/* Payment Method Selector Modal */}
+        {showPaymentSelector && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <PaymentMethodSelector
+                selectedMethod={selectedPaymentMethod}
+                onMethodChange={handlePaymentMethodSelect}
+                onProceed={handlePaymentProceed}
+                onCancel={() => setShowPaymentSelector(false)}
+                amount={order.total}
+                disabled={false}
+              />
+            </div>
+          </div>
+        )}
+        
         {/* M-Pesa Payment Modal */}
         <MpesaPaymentModal
           isOpen={showMpesa}
           onClose={() => setShowMpesa(false)}
           orderId={order._id || order.id}
           amount={order.total}
-          onSuccess={() => {
-            alert('Payment successful!');
-            setShowMpesa(false);
-            // Refresh the page to update status
-            window.location.reload();
-          }}
+          onSuccess={handlePaymentSuccess}
+        />
+        
+        {/* Pesapal Payment Modal */}
+        <PesapalPaymentModal
+          isOpen={showPesapal}
+          onClose={() => setShowPesapal(false)}
+          orderId={order._id || order.id}
+          amount={order.total}
+          onSuccess={handlePaymentSuccess}
         />
       </div>
     </div>

@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import NewsletterForm from '@/components/NewsletterForm';
 import MpesaPaymentModal from '@/components/MpesaPaymentModal';
+import PesapalPaymentModal from '@/components/PesapalPaymentModal';
+import PaymentMethodSelector from '@/components/PaymentMethodSelector';
 import GetQuoteModal from '@/components/GetQuoteModal';
 import { Tag } from 'lucide-react';
 
@@ -15,12 +17,16 @@ const Cart = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [showMpesaModal, setShowMpesaModal] = React.useState(false);
+  const [showPesapalModal, setShowPesapalModal] = React.useState(false);
   const [currentOrderId, setCurrentOrderId] = React.useState('');
   const [showQuote, setShowQuote] = React.useState(false);
+  const [showPaymentSelector, setShowPaymentSelector] = React.useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState('');
+  const [isProcessingOrder, setIsProcessingOrder] = React.useState(false);
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    // If returning from shipping info, show payment modal after order creation
+    // If returning from shipping info, show payment selector after order creation
     const params = new URLSearchParams(window.location.search);
     if (params.get('shipping') === 'done') {
       handleOrderWithShipping();
@@ -47,6 +53,7 @@ const Cart = () => {
       return;
     }
     try {
+      setIsProcessingOrder(true);
       const orderResponse = await fetch('/api/orders', {
         method: 'POST',
         headers: {
@@ -63,9 +70,9 @@ const Cart = () => {
         })
       });
       const orderData = await orderResponse.json();
-      if (orderData._id) {
-        setCurrentOrderId(orderData._id);
-        setShowMpesaModal(true);
+      if (orderData.id || orderData._id) {
+        setCurrentOrderId(orderData.id || orderData._id);
+        setShowPaymentSelector(true);
         localStorage.removeItem('pickupPoint');
       } else {
         throw new Error('Failed to create order');
@@ -76,6 +83,8 @@ const Cart = () => {
         description: "Failed to create order. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsProcessingOrder(false);
     }
   };
 
@@ -92,9 +101,24 @@ const Cart = () => {
     navigate('/shipping');
   };
 
+  const handlePaymentMethodSelect = (method: string) => {
+    setSelectedPaymentMethod(method);
+  };
+
+  const handlePaymentProceed = () => {
+    if (selectedPaymentMethod === 'mpesa') {
+      setShowMpesaModal(true);
+      setShowPaymentSelector(false);
+    } else if (selectedPaymentMethod === 'pesapal') {
+      setShowPesapalModal(true);
+      setShowPaymentSelector(false);
+    }
+  };
+
   const handlePaymentSuccess = () => {
     clearCart();
     toast({ title: "Order placed and paid successfully!" });
+    navigate('/orders');
   };
 
   const formatPrice = (price: number) => {
@@ -107,71 +131,64 @@ const Cart = () => {
 
   if (cartItems.length === 0) {
     return (
-      <div className="container mx-auto px-2 sm:px-4 py-8">
-        <div className="text-center max-w-md mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Your Cart is Empty</h1>
-          <p className="text-muted-foreground mb-4 sm:mb-6 text-base sm:text-lg">
-            Looks like you haven't added any products to your cart yet.
-          </p>
-          <Button asChild size="lg" className="text-base sm:text-lg px-6 py-3">
-            <Link to="/shop">Continue Shopping</Link>
-          </Button>
-        </div>
+      <div className="container mx-auto px-2 sm:px-4 py-12 sm:py-16 text-center">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Your Cart</h1>
+        <p className="text-muted-foreground mb-3 sm:mb-4 text-base sm:text-lg">Your cart is empty. Start shopping to add items!</p>
+        <Link to="/shop">
+          <Button className="text-base sm:text-lg px-6 py-3">Browse Products</Button>
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
-      <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8">Shopping Cart</h1>
+    <div className="container mx-auto px-2 sm:px-4 py-12 sm:py-16">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center">Your Cart</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
         {/* Cart Items */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           {cartItems.map((item) => (
-            <Card key={item.id} className="p-3 sm:p-4">
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <Card key={item.id} className="flex flex-col sm:flex-row sm:items-center p-4 sm:p-6">
+              <div className="flex-1 flex items-center space-x-4">
                 <img
-                  src={item.image || '/placeholder.svg'}
+                  src={item.image}
                   alt={item.name}
-                  className="w-full sm:w-24 h-32 sm:h-24 object-cover rounded"
+                  className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg"
                 />
-                <div className="flex-1 space-y-1 sm:space-y-2">
-                  <h3 className="font-semibold text-base sm:text-lg">{item.name}</h3>
-                  <p className="text-muted-foreground text-xs sm:text-sm capitalize">
-                    {item.category === 'ict' ? 'ICT Equipment' : 'Electrical Materials'}
-                  </p>
-                  <p className="font-bold text-primary text-base sm:text-lg">{formatPrice(item.price)}</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-sm sm:text-base truncate">{item.name}</h3>
+                  <p className="text-muted-foreground text-xs sm:text-sm">{item.category}</p>
+                  <p className="text-primary font-semibold text-sm sm:text-base">{formatPrice(item.price)}</p>
                 </div>
-                <div className="flex flex-row sm:flex-col space-x-2 sm:space-x-0 sm:space-y-2 min-w-fit items-center sm:items-start">
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="px-3 py-1"
-                    >
-                      -
-                    </Button>
-                    <span className="w-10 sm:w-12 text-center text-base">{item.quantity}</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="px-3 py-1"
-                    >
-                      +
-                    </Button>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => removeFromCart(item.id)}
-                    className="text-xs sm:text-sm"
-                  >
-                    Remove
-                  </Button>
-                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2 mt-4 sm:mt-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                  className="w-8 h-8 p-0"
+                >
+                  -
+                </Button>
+                <span className="w-12 text-center text-sm sm:text-base">{item.quantity}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  className="w-8 h-8 p-0"
+                >
+                  +
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => removeFromCart(item.id)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  Remove
+                </Button>
               </div>
             </Card>
           ))}
@@ -201,8 +218,13 @@ const Cart = () => {
               </div>
 
               <div className="space-y-2 sm:space-y-3 pt-3 sm:pt-4">
-                <Button onClick={handleCheckout} className="w-full bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg px-6 py-3" size="lg">
-                  Pay with M-Pesa
+                <Button 
+                  onClick={handleCheckout} 
+                  className="w-full bg-green-600 hover:bg-green-700 text-white text-base sm:text-lg px-6 py-3" 
+                  size="lg"
+                  disabled={isProcessingOrder}
+                >
+                  {isProcessingOrder ? 'Processing...' : 'Proceed to Checkout'}
                 </Button>
                 <Button
                   variant="secondary"
@@ -240,6 +262,24 @@ const Cart = () => {
         </div>
       </div>
 
+      {/* Payment Method Selector Modal */}
+      {showPaymentSelector && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardContent className="p-6">
+              <PaymentMethodSelector
+                selectedMethod={selectedPaymentMethod}
+                onMethodChange={handlePaymentMethodSelect}
+                onProceed={handlePaymentProceed}
+                onCancel={() => setShowPaymentSelector(false)}
+                amount={getTotalPrice()}
+                disabled={isProcessingOrder}
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <MpesaPaymentModal
         isOpen={showMpesaModal}
         onClose={() => setShowMpesaModal(false)}
@@ -247,6 +287,15 @@ const Cart = () => {
         amount={getTotalPrice()}
         onSuccess={handlePaymentSuccess}
       />
+      
+      <PesapalPaymentModal
+        isOpen={showPesapalModal}
+        onClose={() => setShowPesapalModal(false)}
+        orderId={currentOrderId}
+        amount={getTotalPrice()}
+        onSuccess={handlePaymentSuccess}
+      />
+      
       <GetQuoteModal
         open={showQuote}
         onOpenChange={setShowQuote}

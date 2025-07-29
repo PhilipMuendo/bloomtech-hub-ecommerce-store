@@ -267,11 +267,9 @@ const AnimatedRoutes = () => {
           </Suspense>
         } />
         <Route path="/checkout/:orderId" element={
-          <ProtectedRoute>
-            <Suspense fallback={<LoadingSpinner />}>
-              <CustomCheckout />
-            </Suspense>
-          </ProtectedRoute>
+          <Suspense fallback={<LoadingSpinner />}>
+            <CustomCheckout />
+          </Suspense>
         } />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<Suspense fallback={<div>Loading...</div>}><VerifyEmail /></Suspense>} />

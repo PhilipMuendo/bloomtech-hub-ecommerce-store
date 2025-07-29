@@ -97,7 +97,9 @@ export const sendVerificationEmail = async (user, req) => {
 
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone } = req.body;
+    
+    console.log('Registration attempt for:', { name, email, phone: phone ? 'provided' : 'not provided' });
     
     // Validate input
     if (!name || !email || !password) {
@@ -107,6 +109,7 @@ export const register = async (req, res, next) => {
     // Check if user already exists
     const userExists = await User.findOne({ where: { email } });
     if (userExists) {
+      console.log('Registration failed - user already exists:', email);
       return res.status(400).json({ error: 'User already exists with this email' });
     }
     
@@ -116,18 +119,22 @@ export const register = async (req, res, next) => {
     
     // In development mode, auto-verify users to avoid email issues
     const isDevelopment = process.env.NODE_ENV === 'development';
+    console.log('Registration environment:', { NODE_ENV: process.env.NODE_ENV, isDevelopment });
     
     // Create user
     const user = await User.create({
       name,
       email,
       password,
+      phone: phone || null,
       role: 'user',
       verified: isDevelopment, // Auto-verify in development
       verificationToken: isDevelopment ? null : verificationToken,
       verificationTokenExpires: isDevelopment ? null : verificationTokenExpires,
       status: 'active'
     });
+    
+    console.log('User created successfully:', { id: user.id, email: user.email, verified: user.verified });
     
     // Try to send verification email, but don't fail registration if email fails
     if (!isDevelopment) {
@@ -149,6 +156,7 @@ export const register = async (req, res, next) => {
         id: user.id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
         verified: user.verified
       }
@@ -200,35 +208,55 @@ export const resendVerification = async (req, res, next) => {
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
+    console.log('Login attempt for email:', email);
+    
     const user = await User.findOne({ where: { email } });
     
     if (!user) {
+      console.log('User not found:', email);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
     const isPasswordValid = await user.matchPassword(password);
     if (!isPasswordValid) {
+      console.log('Invalid password for user:', email);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
+    console.log('User found:', { id: user.id, email: user.email, role: user.role, verified: user.verified, status: user.status });
+    
     if (user.status !== 'active') {
+      console.log('User account not active:', user.status);
       return res.status(403).json({
         error: `Your account is currently '${user.status}'. Please contact support if you believe this is a mistake.`
       });
     }
     
-    // Superadmin is exempt from email verification
-    // In development mode, all users are exempt from email verification
+    // Check email verification
     const isDevelopment = process.env.NODE_ENV === 'development';
+    console.log('Environment check:', { NODE_ENV: process.env.NODE_ENV, isDevelopment });
+    
     if (!user.verified && user.role !== 'superadmin' && !isDevelopment) {
-      return res.status(403).json({ error: 'Please verify your email before logging in.' });
+      console.log('User not verified and not in development mode:', user.email);
+      return res.status(403).json({ 
+        error: 'Please verify your email before logging in. Check your inbox for a verification link.' 
+      });
+    }
+    
+    // Auto-verify users in development mode
+    if (!user.verified && isDevelopment) {
+      console.log('Auto-verifying user in development mode:', user.email);
+      await user.update({ verified: true });
     }
     
     const token = generateToken(user.id, user.role);
+    console.log('Login successful for user:', user.email);
+    
     res.json({
       id: user.id,
       name: user.name,
       email: user.email,
+      phone: user.phone,
       role: user.role,
       verified: user.verified,
       token
@@ -291,7 +319,9 @@ export const resetPassword = async (req, res, next) => {
 
 export const getProfile = async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.user.id, { attributes: { exclude: ['password'] } });
+    const user = await User.findByPk(req.user.id, { 
+      attributes: { exclude: ['password'] }
+    });
     res.json(user);
   } catch (error) {
     next(error);

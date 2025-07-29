@@ -1,7 +1,9 @@
-import db from '../sequelize_models/index.js';
+import db, { sequelize } from '../sequelize_models/index.js';
 import { Op } from 'sequelize';
 
-const { Order, OrderItem, Product, User } = db;
+const { Order, Product, User } = db;
+// OrderItem is a named export from Order.js, so we need to import it differently
+const OrderItem = db.OrderItem;
 
 // Get current user's orders or all orders for admin
 export const getOrders = async (req, res, next) => {
@@ -27,7 +29,7 @@ export const getOrders = async (req, res, next) => {
     const { count, rows: orders } = await Order.findAndCountAll({
       where,
       include: [
-        { model: User, attributes: ['name', 'email'] },
+        { model: User, attributes: ['name', 'email', 'phone'] },
         { 
           model: OrderItem, 
           include: [{ model: Product, attributes: ['name', 'price'] }]
@@ -56,6 +58,7 @@ export const getOrders = async (req, res, next) => {
       totalPages: Math.ceil(count / limit)
     });
   } catch (err) {
+    console.error('Error in getOrders:', err);
     next(err);
   }
 };
@@ -66,7 +69,7 @@ export const getOrderById = async (req, res, next) => {
     const order = await Order.findOne({ 
       where: { id: req.params.id, userId: req.user.id },
       include: [
-        { model: User, attributes: ['name', 'email'] },
+        { model: User, attributes: ['name', 'email', 'phone'] },
         { 
           model: OrderItem, 
           include: [{ model: Product, attributes: ['name', 'price'] }]
@@ -76,6 +79,7 @@ export const getOrderById = async (req, res, next) => {
     if (!order) return res.status(404).json({ error: 'Order not found' });
     res.json(order);
   } catch (err) {
+    console.error('Error in getOrderById:', err);
     next(err);
   }
 };
@@ -83,53 +87,126 @@ export const getOrderById = async (req, res, next) => {
 // Create new order (for admin or direct order creation)
 export const createOrder = async (req, res, next) => {
   try {
+    console.log('=== ORDER CREATION START ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('User:', req.user ? { id: req.user.id, email: req.user.email } : 'No user');
+    
     const { items, total, shippingAddress } = req.body;
-    if (!items || !total) return res.status(400).json({ error: 'Items and total required' });
+    
+    console.log('Extracted data:', { items, total, shippingAddress });
+    
+    // Validate items array
+    if (!items) {
+      console.log('❌ No items provided');
+      return res.status(400).json({ error: 'Items array is required' });
+    }
+    
+    if (!Array.isArray(items)) {
+      console.log('❌ Items is not an array:', typeof items);
+      return res.status(400).json({ error: 'Items must be an array' });
+    }
+    
+    if (items.length === 0) {
+      console.log('❌ Items array is empty');
+      return res.status(400).json({ error: 'Items array cannot be empty' });
+    }
+    
+    // Validate total
+    if (!total) {
+      console.log('❌ No total provided');
+      return res.status(400).json({ error: 'Total amount is required' });
+    }
+    
+    if (isNaN(total) || total <= 0) {
+      console.log('❌ Invalid total:', total);
+      return res.status(400).json({ error: 'Valid total amount is required' });
+    }
+    
+    console.log('✅ Basic validation passed');
     
     // Validate and check stock for all items first
-    for (const item of items) {
+    console.log('Validating items...');
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      console.log(`Validating item ${i + 1}:`, item);
+      
       if (!item.productId || isNaN(item.productId)) {
+        console.log(`❌ Invalid productId in item ${i + 1}:`, item.productId);
         return res.status(400).json({ error: `Invalid productId: ${item.productId}` });
       }
+      
+      if (!item.quantity || isNaN(item.quantity) || item.quantity <= 0) {
+        console.log(`❌ Invalid quantity in item ${i + 1}:`, item.quantity);
+        return res.status(400).json({ error: `Invalid quantity: ${item.quantity}` });
+      }
+      
+      console.log(`Checking stock for product ${item.productId}...`);
       const product = await Product.findByPk(item.productId);
       if (!product) {
+        console.log(`❌ Product not found: ${item.productId}`);
         return res.status(400).json({ error: `Product not found: ${item.productId}` });
       }
+      
+      console.log(`Product found: ${product.name}, Stock: ${product.stock}, Requested: ${item.quantity}`);
       if (product.stock < item.quantity) {
-        return res.status(400).json({ error: `Insufficient stock for product: ${product.name}` });
+        console.log(`❌ Insufficient stock for ${product.name}`);
+        return res.status(400).json({ error: `Insufficient stock for product: ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}` });
       }
     }
     
+    console.log('✅ All items validated');
+    
     // Create order and order items in a transaction
-    const result = await db.sequelize.transaction(async (t) => {
+    console.log('Starting database transaction...');
+    const result = await sequelize.transaction(async (t) => {
+      console.log('Creating order...');
       const order = await Order.create({ 
         userId: req.user.id, 
         total, 
-        shippingAddress 
+        shippingAddress: shippingAddress || ''
       }, { transaction: t });
       
+      console.log('✅ Order created:', order.id);
+      
       // Create order items
+      console.log('Creating order items...');
       const orderItems = items.map(item => ({
         orderId: order.id,
         productId: item.productId,
         quantity: item.quantity
       }));
+      
+      console.log('Order items to create:', orderItems);
       await OrderItem.bulkCreate(orderItems, { transaction: t });
+      console.log('✅ Order items created');
       
       // Decrement stock for each product
+      console.log('Updating product stock...');
       for (const item of items) {
         await Product.decrement('stock', {
           by: item.quantity,
           where: { id: item.productId },
           transaction: t
         });
+        console.log(`✅ Stock updated for product ${item.productId}`);
       }
       
       return order;
     });
     
+    console.log('✅ Transaction completed successfully');
+    console.log('Final order:', result.toJSON());
+    console.log('=== ORDER CREATION END ===');
+    
     res.status(201).json(result);
   } catch (err) {
+    console.error('❌ Error in createOrder:', err);
+    console.error('Error stack:', err.stack);
+    console.error('Error details:', {
+      name: err.name,
+      message: err.message,
+      code: err.code
+    });
     next(err);
   }
 };
@@ -181,6 +258,7 @@ export const updateOrderStatus = async (req, res, next) => {
     await currentOrder.update(updateData);
     res.json(currentOrder);
   } catch (err) {
+    console.error('Error in updateOrderStatus:', err);
     next(err);
   }
 };
@@ -200,7 +278,7 @@ export const getRecentOrdersForNotifications = async (req, res, next) => {
         createdAt: { [Op.gte]: twentyFourHoursAgo },
         status: { [Op.in]: ['pending', 'awaiting_payment', 'processing'] }
       },
-      include: [{ model: User, attributes: ['name', 'email'] }],
+      include: [{ model: User, attributes: ['name', 'email', 'phone'] }],
       order: [['createdAt', 'DESC']],
       limit: 10
     });
@@ -218,6 +296,7 @@ export const getRecentOrdersForNotifications = async (req, res, next) => {
     
     res.json(formattedOrders);
   } catch (err) {
+    console.error('Error in getRecentOrdersForNotifications:', err);
     next(err);
   }
 }; 
@@ -228,7 +307,7 @@ export const getOrderByTrackingNumber = async (req, res, next) => {
     const order = await Order.findOne({ 
       where: { trackingNumber: req.params.trackingNumber },
       include: [
-        { model: User, attributes: ['name', 'email'] },
+        { model: User, attributes: ['name', 'email', 'phone'] },
         { 
           model: OrderItem, 
           include: [{ model: Product, attributes: ['name', 'price'] }]
@@ -264,6 +343,7 @@ export const getOrderByTrackingNumber = async (req, res, next) => {
     
     res.json(transformedOrder);
   } catch (err) {
+    console.error('Error in getOrderByTrackingNumber:', err);
     next(err);
   }
 }; 
