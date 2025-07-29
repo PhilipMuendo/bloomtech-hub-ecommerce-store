@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingCart, Search as SearchIcon, User, List, Heart, LogOut, ChevronDown, Shield, Bell } from 'lucide-react';
+import { Search, ShoppingCart, Search as SearchIcon, User, List, Heart, LogOut, ChevronDown, Shield, Bell, MailCheck, RefreshCw } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,8 @@ import {
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 const UserDropdown = () => {
   const { user, logout } = useAuth();
@@ -86,6 +88,133 @@ const UserMenu = () => {
   return <UserDropdown />;
 };
 
+const NotificationDropdown = ({ totalNotifications, quoteNotifications, orderNotifications }: {
+  totalNotifications: number;
+  quoteNotifications: number;
+  orderNotifications: number;
+}) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  if (!user) return null;
+
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['notifications', user.id, user.role] });
+  };
+
+  const handleNotificationClick = async (type: 'quotes' | 'orders') => {
+    try {
+      // Mark notifications as seen
+      if (type === 'quotes' && quoteNotifications > 0) {
+        const endpoint = (user.role === 'admin' || user.role === 'superadmin') 
+          ? '/api/quotes/mark-admin-seen' 
+          : '/api/quotes/mark-seen';
+        
+        await fetch(endpoint, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${user.token}`,
+          },
+        });
+      }
+      
+      // Invalidate queries to refresh notifications
+      queryClient.invalidateQueries({ queryKey: ['notifications', user.id, user.role] });
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+      
+      // Navigate to the appropriate page
+      navigate(type === 'quotes' ? '/my-quotes' : '/orders');
+    } catch (error) {
+      console.error('Error marking notifications as seen:', error);
+    }
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative p-2">
+          <Bell className="w-6 h-6 text-accent" />
+          {totalNotifications > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs px-1.5 py-0.5 min-w-[18px] flex items-center justify-center">
+              {totalNotifications}
+            </span>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-80">
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold">Notifications</h3>
+            <Button variant="ghost" size="sm" onClick={handleRefresh}>
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+          </div>
+          
+          {totalNotifications === 0 ? (
+            <p className="text-muted-foreground text-sm">No new notifications</p>
+          ) : (
+            <div className="space-y-3">
+              {quoteNotifications > 0 && (
+                <div 
+                  className="flex items-center justify-between p-2 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
+                  onClick={() => handleNotificationClick('quotes')}
+                >
+                  <div className="flex items-center gap-2">
+                    <MailCheck className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium">Quote Updates</span>
+                  </div>
+                  <Badge variant="secondary">{quoteNotifications}</Badge>
+                </div>
+              )}
+              
+              {orderNotifications > 0 && (
+                <div 
+                  className="flex items-center justify-between p-2 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
+                  onClick={() => handleNotificationClick('orders')}
+                >
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium">
+                      {user.role === 'admin' || user.role === 'superadmin' 
+                        ? 'Recent Orders' 
+                        : 'Order Updates'
+                      }
+                    </span>
+                  </div>
+                  <Badge variant="secondary">{orderNotifications}</Badge>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <div className="mt-4 pt-3 border-t">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1"
+                onClick={() => handleNotificationClick('quotes')}
+              >
+                View Quotes
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1"
+                onClick={() => handleNotificationClick('orders')}
+              >
+                View Orders
+              </Button>
+            </div>
+          </div>
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
 // import { searchProducts } from '@/data/products';
 
 const Header = () => {
@@ -100,25 +229,97 @@ const Header = () => {
   const location = useLocation();
   const { cartItems } = useCart();
   const { user } = useAuth();
-  // Add state for quote notifications (for demo, use a static number or fetch from API)
+  const { toast } = useToast();
+  // Add state for notifications
   const [quoteNotifications, setQuoteNotifications] = useState(0);
-  useEffect(() => {
-    const fetchQuoteNotifications = async () => {
-      if (!user) return setQuoteNotifications(0);
-      try {
-        const res = await fetch('/api/quotes/user', {
+  const [orderNotifications, setOrderNotifications] = useState(0);
+  const [totalNotifications, setTotalNotifications] = useState(0);
+
+  // Fetch notifications with React Query for real-time updates
+  const fetchNotifications = async () => {
+    if (!user) return { quotes: 0, orders: 0, total: 0 };
+
+    try {
+      let quoteCount = 0;
+      let orderCount = 0;
+
+      // Fetch quote notifications
+      const quoteRes = await fetch('/api/quotes/user', {
+        headers: { Authorization: `Bearer ${user.token}` },
+      });
+      
+      if (quoteRes.ok) {
+        const quoteData = await quoteRes.json();
+        const quotes = Array.isArray(quoteData) ? quoteData : (quoteData.quotes || []);
+        quoteCount = quotes.filter((q: any) => q.status === 'responded' && q.userSeen === false).length;
+      }
+
+      // Different notification logic for admins vs users
+      if (user.role === 'admin' || user.role === 'superadmin') {
+        // Admin notifications: Track recent order activity and status changes
+        const adminOrderRes = await fetch('/api/orders/notifications', {
           headers: { Authorization: `Bearer ${user.token}` },
         });
-        if (!res.ok) return setQuoteNotifications(0);
-        const data = await res.json();
-        const unseen = data.filter((q: any) => q.status === 'responded' && q.userSeen === false).length;
-        setQuoteNotifications(unseen);
-      } catch {
-        setQuoteNotifications(0);
+        
+        if (adminOrderRes.ok) {
+          const adminOrderData = await adminOrderRes.json();
+          // Count orders that need attention (pending, awaiting_payment, processing)
+          orderCount = adminOrderData.length;
+        }
+      } else {
+        // User notifications: Count recent orders (last 7 days)
+        const orderRes = await fetch('/api/orders/user', {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        
+        if (orderRes.ok) {
+          const orderData = await orderRes.json();
+          const orders = Array.isArray(orderData) ? orderData : (orderData.orders || []);
+          // Count recent orders (last 7 days)
+          const recentOrders = orders.filter((o: any) => {
+            const orderDate = new Date(o.createdAt);
+            const daysAgo = (Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
+            return daysAgo <= 7;
+          });
+          orderCount = recentOrders.length;
+        }
       }
-    };
-    fetchQuoteNotifications();
-  }, [user]);
+
+      return { quotes: quoteCount, orders: orderCount, total: quoteCount + orderCount };
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      return { quotes: 0, orders: 0, total: 0 };
+    }
+  };
+
+  const { data: notificationData } = useQuery({
+    queryKey: ['notifications', user?.id, user?.role],
+    queryFn: fetchNotifications,
+    enabled: !!user,
+    refetchInterval: 15000, // Refetch every 15 seconds
+    refetchIntervalInBackground: true,
+  });
+
+  // Update notification counts when data changes
+  useEffect(() => {
+    if (notificationData) {
+      const oldTotal = totalNotifications;
+      const newTotal = notificationData.total;
+      
+      setQuoteNotifications(notificationData.quotes);
+      setOrderNotifications(notificationData.orders);
+      setTotalNotifications(newTotal);
+      
+      // Show toast when new notifications arrive
+      if (newTotal > oldTotal && oldTotal > 0) {
+        toast({
+          title: "New notifications",
+          description: `You have ${newTotal - oldTotal} new notification${newTotal - oldTotal > 1 ? 's' : ''}`,
+          duration: 3000,
+        });
+      }
+    }
+  }, [notificationData, totalNotifications, toast]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -300,14 +501,7 @@ const Header = () => {
           {/* User Menu */}
           <div className="flex items-center gap-4">
             {user && (
-              <Link to="/my-quotes" className="relative">
-                <Bell className="w-6 h-6 text-accent" />
-                {quoteNotifications > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs px-1.5 py-0.5">
-                    {quoteNotifications}
-                  </span>
-                )}
-              </Link>
+              <NotificationDropdown totalNotifications={totalNotifications} quoteNotifications={quoteNotifications} orderNotifications={orderNotifications} />
             )}
           <UserMenu />
           {/* Cart */}

@@ -11,11 +11,11 @@ import { requireSuperAdmin } from '../middleware/roleAuth.js';
 
 const router = express.Router();
 
-// Note: Most dashboard routes are open for simplicity, but summary is protected.
+// All dashboard routes require authentication
 router.get('/summary', requireAuth, getDashboardSummary);
 router.get('/revenue-trend', requireAuth, getRevenueTrend);
-router.get('/orders-by-category', getOrdersByCategory);
-router.get('/user-signups', getUserSignups);
+router.get('/orders-by-category', requireAuth, getOrdersByCategory);
+router.get('/user-signups', requireAuth, getUserSignups);
 // Superadmin quote summary
 router.get('/quote-summary', requireAuth, requireSuperAdmin, getQuoteSummary);
 

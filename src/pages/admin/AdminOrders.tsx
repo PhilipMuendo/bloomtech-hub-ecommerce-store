@@ -13,6 +13,7 @@ interface Order {
   id: string;
   customerName: string;
   customerEmail: string;
+  customerPhone: string;
   date: string;
   status: 'pending' | 'processing' | 'delivered' | 'cancelled' | 'awaiting_payment' | 'paid';
   total: number;
@@ -62,12 +63,17 @@ const AdminOrders = () => {
         // Normalize order data for display
         const normalized = data.orders.map((o: any) => ({
           id: o._id || o.id,
-          customerName: o.customerName || (o.userId?.name ?? 'N/A'),
-          customerEmail: o.customerEmail || (o.userId?.email ?? 'N/A'),
+          customerName: o.User?.name || o.customerName || 'N/A',
+          customerEmail: o.User?.email || o.customerEmail || 'N/A',
+          customerPhone: o.User?.phone || 'N/A',
           date: o.createdAt,
           status: o.status as 'pending' | 'processing' | 'delivered' | 'cancelled' | 'awaiting_payment' | 'paid',
           total: o.total,
-          items: o.items || [],
+          items: o.OrderItems?.map((item: any) => ({
+            productName: item.Product?.name || 'N/A',
+            quantity: item.quantity,
+            price: item.Product?.price || 0,
+          })) || [],
           shippingAddress: o.shippingAddress,
         }));
         setOrders(normalized);
@@ -101,7 +107,7 @@ const AdminOrders = () => {
     if (from && orderDate < from) return false;
     if (to && orderDate > to) return false;
     // Also apply search filter
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = order.id?.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
@@ -267,6 +273,7 @@ const AdminOrders = () => {
                     <div>
                       <div className="font-medium">{order.customerName}</div>
                       <div className="text-sm text-muted-foreground">{order.customerEmail}</div>
+                      <div className="text-sm text-muted-foreground">{order.customerPhone}</div>
                     </div>
                   </TableCell>
                   <TableCell>{new Date(order.date).toLocaleDateString()}</TableCell>
@@ -351,8 +358,9 @@ const AdminOrders = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h4 className="font-semibold">Customer Information</h4>
-                  <p>{selectedOrder.customerName}</p>
+                  <p className="font-medium">{selectedOrder.customerName}</p>
                   <p className="text-sm text-muted-foreground">{selectedOrder.customerEmail}</p>
+                  <p className="text-sm text-muted-foreground">{selectedOrder.customerPhone}</p>
                 </div>
                 <div>
                   <h4 className="font-semibold">Order Information</h4>

@@ -6,6 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
+import { Heart, ShoppingCart, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const fetchWishlist = async (token: string) => {
   const res = await fetch('/api/wishlist', {
@@ -15,13 +17,13 @@ const fetchWishlist = async (token: string) => {
   return res.json();
 };
 
-const removeFromWishlist = async ({ productId, token }: { productId: string; token: string }) => {
-  const res = await fetch(`/api/wishlist/${productId}`, {
+const removeFromWishlist = async ({ wishlistItemId, token }: { wishlistItemId: string; token: string }) => {
+  const res = await fetch(`/api/wishlist/${wishlistItemId}`, {
     method: 'DELETE',
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error('Failed to remove from wishlist');
-  return productId;
+  return wishlistItemId;
 };
 
 const Wishlist: React.FC = () => {
@@ -42,15 +44,17 @@ const Wishlist: React.FC = () => {
   });
 
   const removeMutation = useMutation({
-    mutationFn: ({ productId, token }: { productId: string; token: string }) => removeFromWishlist({ productId, token }),
-    onSuccess: (productId) => {
-      queryClient.setQueryData(['wishlist'], (old: any) =>
-        old.filter((item: any) =>
-          (item.product?._id !== productId) &&
-          (item.productId !== productId) &&
-          (item.productId?._id !== productId)
-        )
-      );
+    mutationFn: ({ wishlistItemId, token }: { wishlistItemId: string; token: string }) => removeFromWishlist({ wishlistItemId, token }),
+    onSuccess: (wishlistItemId) => {
+      // Update the cache by filtering out the removed item
+      queryClient.setQueryData(['wishlist'], (old: any) => {
+        if (!old || !Array.isArray(old)) return old;
+        return old.filter((item: any) => item.id.toString() !== wishlistItemId.toString());
+      });
+      
+      // Also invalidate the query to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['wishlist'] });
+      
       toast({ title: 'Removed from wishlist' });
     },
     onError: () => {
@@ -83,50 +87,96 @@ const Wishlist: React.FC = () => {
       <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center">Your Wishlist</h1>
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
         {(wishlist as any[]).map((item: any, idx: number) => {
-          const product = item.product || item.productId;
+          // The backend returns wishlist items with included Product data
+          const product = item.Product || item.product;
           if (!product) return null;
+          
+          const productId = product.id;
+          const productName = product.name;
+          const productPrice = product.price;
+          const productImage = product.imageUrl; // Backend uses imageUrl field
+          const productDescription = product.description;
+          const inStock = product.stock > 0; // Check stock instead of inStock
+
           return (
-            <Card key={product._id || idx} className="flex flex-col h-full">
-              <Link to={`/product/${product._id}`} className="flex-1">
-                <img
-                  src={product.imageUrl || product.image}
-                  alt={product.name}
-                  className="w-full h-40 sm:h-48 object-cover rounded-t-md"
-                />
-                <CardContent className="p-3 sm:p-4">
-                  <h3 className="font-semibold text-base sm:text-lg mb-1 sm:mb-2">{product.name}</h3>
-                  <p className="text-muted-foreground text-xs sm:text-sm mb-1 sm:mb-2 line-clamp-2">{product.description}</p>
-                  <div className="text-lg sm:text-xl font-bold text-primary mb-1 sm:mb-2">
-                    KES {product.price?.toLocaleString()}
+            <Card key={item.id || idx} className="group hover:shadow-lg transition-all duration-300 overflow-hidden w-full max-w-xs mx-auto">
+              <CardContent className="p-3 sm:p-4">
+                {/* Image Container */}
+                <div className="relative aspect-square mb-3 sm:mb-4 overflow-hidden rounded-lg bg-gray-100">
+                  <img
+                    src={productImage}
+                    alt={productName}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                    onError={(e) => {
+                      // Fallback to placeholder if image fails to load
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
+                  />
+                  
+                  {/* Out of Stock Badge */}
+                  {!inStock && (
+                    <Badge className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 bg-red-500 text-white text-xs sm:text-sm px-2 py-0.5">
+                      Out of Stock
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Product Info */}
+                <div className="space-y-1.5 sm:space-y-2">
+                  <Link to={`/product/${productId}`} className="block">
+                    <h3 className="font-semibold text-xs sm:text-sm line-clamp-2 hover:text-primary transition-colors">
+                      {productName}
+                    </h3>
+                  </Link>
+                  
+                  {productDescription && (
+                    <p className="text-muted-foreground text-xs line-clamp-2">
+                      {productDescription}
+                    </p>
+                  )}
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-base sm:text-lg text-primary">
+                      KES {productPrice?.toLocaleString()}
+                    </span>
                   </div>
-                </CardContent>
-              </Link>
-              <div className="flex gap-2 p-3 sm:p-4 pt-0">
-                <Button
-                  variant="outline"
-                  onClick={() => (product._id || product.id) && removeMutation.mutate({ productId: product._id || product.id, token: token! })}
-                  disabled={removeMutation.status === 'pending'}
-                  className="text-xs sm:text-sm"
-                >
-                  Remove
-                </Button>
-                <Button
-                  onClick={() => {
-                    addToCart({
-                      id: product._id,
-                      name: product.name,
-                      price: product.price,
-                      image: product.image,
-                      category: product.category,
-                    });
-                    toast({ title: 'Added to cart!', description: product.name });
-                  }}
-                  disabled={!product._id}
-                  className="text-xs sm:text-sm"
-                >
-                  Add to Cart
-                </Button>
-              </div>
+                  
+                  <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 mt-2">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        addToCart({
+                          id: productId,
+                          name: productName,
+                          price: productPrice,
+                          image: productImage,
+                          category: product.category,
+                        });
+                        toast({ title: 'Added to cart!', description: productName });
+                      }}
+                      disabled={!inStock}
+                      className="flex items-center gap-1 w-full xs:w-auto"
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                      <span className="hidden xs:inline">Add to Cart</span>
+                      <span className="xs:hidden">Add</span>
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => item.id && removeMutation.mutate({ wishlistItemId: item.id.toString(), token: token! })}
+                      disabled={removeMutation.status === 'pending'}
+                      className="flex items-center gap-1 w-full xs:w-auto border-red-200 hover:border-red-300 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                      <span className="hidden xs:inline text-red-600">Remove</span>
+                      <span className="xs:hidden text-red-600">Remove</span>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
           );
         })}

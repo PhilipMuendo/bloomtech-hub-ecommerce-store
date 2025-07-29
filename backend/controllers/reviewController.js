@@ -1,20 +1,24 @@
-import Review from '../models/Review.js';
-import Product from '../models/Product.js';
-import User from '../models/User.js';
+import db from '../sequelize_models/index.js';
+
+const { Review, Product, User } = db;
 
 // GET /api/reviews (admin)
 export const getAllReviews = async (req, res) => {
   try {
-    const reviews = await Review.find()
-      .populate('productId', 'name')
-      .populate('userId', 'name email');
+    const reviews = await Review.findAll({
+      include: [
+        { model: Product, attributes: ['name'] },
+        { model: User, attributes: ['name', 'email'] }
+      ]
+    });
+    
     // Format for admin panel
     const formatted = reviews.map(r => ({
-      id: r._id,
-      productName: r.productId?.name || 'N/A',
-      productId: r.productId?._id?.toString() || '',
-      customerName: r.userId?.name || 'N/A',
-      customerEmail: r.userId?.email || 'N/A',
+      id: r.id,
+      productName: r.Product?.name || 'N/A',
+      productId: r.Product?.id?.toString() || '',
+      customerName: r.User?.name || 'N/A',
+      customerEmail: r.User?.email || 'N/A',
       rating: r.rating,
       comment: r.comment,
       date: r.createdAt,
@@ -31,67 +35,82 @@ export const getAllReviews = async (req, res) => {
 export const createReview = async (req, res) => {
   try {
     const { productId, comment, rating } = req.body;
-    if (!productId || !comment || !rating) return res.status(400).json({ error: 'Missing fields' });
-    const review = new Review({
+    if (!productId || !comment || !rating) {
+      return res.status(400).json({ error: 'Missing fields' });
+    }
+    
+    const review = await Review.create({
       productId,
-      userId: req.user._id,
+      userId: req.user.id,
       comment,
       rating,
       status: 'pending',
       helpful: 0,
     });
-    await review.save();
-    // Optionally add review to product
-    await Product.findByIdAndUpdate(productId, { $push: { reviews: review._id } });
+    
     res.status(201).json(review);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// PUT /api/reviews/:id/status (admin)
-export const updateReviewStatus = async (req, res) => {
+// GET /api/reviews/product/:productId
+export const getProductReviews = async (req, res) => {
   try {
-    const { status } = req.body;
-    const review = await Review.findByIdAndUpdate(req.params.id, { status }, { new: true });
-    if (!review) return res.status(404).json({ error: 'Review not found' });
-    res.json(review);
+    const reviews = await Review.findAll({
+      where: { 
+        productId: req.params.productId,
+        status: 'approved'
+      },
+      include: [{ model: User, attributes: ['name'] }],
+      order: [['createdAt', 'DESC']]
+    });
+    res.json(reviews);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// DELETE /api/reviews/:id (admin)
-export const deleteReview = async (req, res) => {
+// PUT /api/reviews/:id/approve (admin)
+export const approveReview = async (req, res) => {
   try {
-    const review = await Review.findByIdAndDelete(req.params.id);
-    if (!review) return res.status(404).json({ error: 'Review not found' });
-    // Optionally remove from product
-    await Product.findByIdAndUpdate(review.productId, { $pull: { reviews: review._id } });
-    res.json({ message: 'Review deleted' });
+    const review = await Review.findByPk(req.params.id);
+    if (!review) {
+      return res.status(404).json({ error: 'Review not found' });
+    }
+    
+    await review.update({ status: 'approved' });
+    res.json({ message: 'Review approved' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// GET /api/reviews/public/:productId (public)
-export const getApprovedReviewsForProduct = async (req, res) => {
+// PUT /api/reviews/:id/reject (admin)
+export const rejectReview = async (req, res) => {
   try {
-    const { productId } = req.params;
-    const reviews = await Review.find({ productId, status: 'approved' })
-      .populate('userId', 'name email');
-    // Format for frontend
-    const formatted = reviews.map(r => ({
-      id: r._id,
-      userId: r.userId?._id?.toString() || '',
-      productId: r.productId?.toString() || '',
-      rating: r.rating,
-      comment: r.comment,
-      createdAt: r.createdAt,
-      status: r.status,
-      customerName: r.userId?.name || '',
-    }));
-    res.json(formatted);
+    const review = await Review.findByPk(req.params.id);
+    if (!review) {
+      return res.status(404).json({ error: 'Review not found' });
+    }
+    
+    await review.update({ status: 'rejected' });
+    res.json({ message: 'Review rejected' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// PUT /api/reviews/:id/helpful
+export const markHelpful = async (req, res) => {
+  try {
+    const review = await Review.findByPk(req.params.id);
+    if (!review) {
+      return res.status(404).json({ error: 'Review not found' });
+    }
+    
+    await review.update({ helpful: review.helpful + 1 });
+    res.json({ message: 'Marked as helpful' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

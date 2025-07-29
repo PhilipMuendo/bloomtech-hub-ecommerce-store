@@ -81,13 +81,19 @@ const AdminLayout = () => {
 
   useEffect(() => {
     const fetchAdminQuoteNotifications = async () => {
-      if (user?.role !== 'superadmin') return;
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') return;
       try {
         const res = await fetch('/api/quotes', {
           headers: { Authorization: `Bearer ${user.token}` },
         });
+        if (!res.ok) {
+          console.error("Failed to fetch quotes:", res.status, res.statusText);
+          return;
+        }
         const data = await res.json();
-        const unseen = data.filter((q: any) => !q.adminSeen).length;
+        // Handle both array and object responses
+        const quotes = Array.isArray(data) ? data : (data.quotes || []);
+        const unseen = quotes.filter((q: any) => !q.adminSeen).length;
         setAdminQuoteNotifications(unseen);
       } catch (error) {
         console.error("Failed to fetch admin notifications:", error);
@@ -110,6 +116,25 @@ const AdminLayout = () => {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleQuotesClick = async () => {
+    // Mark quotes as seen by admin when they visit the quotes page
+    if (adminQuoteNotifications > 0) {
+      try {
+        await fetch('/api/quotes/mark-admin-seen', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${user.token}`,
+          },
+        });
+        // Reset the notification count
+        setAdminQuoteNotifications(0);
+      } catch (error) {
+        console.error('Error marking quotes as seen:', error);
+      }
+    }
   };
 
   const isActive = (path: string) => {
@@ -162,6 +187,7 @@ const AdminLayout = () => {
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
+                  onClick={item.path === '/admin/quotes' ? handleQuotesClick : undefined}
                   >
                   <item.icon className="mr-3 h-5 w-5" />
                   <span>{item.label}</span>

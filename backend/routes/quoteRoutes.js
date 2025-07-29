@@ -1,5 +1,5 @@
 import express from 'express';
-import { createQuote, getQuotes, respondToQuote, getUserQuotes, markQuotesSeen, createOrderFromQuote, replyToQuote, markAdminSeen } from '../controllers/quoteController.js';
+import { createQuote, getQuotes, getUserQuotes, getQuoteById, addMessage, updateQuoteStatus, createOrderFromQuote, respondToQuote, markSeen, markAdminSeen, replyToQuote } from '../controllers/quoteController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/roleAuth.js';
 
@@ -9,17 +9,23 @@ const router = express.Router();
 router.post('/', requireAuth, createQuote);
 // Admin views all quote requests
 router.get('/', requireAuth, requireAdmin, getQuotes);
-// Admin responds to a quote
-router.patch('/:id', requireAuth, requireAdmin, respondToQuote);
 // User fetches their own quotes
 router.get('/user', requireAuth, getUserQuotes);
-// User marks all responded quotes as seen
-router.patch('/mark-seen', requireAuth, markQuotesSeen);
-// Superadmin creates an order from a quote
-router.post('/:id/create-order', requireAuth, requireSuperAdmin, createOrderFromQuote);
-// Customer replies to a quote
+// Mark quotes as seen by user
+router.patch('/mark-seen', requireAuth, markSeen);
+// Mark quotes as seen by admin
+router.patch('/mark-admin-seen', requireAuth, requireAdmin, markAdminSeen);
+// Get specific quote (user or admin)
+router.get('/:id', requireAuth, getQuoteById);
+// Add message to quote (user or admin)
+router.post('/:id/message', requireAuth, addMessage);
+// User replies to quote
 router.post('/:id/reply', requireAuth, replyToQuote);
-// Admin marks all quotes as seen
-router.patch('/admin-seen', requireAuth, requireSuperAdmin, markAdminSeen);
+// Admin responds to quote
+router.patch('/:id', requireAuth, requireAdmin, respondToQuote);
+// Admin updates quote status
+router.put('/:id/status', requireAuth, requireAdmin, updateQuoteStatus);
+// Admin creates an order from a quote
+router.post('/:id/create-order', requireAuth, requireAdmin, createOrderFromQuote);
 
 export default router; 
