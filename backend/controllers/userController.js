@@ -1,9 +1,13 @@
-import User from '../models/User.js';
+import db from '../sequelize_models/index.js';
 import { sendVerificationEmail, generateVerificationToken } from './authController.js';
+
+const { User } = db;
 
 export const getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find({}).select('-password');
+    const users = await User.findAll({
+      attributes: { exclude: ['password'] }
+    });
     res.json(users);
   } catch (error) {
     next(error);
@@ -12,126 +16,82 @@ export const getAllUsers = async (req, res, next) => {
 
 export const getUserById = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
-    if (user) {
-      res.json(user);
-    } else {
-      return res.status(404).json({ error: 'User not found' });
-    }
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const updateUserRole = async (req, res, next) => {
-  try {
-    const { role } = req.body;
-    const { id } = req.params;
-
-    // Only superadmin can promote to admin or superadmin
-    if (role === 'admin' || role === 'superadmin') {
-      if (req.user.role !== 'superadmin') {
-        return res.status(403).json({ error: 'Only superadmin can promote users to admin or superadmin' });
-      }
-    }
-
-    const user = await User.findById(id);
+    const user = await User.findByPk(req.params.id, {
+      attributes: { exclude: ['password'] }
+    });
+    
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-
-    user.role = role;
-    user.isAdmin = role === 'admin' || role === 'superadmin';
-    await user.save();
-
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      isAdmin: user.isAdmin
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const updateUserStatus = async (req, res, next) => {
-  try {
-    const { status } = req.body;
-    const { id } = req.params;
-
-    const user = await User.findById(id);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    user.status = status;
-    await user.save();
-
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      status: user.status
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const getMe = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user._id).select('-password');
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    
     res.json(user);
   } catch (error) {
     next(error);
   }
 };
 
-export const updateMe = async (req, res, next) => {
+export const updateUser = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    let emailChanged = false;
-    if (req.body.email && req.body.email !== user.email) {
-      user.email = req.body.email;
-      user.verified = false;
-      user.verificationToken = generateVerificationToken();
-      user.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
-      emailChanged = true;
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
-    user.name = req.body.name || user.name;
-    await user.save();
-    if (emailChanged) {
-      await sendVerificationEmail(user, req);
-    }
-    res.json({ _id: user._id, name: user.name, email: user.email, role: user.role, verified: user.verified });
+    
+    // Only allow updating certain fields
+    const { name, email, role, status } = req.body;
+    const updateData = {};
+    
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (role) updateData.role = role;
+    if (status) updateData.status = status;
+    
+    await user.update(updateData);
+    
+    // Return user without password
+    const userWithoutPassword = await User.findByPk(req.params.id, {
+      attributes: { exclude: ['password'] }
+    });
+    
+    res.json(userWithoutPassword);
   } catch (error) {
-    if (error.code === 11000 && error.keyPattern && error.keyPattern.email) {
-      return res.status(400).json({ error: 'Email is already in use by another account.' });
-    }
     next(error);
   }
 };
 
-export const changePassword = async (req, res, next) => {
+export const deleteUser = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: 'Current and new password required' });
+    const user = await User.findByPk(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
-    const isMatch = await user.matchPassword(currentPassword);
-    if (!isMatch) {
-      return res.status(400).json({ error: 'Current password is incorrect' });
+    
+    await user.destroy();
+    res.json({ message: 'User deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resendVerificationEmail = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ where: { email } });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
     }
-    user.password = newPassword;
+    
+    if (user.verified) {
+      return res.status(400).json({ error: 'Email already verified' });
+    }
+    
+    user.verificationToken = generateVerificationToken();
+    user.verificationTokenExpires = Date.now() + 24 * 60 * 60 * 1000;
     await user.save();
-    res.json({ message: 'Password updated successfully' });
+    
+    await sendVerificationEmail(user, req);
+    res.json({ message: 'Verification email resent' });
   } catch (error) {
     next(error);
   }

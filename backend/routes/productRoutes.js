@@ -6,7 +6,7 @@ import {
   updateProduct,
   deleteProduct,
   getLowStockProducts,
-  exportProductsCSV,
+  exportProducts,
   getFeaturedProducts,
   searchProducts
 } from '../controllers/productController.js';
@@ -20,7 +20,7 @@ router.get('/', getAllProducts);
 // Instant search for frontend
 router.get('/search', searchProducts);
 router.get('/low-stock', requireAuth, requireAdmin, getLowStockProducts);
-router.get('/export/csv', exportProductsCSV);
+router.get('/export', requireAuth, requireAdmin, exportProducts);
 router.get('/featured', getFeaturedProducts);
 router.get('/:id', getProductById);
 router.post('/', requireAuth, requireAdmin, createProduct);

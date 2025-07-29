@@ -81,21 +81,53 @@ const Reviews = () => {
     }
   };
 
-  const updateReviewStatus = (reviewId: string, newStatus: 'approved' | 'rejected') => {
-    // In real app, would call API
-    toast({
-      title: "Review Updated",
-      description: `Review ${reviewId} has been ${newStatus}`,
-    });
+  const updateReviewStatus = async (reviewId: string, newStatus: 'approved' | 'rejected') => {
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': user?.token ? `Bearer ${user.token}` : ''
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (!res.ok) throw new Error('Failed to update review status');
+      setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, status: newStatus } : r));
+      toast({
+        title: 'Review Updated',
+        description: `Review ${reviewId} has been ${newStatus}`,
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to update review status',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const deleteReview = (reviewId: string) => {
-    // In real app, would call API
-    toast({
-      title: "Review Deleted",
-      description: `Review ${reviewId} has been permanently deleted`,
-      variant: "destructive"
-    });
+  const deleteReview = async (reviewId: string) => {
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': user?.token ? `Bearer ${user.token}` : ''
+        }
+      });
+      if (!res.ok) throw new Error('Failed to delete review');
+      setReviews(prev => prev.filter(r => r.id !== reviewId));
+      toast({
+        title: "Review Deleted",
+        description: `Review ${reviewId} has been permanently deleted`,
+        variant: "destructive"
+      });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || 'Failed to delete review',
+        variant: "destructive"
+      });
+    }
   };
 
   const renderStars = (rating: number) => {

@@ -3,7 +3,6 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import express from 'express';
-import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -18,7 +17,7 @@ import userRoutes from './routes/userRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import campaignRoutes from './routes/campaignRoutes.js';
 import blogRoutes from './routes/blogRoutes.js';
-import connectDB from './config/db.js';
+import db, { sequelize } from './sequelize_models/index.js';
 import fs from 'fs';
 import reviewRoutes from './routes/reviewRoutes.js';
 import newsletterRoutes from './routes/newsletterRoutes.js';
@@ -27,9 +26,12 @@ import quoteRoutes from './routes/quoteRoutes.js';
 // Load environment variables
 dotenv.config();
 
-console.log('MONGO_URI:', process.env.MONGO_URI);
+console.log('Database:', process.env.DB_NAME || 'bloomtech_db');
 
 const app = express();
+
+// Trust proxy for ngrok
+app.set('trust proxy', true);
 
 // Middleware
 app.use(cors({
@@ -37,7 +39,9 @@ app.use(cors({
     'http://localhost:8081', // Vite dev server
     'http://localhost:3000', // React default
     'http://127.0.0.1:8081',
-    'http://127.0.0.1:3000'
+    'http://127.0.0.1:3000',
+    'https://*.ngrok.io', // Allow all ngrok URLs for testing
+    'https://*.ngrok-free.app' // Allow ngrok free app URLs
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -79,19 +83,44 @@ app.use('/api/quotes', quoteRoutes);
 
 // Global error handler (should be after all routes)
 app.use((err, req, res, next) => {
+  console.error('=== GLOBAL ERROR HANDLER ===');
+  console.error('Error:', err);
+  console.error('Error name:', err.name);
+  console.error('Error message:', err.message);
+  console.error('Error stack:', err.stack);
+  console.error('Request URL:', req.url);
+  console.error('Request method:', req.method);
+  console.error('Request body:', req.body);
+  console.error('User:', req.user ? { id: req.user.id, email: req.user.email } : 'No user');
+  console.error('=== END ERROR HANDLER ===');
+  
   const status = err.status || 500;
   const message = err.message || 'Internal server error';
-  res.status(status).json({ error: message });
+  
+  // Don't send stack traces in production
+  const errorResponse = {
+    error: message,
+    status: status
+  };
+  
+  // Add more details in development
+  if (process.env.NODE_ENV !== 'production') {
+    errorResponse.details = {
+      name: err.name,
+      stack: err.stack
+    };
+  }
+  
+  res.status(status).json(errorResponse);
 });
 
-// MongoDB connection
+// Database connection
 const PORT = process.env.PORT || 5000;
 
-connectDB().then(() => {
+sequelize.sync().then(() => {
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
-})
-.catch((err) => {
-  console.error('MongoDB connection error:', err);
+}).catch((err) => {
+  console.error('Sequelize connection error:', err);
 });

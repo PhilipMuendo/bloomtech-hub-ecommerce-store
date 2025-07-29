@@ -1,10 +1,14 @@
-import Wishlist from '../models/Wishlist.js';
-import mongoose from 'mongoose';
+import db from '../sequelize_models/index.js';
+
+const { Wishlist, Product } = db;
 
 // Get current user's wishlist
 export const getWishlist = async (req, res, next) => {
   try {
-    const wishlist = await Wishlist.find({ userId: req.user._id }).populate('productId');
+    const wishlist = await Wishlist.findAll({
+      where: { userId: req.user.id },
+      include: [{ model: Product }]
+    });
     res.json(wishlist);
   } catch (err) {
     next(err);
@@ -17,15 +21,28 @@ export const addToWishlist = async (req, res, next) => {
   if (!productId) {
     return res.status(400).json({ error: 'Product required' });
   }
-  if (!mongoose.Types.ObjectId.isValid(productId)) {
-    return res.status(400).json({ error: 'Invalid productId. Must be a valid MongoDB ObjectId.' });
+  
+  // Validate productId is a number
+  if (isNaN(productId)) {
+    return res.status(400).json({ error: 'Invalid productId. Must be a valid number.' });
   }
+  
   try {
-    const exists = await Wishlist.findOne({ userId: req.user._id, productId });
+    // Check if product exists
+    const product = await Product.findByPk(productId);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    const exists = await Wishlist.findOne({
+      where: { userId: req.user.id, productId }
+    });
+    
     if (exists) {
       return res.status(400).json({ error: 'Already in wishlist' });
     }
-    const item = await Wishlist.create({ userId: req.user._id, productId });
+    
+    const item = await Wishlist.create({ userId: req.user.id, productId });
     res.status(201).json(item);
   } catch (err) {
     next(err);
@@ -34,14 +51,27 @@ export const addToWishlist = async (req, res, next) => {
 
 // Remove from wishlist
 export const removeFromWishlist = async (req, res, next) => {
-  const { productId } = req.params;
-  if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
-    return res.status(400).json({ error: 'Invalid or missing productId' });
-  }
   try {
-    const item = await Wishlist.findOneAndDelete({ productId, userId: req.user._id });
-    if (!item) return res.status(404).json({ error: 'Wishlist item not found for this product' });
-    res.json({ message: 'Item removed' });
+    const wishlistItem = await Wishlist.findOne({
+      where: { id: req.params.id, userId: req.user.id }
+    });
+    
+    if (!wishlistItem) {
+      return res.status(404).json({ error: 'Wishlist item not found' });
+    }
+    
+    await wishlistItem.destroy();
+    res.json({ message: 'Item removed from wishlist' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Clear wishlist
+export const clearWishlist = async (req, res, next) => {
+  try {
+    await Wishlist.destroy({ where: { userId: req.user.id } });
+    res.json({ message: 'Wishlist cleared' });
   } catch (err) {
     next(err);
   }

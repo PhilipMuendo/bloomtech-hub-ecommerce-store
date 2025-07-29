@@ -1,10 +1,13 @@
-import Campaign from '../models/Campaign.js';
-import Newsletter from '../models/Newsletter.js';
+import db from '../sequelize_models/index.js';
 import nodemailer from 'nodemailer';
+
+const { Campaign, Newsletter } = db;
 
 export const getAllCampaigns = async (req, res) => {
   try {
-    const campaigns = await Campaign.find().sort({ sentDate: -1 });
+    const campaigns = await Campaign.findAll({
+      order: [['sentDate', 'DESC']]
+    });
     res.json(campaigns);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -17,12 +20,15 @@ export const createAndSendCampaign = async (req, res) => {
     if (!subject || !content) {
       return res.status(400).json({ error: 'Subject and content are required.' });
     }
+    
     // Get all active subscribers
-    const subscribers = await Newsletter.find();
+    const subscribers = await Newsletter.findAll();
     const recipientEmails = subscribers.map(s => s.email);
+    
     if (recipientEmails.length === 0) {
       return res.status(400).json({ error: 'No subscribers to send to.' });
     }
+    
     // Send email via Nodemailer
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -33,21 +39,49 @@ export const createAndSendCampaign = async (req, res) => {
         pass: process.env.SMTP_PASS,
       },
     });
+    
     await transporter.sendMail({
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: recipientEmails,
       subject,
       html: content,
     });
+    
     // Save campaign to DB
-    const campaign = new Campaign({
+    const campaign = await Campaign.create({
       subject,
       content,
       recipients: recipientEmails,
       sentDate: new Date(),
     });
-    await campaign.save();
+    
     res.status(201).json({ message: 'Campaign sent and saved.', campaign });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getCampaignById = async (req, res) => {
+  try {
+    const campaign = await Campaign.findByPk(req.params.id);
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    res.json(campaign);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const deleteCampaign = async (req, res) => {
+  try {
+    const campaign = await Campaign.findByPk(req.params.id);
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    await campaign.destroy();
+    res.json({ message: 'Campaign deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

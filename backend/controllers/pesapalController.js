@@ -1,6 +1,8 @@
 import axios from 'axios';
 import crypto from 'crypto';
-import Order from '../models/Order.js';
+import db from '../sequelize_models/index.js';
+
+const { Order, Product } = db;
 
 // Load environment variables
 const {
@@ -11,7 +13,7 @@ const {
   NODE_ENV
 } = process.env;
 
-
+const isProduction = NODE_ENV === 'production';
 
 // Helper to generate OAuth signature for Pesapal
 const generateOAuthSignature = (url, method, params) => {
@@ -38,33 +40,41 @@ export const initiatePesapalPayment = async (req, res, next) => {
       return res.status(400).json({ error: 'Order ID is required' });
     }
 
-    // Fetch order and validate
-    const order = await Order.findById(orderId);
+    // Fetch order and validate using Sequelize
+    const order = await Order.findByPk(orderId, {
+      include: [
+        {
+          model: db.OrderItem,
+          include: [{ model: Product }]
+        }
+      ]
+    });
+    
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
-    if (order.status !== 'Awaiting Payment' && order.status !== 'Pending') {
+    
+    if (order.status !== 'awaiting_payment' && order.status !== 'pending') {
       return res.status(400).json({ error: 'Order is not in a payable state' });
     }
 
     // Stock verification before payment initiation
-    for (const item of order.items) {
-      if (!item.productId) continue;
-      const product = await item.productId.populate('stock');
-      if (!product || product.stock < item.quantity) {
-        return res.status(400).json({ error: `Insufficient stock for product ${product.name}` });
+    for (const item of order.OrderItems) {
+      if (!item.Product) continue;
+      if (item.Product.stock < item.quantity) {
+        return res.status(400).json({ error: `Insufficient stock for product ${item.Product.name}` });
       }
     }
 
     // Prepare payment request payload
-    const amount = order.total.toFixed(2);
-    const description = `Payment for Order ${order._id}`;
+    const amount = parseFloat(order.total).toFixed(2);
+    const description = `Payment for Order ${order.id}`;
     const type = 'MERCHANT';
-    const reference = order._id.toString();
-    const firstName = req.body.firstName;
-    const lastName = req.body.lastName || '';
-    const email = req.body.email;
-    const phoneNumber = ''; // Optional: collect from user if needed
+    const reference = order.id.toString();
+    const firstName = req.body.firstName || req.user?.name?.split(' ')[0] || 'Customer';
+    const lastName = req.body.lastName || req.user?.name?.split(' ').slice(1).join(' ') || '';
+    const email = req.body.email || req.user?.email || 'customer@example.com';
+    const phoneNumber = req.body.phoneNumber || '';
 
     // Construct XML payload as per Pesapal API
     const xmlPayload = `
@@ -118,6 +128,7 @@ export const initiatePesapalPayment = async (req, res, next) => {
     res.json({ paymentUrl: requestUrl });
 
   } catch (error) {
+    console.error('Pesapal payment initiation error:', error);
     next(error);
   }
 };
@@ -133,7 +144,7 @@ export const handlePesapalCallback = async (req, res, next) => {
     }
 
     // Verify payment status by querying Pesapal API
-    const statusUrl = `${PESAPAL_API_ENDPOINT}/QueryPaymentStatus` + 
+    const statusUrl = `${PESAPAL_API_ENDPOINT || 'https://demo.pesapal.com'}/QueryPaymentStatus` + 
       `?pesapal_merchant_reference=${pesapal_merchant_reference}&pesapal_transaction_tracking_id=${pesapal_transaction_tracking_id}`;
 
     // OAuth parameters for status query
@@ -164,27 +175,25 @@ export const handlePesapalCallback = async (req, res, next) => {
     const response = await axios.get(fullStatusUrl);
     const paymentStatus = response.data;
 
-    // Update order status based on paymentStatus
-    const order = await Order.findById(pesapal_merchant_reference);
+    // Update order status based on paymentStatus using Sequelize
+    const order = await Order.findByPk(pesapal_merchant_reference);
     if (!order) {
       return res.status(404).send('Order not found');
     }
 
     if (paymentStatus === 'COMPLETED') {
-      order.status = 'Paid';
+      await order.update({ status: 'paid' });
       // TODO: Implement a function to send a confirmation email to the customer
       // sendConfirmationEmail(order.customer.email, order);
-      await order.save();
     } else if (paymentStatus === 'PENDING') {
-      order.status = 'Awaiting Payment';
-      await order.save();
+      await order.update({ status: 'awaiting_payment' });
     } else if (paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED') {
-      order.status = 'Pending';
-      await order.save();
+      await order.update({ status: 'pending' });
     }
 
     res.status(200).send('OK');
   } catch (error) {
+    console.error('Pesapal callback error:', error);
     next(error);
   }
 };
@@ -192,12 +201,13 @@ export const handlePesapalCallback = async (req, res, next) => {
 export const checkPesapalPaymentStatus = async (req, res, next) => {
   try {
     const { orderId } = req.params;
-    const order = await Order.findById(orderId);
+    const order = await Order.findByPk(orderId);
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
     res.json({ status: order.status });
   } catch (error) {
+    console.error('Pesapal status check error:', error);
     next(error);
   }
 };
