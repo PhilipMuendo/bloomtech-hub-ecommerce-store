@@ -45,6 +45,7 @@ export interface Quote {
   adminSeen: boolean;
   orderCreated?: boolean;
   adminResponse?: string;
+  finalPrice?: number;
   createdAt: string;
   updatedAt: string;
 }

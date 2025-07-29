@@ -4,6 +4,38 @@ import { Parser as Json2csvParser } from 'json2csv';
 
 const { Product } = db;
 
+// Utility function to fix image URLs for ngrok
+const fixImageUrl = (imageUrl, req) => {
+  if (!imageUrl) return imageUrl;
+  
+  console.log('🔍 Fixing image URL:', imageUrl);
+  console.log('🔍 Request headers:', {
+    host: req.get('host'),
+    forwardedHost: req.get('x-forwarded-host'),
+    forwardedProto: req.get('x-forwarded-proto'),
+    userAgent: req.get('user-agent')
+  });
+  
+  // If it's already a full URL, check if it needs to be updated for ngrok
+  if (imageUrl.startsWith('http://localhost') || imageUrl.startsWith('https://localhost')) {
+    const forwardedHost = req.get('x-forwarded-host');
+    const forwardedProto = req.get('x-forwarded-proto');
+    
+    if (forwardedHost && forwardedProto) {
+      // Replace localhost with ngrok URL
+      const ngrokUrl = `${forwardedProto}://${forwardedHost}`;
+      const fixedUrl = imageUrl.replace(/https?:\/\/localhost:\d+/, ngrokUrl);
+      console.log('✅ Fixed URL:', fixedUrl);
+      return fixedUrl;
+    } else {
+      console.log('❌ No ngrok headers found');
+    }
+  }
+  
+  console.log('🔄 Returning original URL:', imageUrl);
+  return imageUrl;
+};
+
 // GET /api/products
 export const getAllProducts = async (req, res, next) => {
   try {
@@ -25,8 +57,15 @@ export const getAllProducts = async (req, res, next) => {
       limit: parseInt(limit)
     });
     
+    // Fix image URLs for ngrok access
+    const productsWithFixedUrls = products.map(product => {
+      const productData = product.toJSON();
+      productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+      return productData;
+    });
+    
     res.json({
-      products,
+      products: productsWithFixedUrls,
       total: count,
       page: parseInt(page),
       limit: parseInt(limit),
@@ -44,7 +83,10 @@ export const getProductById = async (req, res, next) => {
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    res.json(product);
+    
+    const productData = product.toJSON();
+    productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+    res.json(productData);
   } catch (err) {
     next(err);
   }
@@ -95,7 +137,15 @@ export const getFeaturedProducts = async (req, res, next) => {
       where: { featured: true },
       limit: 10
     });
-    res.json(products);
+    
+    // Fix image URLs for ngrok access
+    const productsWithFixedUrls = products.map(product => {
+      const productData = product.toJSON();
+      productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+      return productData;
+    });
+    
+    res.json(productsWithFixedUrls);
   } catch (err) {
     next(err);
   }
@@ -125,7 +175,15 @@ export const searchProducts = async (req, res, next) => {
     }
     
     const products = await Product.findAll({ where });
-    res.json(products);
+    
+    // Fix image URLs for ngrok access
+    const productsWithFixedUrls = products.map(product => {
+      const productData = product.toJSON();
+      productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+      return productData;
+    });
+    
+    res.json(productsWithFixedUrls);
   } catch (err) {
     next(err);
   }
@@ -160,7 +218,15 @@ export const getLowStockProducts = async (req, res, next) => {
       },
       order: [['stock', 'ASC']]
     });
-    res.json(products);
+    
+    // Fix image URLs for ngrok access
+    const productsWithFixedUrls = products.map(product => {
+      const productData = product.toJSON();
+      productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+      return productData;
+    });
+    
+    res.json(productsWithFixedUrls);
   } catch (err) {
     next(err);
   }
