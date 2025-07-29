@@ -81,7 +81,7 @@ const AdminLayout = () => {
 
   useEffect(() => {
     const fetchAdminQuoteNotifications = async () => {
-      if (user?.role !== 'superadmin') return;
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') return;
       try {
         const res = await fetch('/api/quotes', {
           headers: { Authorization: `Bearer ${user.token}` },
@@ -116,6 +116,25 @@ const AdminLayout = () => {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleQuotesClick = async () => {
+    // Mark quotes as seen by admin when they visit the quotes page
+    if (adminQuoteNotifications > 0) {
+      try {
+        await fetch('/api/quotes/mark-admin-seen', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${user.token}`,
+          },
+        });
+        // Reset the notification count
+        setAdminQuoteNotifications(0);
+      } catch (error) {
+        console.error('Error marking quotes as seen:', error);
+      }
+    }
   };
 
   const isActive = (path: string) => {
@@ -168,6 +187,7 @@ const AdminLayout = () => {
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:bg-muted'
                   }`}
+                  onClick={item.path === '/admin/quotes' ? handleQuotesClick : undefined}
                   >
                   <item.icon className="mr-3 h-5 w-5" />
                   <span>{item.label}</span>

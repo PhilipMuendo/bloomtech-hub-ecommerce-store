@@ -270,17 +270,20 @@ export const getRecentOrdersForNotifications = async (req, res, next) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
     
-    // Get orders from the last 24 hours
+    // Get orders from the last 24 hours (created OR updated)
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     const recentOrders = await Order.findAll({
       where: {
-        createdAt: { [Op.gte]: twentyFourHoursAgo },
-        status: { [Op.in]: ['pending', 'awaiting_payment', 'processing'] }
+        [Op.or]: [
+          { createdAt: { [Op.gte]: twentyFourHoursAgo } },
+          { updatedAt: { [Op.gte]: twentyFourHoursAgo } }
+        ],
+        status: { [Op.in]: ['pending', 'awaiting_payment', 'processing', 'shipped', 'delivered'] }
       },
       include: [{ model: User, attributes: ['name', 'email', 'phone'] }],
-      order: [['createdAt', 'DESC']],
-      limit: 10
+      order: [['updatedAt', 'DESC']], // Order by most recently updated
+      limit: 15
     });
     
     // Format for frontend
@@ -291,6 +294,7 @@ export const getRecentOrdersForNotifications = async (req, res, next) => {
       total: order.total,
       status: order.status,
       createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
       itemCount: order.OrderItems?.length || 0
     }));
     

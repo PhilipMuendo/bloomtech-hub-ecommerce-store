@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, MailCheck, CheckCircle, XCircle, FilePlus, User as UserIcon } from 'lucide-react';
+import { Clock, MailCheck, CheckCircle, XCircle, FilePlus, User as UserIcon, RefreshCw } from 'lucide-react';
 import { Quote } from '@/types';
+import { useQuery } from '@tanstack/react-query';
 
 const StatusBadge = ({ status }) => {
   switch (status) {
@@ -44,10 +45,7 @@ const Quotes = () => {
   const [filterStart, setFilterStart] = useState('');
   const [filterEnd, setFilterEnd] = useState('');
   const [filterDay, setFilterDay] = useState('');
-  const [quotes, setQuotes] = useState<Quote[]>([]);
   const [sortBy, setSortBy] = useState<'newest' | 'status' | 'name'>('newest');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [response, setResponse] = useState('');
   const [status, setStatus] = useState('responded');
@@ -60,25 +58,29 @@ const Quotes = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const fetchQuotes = async () => {
+    try {
+      const res = await fetch('/api/quotes', {
+        headers: { Authorization: `Bearer ${user?.token}` },
+      });
+      if (!res.ok) throw new Error('Failed to fetch quotes');
+      const data = await res.json();
+      return data;
+    } catch (err: any) {
+      throw new Error(err.message || 'Error loading quotes');
+    }
+  };
+
+  const { data: quotes, isLoading: loading, error, refetch } = useQuery({
+    queryKey: ['quotes'],
+    queryFn: fetchQuotes,
+    refetchInterval: 30000, // Refetch every 30 seconds
+    enabled: !!user, // Only run when user is available
+  });
+
   useEffect(() => {
-    const fetchQuotes = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch('/api/quotes', {
-          headers: { Authorization: `Bearer ${user?.token}` },
-        });
-        if (!res.ok) throw new Error('Failed to fetch quotes');
-        const data = await res.json();
-        setQuotes(data);
-      } catch (err: any) {
-        setError(err.message || 'Error loading quotes');
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (user) fetchQuotes();
-  }, [user]);
+    if (user) refetch();
+  }, [user, refetch]);
 
   const handleRespond = async () => {
     if (!selectedQuote) return;
@@ -98,8 +100,7 @@ const Quotes = () => {
       setShowRespondDialog(false);
       setResponse('');
       setStatus('responded');
-      const updated = await res.json();
-      setQuotes((prev) => prev.map((q) => (q._id === updated._id ? updated : q)));
+      refetch(); // Update the query data
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -131,7 +132,7 @@ const Quotes = () => {
         status: 'closed' as const, 
         orderCreated: true 
       };
-      setQuotes((prev) => prev.map((q) => (q._id === updatedQuote._id ? updatedQuote : q)));
+      refetch(); // Update the query data
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -140,7 +141,7 @@ const Quotes = () => {
   };
 
   // Sort quotes first
-  const sortedQuotes = [...quotes].sort((a, b) => {
+  const sortedQuotes = [...quotes || []].sort((a, b) => {
     if (sortBy === 'newest') {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }
@@ -174,7 +175,13 @@ const Quotes = () => {
   return (
     <Card className="max-w-full">
       <CardHeader>
-        <CardTitle>Quote Requests</CardTitle>
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Quote Requests</h2>
+          <Button onClick={() => refetch()} variant="outline" size="sm">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
         <div className="mt-2 flex flex-wrap gap-4 items-center">
           <div className="flex gap-2 items-center">
             <label htmlFor="sortQuotes" className="text-sm font-medium">Sort by:</label>
@@ -222,7 +229,7 @@ const Quotes = () => {
         {loading ? (
           <div>Loading...</div>
         ) : error ? (
-          <div className="text-red-500">{error}</div>
+          <div className="text-red-500">{error?.message || 'Error loading quotes'}</div>
         ) : (
           <Table>
             <TableHeader>
@@ -266,7 +273,7 @@ const Quotes = () => {
                           e.stopPropagation();
                           setSelectedQuote(q);
                           setResponse(q.adminResponse || '');
-                          setStatus(q.status || 'responded');
+                          setStatus('responded'); // Default to responded when sending a response
                           setShowRespondDialog(true);
                         }}
                       >
@@ -357,11 +364,17 @@ const Quotes = () => {
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                 >
-                  <option value="pending">Pending</option>
-                  <option value="responded">Responded</option>
-                  <option value="closed">Closed</option>
-                  <option value="declined">Declined</option>
+                  <option value="responded">Responded (Default)</option>
+                  <option value="closed">Close Deal</option>
+                  <option value="declined">Decline Request</option>
+                  <option value="pending">Keep Pending</option>
                 </select>
+                <p className="text-xs text-muted-foreground">
+                  {status === 'responded' && 'Quote will be marked as responded when you send a message'}
+                  {status === 'closed' && 'Quote will be closed and ready for order creation'}
+                  {status === 'declined' && 'Quote will be declined and conversation ended'}
+                  {status === 'pending' && 'Quote will remain pending for further review'}
+                </p>
               </div>
             </div>
           )}
@@ -431,19 +444,30 @@ const Quotes = () => {
               </div>
 
               {/* Final Agreed Price */}
-              {selectedQuote.orderCreated && selectedQuote.finalPrice && (
+              {selectedQuote.orderCreated && (
                 <div className="space-y-3">
                   <h3 className="text-xl font-semibold">Final Agreed Price</h3>
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-medium text-green-800">Agreed Amount:</span>
-                      <span className="text-2xl font-bold text-green-800">
-                        KES {selectedQuote.finalPrice.toLocaleString()}
-                      </span>
-                    </div>
-                    <p className="text-sm text-green-600 mt-2">
-                      This amount was sent to the customer via email for payment.
-                    </p>
+                    {selectedQuote.finalPrice ? (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-lg font-medium text-green-800">Agreed Amount:</span>
+                          <span className="text-2xl font-bold text-green-800">
+                            KES {selectedQuote.finalPrice.toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-green-600 mt-2">
+                          This amount was sent to the customer via email for payment.
+                        </p>
+                      </>
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-lg font-medium text-green-800">Order Created</p>
+                        <p className="text-sm text-green-600 mt-2">
+                          An order was created from this quote, but the final price was not recorded.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -485,7 +509,7 @@ const Quotes = () => {
                     onClick={() => {
                       setShowQuoteDetails(false);
                       setResponse(selectedQuote.adminResponse || '');
-                      setStatus(selectedQuote.status || 'responded');
+                      setStatus('responded'); // Default to responded when sending a response
                       setShowRespondDialog(true);
                     }}
                     className="flex-1 py-3 text-base"

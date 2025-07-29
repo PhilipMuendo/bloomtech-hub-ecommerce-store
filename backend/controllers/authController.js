@@ -1,7 +1,9 @@
 import jwt from 'jsonwebtoken';
-import db from '../sequelize_models/index.js';
+import db, { sequelize } from '../sequelize_models/index.js';
+import { Op } from 'sequelize';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const { User } = db;
 
@@ -303,7 +305,7 @@ export const resetPassword = async (req, res, next) => {
     const user = await User.findOne({ 
       where: { 
         resetPasswordToken: token, 
-        resetPasswordExpires: { [db.Sequelize.Op.gt]: Date.now() } 
+        resetPasswordExpires: { [Op.gt]: Date.now() } 
       } 
     });
     if (!user) return res.status(400).json({ error: 'Invalid or expired reset token.' });
@@ -325,5 +327,98 @@ export const getProfile = async (req, res, next) => {
     res.json(user);
   } catch (error) {
     next(error);
+  }
+};
+
+export const updateProfile = async (req, res, next) => {
+  try {
+    const { name, email, phone } = req.body;
+    
+    // Validate required fields
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Name and email are required' });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address' });
+    }
+    
+    // Check if email is already taken by another user
+    const existingUser = await User.findOne({ 
+      where: { 
+        email, 
+        id: { [Op.ne]: req.user.id } 
+      } 
+    });
+    
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email is already taken by another user' });
+    }
+    
+    // Update user profile
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    await user.update({
+      name,
+      email,
+      phone: phone || null
+    });
+    
+    // Return updated user data (excluding password)
+    const updatedUser = await User.findByPk(req.user.id, { 
+      attributes: { exclude: ['password'] }
+    });
+    
+    res.json({
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ error: 'Failed to update profile. Please try again.' });
+  }
+};
+
+export const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    // Validate required fields
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+    
+    // Validate new password length
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    }
+    
+    // Get user with password
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+    
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password
+    await user.update({ password: hashedPassword });
+    
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    console.error('Error changing password:', error);
+    res.status(500).json({ error: 'Failed to change password. Please try again.' });
   }
 };
