@@ -1,51 +1,75 @@
-// GET /api/products/search?q=...
-export const searchProducts = async (req, res, next) => {
-  try {
-    const { q } = req.query;
-    if (!q || q.trim().length < 2) {
-      return res.json([]);
-    }
-    // Search by name (case-insensitive, partial match)
-    const regex = new RegExp(q.trim(), 'i');
-    const products = await Product.find({ name: regex })
-      .select('name price imageUrl category stock')
-      .limit(10)
-      .lean();
-    res.json(products);
-  } catch (err) {
-    next(err);
-  }
-};
-import Product from '../models/Product.js';
+import db from '../sequelize_models/index.js';
+import { Op } from 'sequelize';
 import { Parser as Json2csvParser } from 'json2csv';
+
+const { Product } = db;
+
+// Utility function to fix image URLs for ngrok
+const fixImageUrl = (imageUrl, req) => {
+  if (!imageUrl) return imageUrl;
+  
+  console.log('🔍 Fixing image URL:', imageUrl);
+  console.log('🔍 Request headers:', {
+    host: req.get('host'),
+    forwardedHost: req.get('x-forwarded-host'),
+    forwardedProto: req.get('x-forwarded-proto'),
+    userAgent: req.get('user-agent')
+  });
+  
+  // If it's already a full URL, check if it needs to be updated for ngrok
+  if (imageUrl.startsWith('http://localhost') || imageUrl.startsWith('https://localhost')) {
+    const forwardedHost = req.get('x-forwarded-host');
+    const forwardedProto = req.get('x-forwarded-proto');
+    
+    if (forwardedHost && forwardedProto) {
+      // Replace localhost with ngrok URL
+      const ngrokUrl = `${forwardedProto}://${forwardedHost}`;
+      const fixedUrl = imageUrl.replace(/https?:\/\/localhost:\d+/, ngrokUrl);
+      console.log('✅ Fixed URL:', fixedUrl);
+      return fixedUrl;
+    } else {
+      console.log('❌ No ngrok headers found');
+    }
+  }
+  
+  console.log('🔄 Returning original URL:', imageUrl);
+  return imageUrl;
+};
 
 // GET /api/products
 export const getAllProducts = async (req, res, next) => {
   try {
     // Pagination, filtering, and sorting
     const { page = 1, limit = 20, category, sort = 'name' } = req.query;
-    const query = category ? { category } : {};
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    const sortObj = {};
+    const where = category ? { category } : {};
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const order = [];
     if (sort.startsWith('-')) {
-      sortObj[sort.substring(1)] = -1;
+      order.push([sort.substring(1), 'DESC']);
     } else {
-      sortObj[sort] = 1;
+      order.push([sort, 'ASC']);
     }
-    const [products, total] = await Promise.all([
-      Product.find(query)
-        .sort(sortObj)
-        .skip(skip)
-        .limit(parseInt(limit))
-        .lean(),
-      Product.countDocuments(query)
-    ]);
+    
+    const { count, rows: products } = await Product.findAndCountAll({
+      where,
+      order,
+      offset,
+      limit: parseInt(limit)
+    });
+    
+    // Fix image URLs for ngrok access
+    const productsWithFixedUrls = products.map(product => {
+      const productData = product.toJSON();
+      productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+      return productData;
+    });
+    
     res.json({
-      products,
-      total,
+      products: productsWithFixedUrls,
+      total: count,
       page: parseInt(page),
       limit: parseInt(limit),
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(count / limit)
     });
   } catch (err) {
     next(err);
@@ -55,9 +79,14 @@ export const getAllProducts = async (req, res, next) => {
 // GET /api/products/:id
 export const getProductById = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ error: 'Product not found' });
-    res.json(product);
+    const product = await Product.findByPk(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    const productData = product.toJSON();
+    productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+    res.json(productData);
   } catch (err) {
     next(err);
   }
@@ -66,10 +95,7 @@ export const getProductById = async (req, res, next) => {
 // POST /api/products
 export const createProduct = async (req, res, next) => {
   try {
-    if (typeof req.body.featured === 'undefined') req.body.featured = false;
-    console.log('Create product payload:', req.body);
-    const product = new Product(req.body);
-    await product.save();
+    const product = await Product.create(req.body);
     res.status(201).json(product);
   } catch (err) {
     next(err);
@@ -79,16 +105,11 @@ export const createProduct = async (req, res, next) => {
 // PUT /api/products/:id
 export const updateProduct = async (req, res, next) => {
   try {
-    if (typeof req.body.featured === 'undefined') req.body.featured = false;
-    console.log('Update product payload:', req.body);
-    // Only allow updatable fields
-    const allowedFields = ['name', 'description', 'price', 'category', 'stock', 'imageUrl', 'featured'];
-    const update = {};
-    for (const key of allowedFields) {
-      if (req.body[key] !== undefined) update[key] = req.body[key];
+    const product = await Product.findByPk(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
     }
-    const product = await Product.findByIdAndUpdate(req.params.id, update, { new: true });
-    if (!product) return res.status(404).json({ error: 'Product not found' });
+    await product.update(req.body);
     res.json(product);
   } catch (err) {
     next(err);
@@ -98,20 +119,12 @@ export const updateProduct = async (req, res, next) => {
 // DELETE /api/products/:id
 export const deleteProduct = async (req, res, next) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
-    if (!product) return res.status(404).json({ error: 'Product not found' });
-    res.json({ message: 'Product deleted' });
-  } catch (err) {
-    next(err);
-  }
-};
-
-// GET /api/products/low-stock
-export const getLowStockProducts = async (req, res, next) => {
-  try {
-    const threshold = parseInt(req.query.threshold) || 10;
-    const products = await Product.find({ stock: { $lt: threshold, $gt: 0 } }).lean();
-    res.json(products);
+    const product = await Product.findByPk(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    await product.destroy();
+    res.json({ message: 'Product deleted successfully' });
   } catch (err) {
     next(err);
   }
@@ -120,30 +133,100 @@ export const getLowStockProducts = async (req, res, next) => {
 // GET /api/products/featured
 export const getFeaturedProducts = async (req, res, next) => {
   try {
-    const products = await Product.find({ featured: true }).lean();
-    res.json(products);
+    const products = await Product.findAll({
+      where: { featured: true },
+      limit: 10
+    });
+    
+    // Fix image URLs for ngrok access
+    const productsWithFixedUrls = products.map(product => {
+      const productData = product.toJSON();
+      productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+      return productData;
+    });
+    
+    res.json(productsWithFixedUrls);
   } catch (err) {
     next(err);
   }
 };
 
-// Export products as CSV
-export const exportProductsCSV = async (req, res, next) => {
+// GET /api/products/search
+export const searchProducts = async (req, res, next) => {
   try {
-    const products = await Product.find({}).lean();
-    if (!products || products.length === 0) {
-      return res.status(404).json({ error: 'No products found to export.' });
+    const { q, category, minPrice, maxPrice } = req.query;
+    const where = {};
+    
+    if (q) {
+      where[Op.or] = [
+        { name: { [Op.like]: `%${q}%` } },
+        { description: { [Op.like]: `%${q}%` } }
+      ];
     }
-    // Define fields to export
-    const fields = [
-      'name', 'description', 'price', 'category', 'brand', 'stock', 'image', 'createdAt', 'updatedAt'
-    ];
-    const opts = { fields };
-    const parser = new Json2csvParser(opts);
-    const csv = parser.parse(products);
+    
+    if (category) {
+      where.category = category;
+    }
+    
+    if (minPrice || maxPrice) {
+      where.price = {};
+      if (minPrice) where.price[Op.gte] = parseFloat(minPrice);
+      if (maxPrice) where.price[Op.lte] = parseFloat(maxPrice);
+    }
+    
+    const products = await Product.findAll({ where });
+    
+    // Fix image URLs for ngrok access
+    const productsWithFixedUrls = products.map(product => {
+      const productData = product.toJSON();
+      productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+      return productData;
+    });
+    
+    res.json(productsWithFixedUrls);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/products/export
+export const exportProducts = async (req, res, next) => {
+  try {
+    const products = await Product.findAll({
+      attributes: ['id', 'name', 'description', 'price', 'category', 'stock', 'featured', 'createdAt']
+    });
+    
+    const fields = ['id', 'name', 'description', 'price', 'category', 'stock', 'featured', 'createdAt'];
+    const json2csvParser = new Json2csvParser({ fields });
+    const csv = json2csvParser.parse(products);
+    
     res.header('Content-Type', 'text/csv');
     res.attachment('products.csv');
     res.send(csv);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/products/low-stock
+export const getLowStockProducts = async (req, res, next) => {
+  try {
+    const { threshold = 10 } = req.query;
+    const products = await Product.findAll({
+      where: {
+        stock: { [Op.lte]: parseInt(threshold) }
+      },
+      order: [['stock', 'ASC']]
+    });
+    
+    // Fix image URLs for ngrok access
+    const productsWithFixedUrls = products.map(product => {
+      const productData = product.toJSON();
+      productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+      return productData;
+    });
+    
+    res.json(productsWithFixedUrls);
   } catch (err) {
     next(err);
   }

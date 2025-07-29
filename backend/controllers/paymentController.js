@@ -1,6 +1,7 @@
 import axios from 'axios';
-import Transaction from '../models/Transaction.js';
-import Order from '../models/Order.js';
+import db from '../sequelize_models/index.js';
+
+const { Transaction, Order } = db;
 
 // M-Pesa configuration
 const MPESA_CONFIG = {
@@ -32,29 +33,92 @@ const getMpesaToken = async () => {
   }
 };
 
-// Generate timestamp for M-Pesa
-const getTimestamp = () => {
-  const now = new Date();
-  return now.getFullYear() +
-    ('0' + (now.getMonth() + 1)).slice(-2) +
-    ('0' + now.getDate()).slice(-2) +
-    ('0' + now.getHours()).slice(-2) +
-    ('0' + now.getMinutes()).slice(-2) +
-    ('0' + now.getSeconds()).slice(-2);
+// Initiate M-Pesa payment
+export const initiatePayment = async (req, res) => {
+  try {
+    const { orderId, phoneNumber } = req.body;
+    
+    if (!orderId || !phoneNumber) {
+      return res.status(400).json({ error: 'Order ID and phone number are required' });
+    }
+    
+    // Find the order
+    const order = await Order.findByPk(orderId);
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    // Check if order belongs to user
+    if (order.userId !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Validate phone number format
+    const formattedPhone = formatPhoneNumber(phoneNumber);
+    if (!formattedPhone) {
+      return res.status(400).json({ error: 'Invalid phone number format' });
+    }
+    
+    // Get M-Pesa access token
+    const accessToken = await getMpesaToken();
+    
+    // Generate timestamp and password
+    const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, -3);
+    const password = Buffer.from(`${MPESA_CONFIG.shortcode}${MPESA_CONFIG.passkey}${timestamp}`).toString('base64');
+    
+    // Initiate STK push
+    const response = await axios.post(`${MPESA_CONFIG.base_url}/mpesa/stkpush/v1/processrequest`, {
+      BusinessShortCode: MPESA_CONFIG.shortcode,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: 'CustomerPayBillOnline',
+      Amount: Math.round(order.total),
+      PartyA: formattedPhone,
+      PartyB: MPESA_CONFIG.shortcode,
+      PhoneNumber: formattedPhone,
+      CallBackURL: MPESA_CONFIG.callback_url,
+      AccountReference: `Order-${orderId}`,
+      TransactionDesc: `Payment for order ${orderId}`
+    }, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    // Save transaction record
+    const transaction = await Transaction.create({
+      orderId: order.id,
+      userId: req.user.id,
+      phoneNumber: formattedPhone,
+      amount: order.total,
+      checkoutRequestId: response.data.CheckoutRequestID,
+      merchantRequestId: response.data.MerchantRequestID,
+      status: 'pending'
+    });
+    
+    res.json({
+      success: true,
+      message: 'Payment initiated successfully',
+      data: {
+        checkoutRequestId: response.data.CheckoutRequestID,
+        transactionId: transaction.id
+      }
+    });
+    
+  } catch (error) {
+    console.error('Payment initiation error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to initiate payment',
+      message: error.response?.data?.errorMessage || error.message 
+    });
+  }
 };
 
-// Generate M-Pesa password
-const generatePassword = (timestamp) => {
-  const data = MPESA_CONFIG.shortcode + MPESA_CONFIG.passkey + timestamp;
-  return Buffer.from(data).toString('base64');
-};
-
-// Validate and format phone number
+// Helper function to format phone number
 const formatPhoneNumber = (phone) => {
-  // Remove any non-digit characters
   const cleaned = phone.replace(/\D/g, '');
-  
-  // Handle different formats
   if (cleaned.startsWith('254')) {
     return cleaned;
   } else if (cleaned.startsWith('0')) {
@@ -62,239 +126,120 @@ const formatPhoneNumber = (phone) => {
   } else if (cleaned.length === 9) {
     return '254' + cleaned;
   }
-  
-  throw new Error('Invalid phone number format');
+  return null;
 };
 
-// Initiate STK Push
-export const initiateMpesaPayment = async (req, res, next) => {
-  try {
-    const { phone, amount, orderId } = req.body;
-    
-    if (!phone || !amount || !orderId) {
-      return res.status(400).json({ error: 'Phone number, amount, and order ID are required' });
-    }
-
-    // Validate order exists
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-
-    const formattedPhone = formatPhoneNumber(phone);
-    const timestamp = getTimestamp();
-    const password = generatePassword(timestamp);
-    const accessToken = await getMpesaToken();
-
-    const stkPushPayload = {
-      BusinessShortCode: MPESA_CONFIG.shortcode,
-      Password: password,
-      Timestamp: timestamp,
-      TransactionType: 'CustomerPayBillOnline',
-      Amount: Math.round(amount),
-      PartyA: formattedPhone,
-      PartyB: MPESA_CONFIG.shortcode,
-      PhoneNumber: formattedPhone,
-      CallBackURL: MPESA_CONFIG.callback_url,
-      AccountReference: `ORDER-${orderId}`,
-      TransactionDesc: `Payment for BLOOMTECH Hub Order ${orderId}`
-    };
-
-    const response = await axios.post(
-      `${MPESA_CONFIG.base_url}/mpesa/stkpush/v1/processrequest`,
-      stkPushPayload,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    // Save transaction record
-    const transaction = new Transaction({
-      orderId,
-      userId: req.user?._id,
-      phoneNumber: formattedPhone,
-      amount: Math.round(amount),
-      checkoutRequestId: response.data.CheckoutRequestID,
-      merchantRequestId: response.data.MerchantRequestID,
-      status: 'pending'
-    });
-
-    await transaction.save();
-
-    res.json({
-      success: true,
-      message: 'STK push initiated successfully',
-      data: {
-        checkoutRequestId: response.data.CheckoutRequestID,
-        merchantRequestId: response.data.MerchantRequestID,
-        customerMessage: response.data.CustomerMessage
-      }
-    });
-
-  } catch (error) {
-    next(error);
-  }
-};
-
-// Handle M-Pesa callback
-export const handleMpesaCallback = async (req, res, next) => {
+// M-Pesa callback
+export const mpesaCallback = async (req, res) => {
   try {
     const { Body } = req.body;
-    const stkCallback = Body?.stkCallback;
-
-    if (!stkCallback) {
-      return res.status(400).json({ error: 'Invalid callback data' });
-    }
-
-    const { 
-      MerchantRequestID, 
-      CheckoutRequestID, 
-      ResultCode, 
-      ResultDesc 
-    } = stkCallback;
-
-    // Find transaction
-    const transaction = await Transaction.findOne({ 
-      checkoutRequestId: CheckoutRequestID 
-    });
-
-    if (!transaction) {
-      console.error('Transaction not found for CheckoutRequestID:', CheckoutRequestID);
-      return res.status(404).json({ error: 'Transaction not found' });
-    }
-
-    // Update transaction with callback data
-    transaction.resultCode = ResultCode;
-    transaction.resultDesc = ResultDesc;
-    transaction.rawCallback = req.body;
-
-    if (ResultCode === '0') {
+    const { stkCallback } = Body;
+    
+    if (stkCallback.ResultCode === 0) {
       // Payment successful
-      const callbackMetadata = stkCallback.CallbackMetadata?.Item || [];
-      const mpesaReceiptNumber = callbackMetadata.find(item => item.Name === 'MpesaReceiptNumber')?.Value;
-      const transactionDate = callbackMetadata.find(item => item.Name === 'TransactionDate')?.Value;
-
-      transaction.status = 'completed';
-      transaction.mpesaReceiptNumber = mpesaReceiptNumber;
-      transaction.transactionDate = transactionDate ? new Date(transactionDate.toString()) : new Date();
-
-      // Update order status
-      await Order.findByIdAndUpdate(transaction.orderId, { 
-        status: 'paid' 
+      const { CheckoutRequestID, ResultDesc, CallbackMetadata } = stkCallback;
+      
+      // Find transaction by checkout request ID
+      const transaction = await Transaction.findOne({
+        where: { checkoutRequestId: CheckoutRequestID }
       });
-
+      
+      if (transaction) {
+        // Extract payment details
+        const metadata = CallbackMetadata.Item;
+        const mpesaReceiptNumber = metadata.find(item => item.Name === 'MpesaReceiptNumber')?.Value;
+        const transactionDate = metadata.find(item => item.Name === 'TransactionDate')?.Value;
+        
+        // Update transaction
+        await transaction.update({
+          status: 'completed',
+          mpesaReceiptNumber,
+          transactionDate: new Date(transactionDate),
+          resultCode: stkCallback.ResultCode.toString(),
+          resultDesc: ResultDesc,
+          rawCallback: req.body
+        });
+        
+        // Update order status
+        await Order.update(
+          { status: 'paid' },
+          { where: { id: transaction.orderId } }
+        );
+      }
     } else {
-      // Payment failed or cancelled
-      transaction.status = ResultCode === '1032' ? 'cancelled' : 'failed';
+      // Payment failed
+      const { CheckoutRequestID, ResultDesc } = stkCallback;
+      
+      const transaction = await Transaction.findOne({
+        where: { checkoutRequestId: CheckoutRequestID }
+      });
+      
+      if (transaction) {
+        await transaction.update({
+          status: 'failed',
+          resultCode: stkCallback.ResultCode.toString(),
+          resultDesc: ResultDesc,
+          rawCallback: req.body
+        });
+      }
     }
-
-    await transaction.save();
-
-    // Log the callback for debugging
-    console.log('M-Pesa callback processed:', {
-      CheckoutRequestID,
-      ResultCode,
-      ResultDesc,
-      status: transaction.status
-    });
-
+    
     res.json({ message: 'Callback processed successfully' });
-
   } catch (error) {
-    next(error);
+    console.error('Callback processing error:', error);
+    res.status(500).json({ error: 'Failed to process callback' });
   }
 };
 
-// Check payment status
-export const checkPaymentStatus = async (req, res, next) => {
+// Get transaction status
+export const getTransactionStatus = async (req, res) => {
   try {
-    const { checkoutRequestId } = req.params;
+    const { transactionId } = req.params;
     
-    const transaction = await Transaction.findOne({ 
-      checkoutRequestId 
-    }).populate('orderId');
-
+    const transaction = await Transaction.findByPk(transactionId);
     if (!transaction) {
       return res.status(404).json({ error: 'Transaction not found' });
     }
-
+    
+    // Check if user has access to this transaction
+    if (transaction.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
     res.json({
       success: true,
       data: {
         status: transaction.status,
-        resultCode: transaction.resultCode,
         resultDesc: transaction.resultDesc,
-        mpesaReceiptNumber: transaction.mpesaReceiptNumber,
-        transactionDate: transaction.transactionDate,
-        amount: transaction.amount,
-        orderId: transaction.orderId
+        mpesaReceiptNumber: transaction.mpesaReceiptNumber
       }
     });
-
   } catch (error) {
-    next(error);
+    console.error('Transaction status error:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to get transaction status' 
+    });
   }
 };
 
-// Get all transactions (admin only)
+// Get all transactions (admin)
 export const getAllTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find({})
-      .populate('orderId', '_id')
-      .populate('userId', 'name email')
-      .sort({ createdAt: -1 });
-
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const transactions = await Transaction.findAll({
+      include: [
+        { model: Order, attributes: ['id', 'total', 'status'] }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    
     res.json(transactions);
   } catch (error) {
-    console.error('Get transactions error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch transactions'
-    });
-  }
-};
-
-// Mock M-Pesa for development
-export const mockMpesaPayment = async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    return res.status(403).json({ message: 'Mock payments not allowed in production' });
-  }
-
-  try {
-    const { orderId, success = true } = req.body;
-
-    const transaction = await Transaction.findOne({ orderId });
-    if (!transaction) {
-      return res.status(404).json({ message: 'Transaction not found' });
-    }
-
-    if (success) {
-      transaction.status = 'completed';
-      transaction.resultCode = '0';
-      transaction.resultDesc = 'The service request is processed successfully.';
-      transaction.mpesaReceiptNumber = `MOCK${Date.now()}`;
-      transaction.transactionDate = new Date();
-
-      await Order.findByIdAndUpdate(orderId, { status: 'paid' });
-    } else {
-      transaction.status = 'failed';
-      transaction.resultCode = '1';
-      transaction.resultDesc = 'Mock payment failed';
-    }
-
-    await transaction.save();
-
-    res.json({
-      success: true,
-      message: `Mock payment ${success ? 'completed' : 'failed'}`,
-      data: transaction
-    });
-
-  } catch (error) {
-    console.error('Mock payment error:', error);
-    res.status(500).json({ message: 'Mock payment failed' });
+    console.error('Get all transactions error:', error);
+    res.status(500).json({ error: 'Failed to get transactions' });
   }
 };

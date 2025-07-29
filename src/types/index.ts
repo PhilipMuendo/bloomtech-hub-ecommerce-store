@@ -8,7 +8,6 @@ export interface User {
 }
 
 export interface Product {
-  _id: string;
   id: string;
   name: string;
   description: string;
@@ -28,9 +27,9 @@ export interface Message {
 }
 
 export interface QuoteItem {
-  productId: Pick<Product, '_id' | 'name'>;
+  productId: Pick<Product, 'id' | 'name'>;
   quantity: number;
-  _id: string;
+  id: string;
 }
 
 export interface Quote {
@@ -44,6 +43,9 @@ export interface Quote {
   status: 'pending' | 'responded' | 'closed' | 'declined';
   userSeen: boolean;
   adminSeen: boolean;
+  orderCreated?: boolean;
+  adminResponse?: string;
+  finalPrice?: number;
   createdAt: string;
   updatedAt: string;
 }

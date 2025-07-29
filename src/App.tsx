@@ -13,6 +13,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from "react";
 import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
+import ResendVerification from './pages/ResendVerification';
 
 // Lazy load all pages for code splitting
 const Home = lazy(() => import("./pages/Home"));
@@ -266,14 +267,13 @@ const AnimatedRoutes = () => {
           </Suspense>
         } />
         <Route path="/checkout/:orderId" element={
-          <ProtectedRoute>
-            <Suspense fallback={<LoadingSpinner />}>
-              <CustomCheckout />
-            </Suspense>
-          </ProtectedRoute>
+          <Suspense fallback={<LoadingSpinner />}>
+            <CustomCheckout />
+          </Suspense>
         } />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<Suspense fallback={<div>Loading...</div>}><VerifyEmail /></Suspense>} />
+        <Route path="/resend-verification" element={<Suspense fallback={<div>Loading...</div>}><ResendVerification /></Suspense>} />
         <Route path="/admin" element={
           <ProtectedRoute requireAdmin>
             <Suspense fallback={<LoadingSpinner />}>

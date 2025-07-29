@@ -72,12 +72,9 @@ const Dashboard = () => {
       setLoading(true);
       setError(null);
       try {
-        // Correctly retrieve the token from the 'user' object in localStorage
-        let token = localStorage.getItem('jwt');
-        if (!token) {
-          const userObj = JSON.parse(localStorage.getItem('user') || '{}');
-          token = userObj.token;
-        }
+        // Get token from user object in localStorage (consistent with AuthContext)
+        const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+        const token = userObj.token;
 
         if (!token) {
           throw new Error('Authentication token not found. Please log in again.');
@@ -130,7 +127,8 @@ const Dashboard = () => {
     const fetchQuoteStats = async () => {
       if (!isSuperAdmin()) return;
       try {
-        const token = localStorage.getItem('jwt');
+        const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+        const token = userObj.token;
         const res = await fetch('/api/dashboard/quote-summary', {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -150,12 +148,10 @@ const Dashboard = () => {
       setRecentOrdersLoading(true);
       setRecentOrdersError(null);
       try {
-        // Look for token in both 'jwt' and 'user' keys
-        let token = localStorage.getItem('jwt');
-        if (!token) {
-          const user = JSON.parse(localStorage.getItem('user') || '{}');
-          token = user.token;
-        }
+        // Get token from user object in localStorage (consistent with AuthContext)
+        const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+        const token = userObj.token;
+        
         const headers: Record<string, string> = {
           'Content-Type': 'application/json',
         };
@@ -469,11 +465,11 @@ const Dashboard = () => {
                 ) : (
                   <div className="space-y-3">
                     {recentOrders.map((order) => (
-                      <div key={order._id || order.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div key={order._id || order.id?.toString() || `order-${Math.random()}`} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                         <div className="flex items-center space-x-3">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <div>
-                            <p className="font-medium">Order #{order._id?.slice(-6) || order.id?.slice(-6) || 'N/A'}</p>
+                            <p className="font-medium">Order #{order._id ? order._id.slice(-6) : (order.id ? order.id.toString().slice(-6) : 'N/A')}</p>
                             <p className="text-sm text-muted-foreground">{order.userId?.name || 'N/A'}</p>
                           </div>
                         </div>

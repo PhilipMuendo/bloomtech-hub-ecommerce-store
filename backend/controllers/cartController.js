@@ -1,44 +1,103 @@
-import CartItem from '../models/CartItem.js';
-import Order from '../models/Order.js';
-import Product from '../models/Product.js';
+import db from '../sequelize_models/index.js';
+import { Op } from 'sequelize';
+
+const { CartItem, Order, OrderItem, Product } = db;
 
 // Get current user's cart
 export const getCart = async (req, res, next) => {
   try {
-    const cartItems = await CartItem.find({ userId: req.user._id }).populate('productId');
+    const cartItems = await CartItem.findAll({
+      where: { userId: req.user.id },
+      include: [{ model: Product }]
+    });
     res.json(cartItems);
   } catch (err) {
     next(err);
   }
 };
 
-// Add or update cart item
-export const addOrUpdateCartItem = async (req, res, next) => {
-  const { productId, quantity } = req.body;
-  if (!productId || !quantity) {
-    return res.status(400).json({ error: 'Product and quantity required' });
-  }
+// Add to cart
+export const addToCart = async (req, res, next) => {
   try {
-    let cartItem = await CartItem.findOne({ userId: req.user._id, productId });
-    if (cartItem) {
-      cartItem.quantity = quantity;
-      await cartItem.save();
-    } else {
-      cartItem = await CartItem.create({ userId: req.user._id, productId, quantity });
+    const { productId, quantity = 1 } = req.body;
+    if (!productId) {
+      return res.status(400).json({ error: 'Product required' });
     }
-    res.status(201).json(cartItem);
+    
+    // Check if product exists
+    const product = await Product.findByPk(productId);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    // Check if already in cart
+    const existingItem = await CartItem.findOne({
+      where: { userId: req.user.id, productId }
+    });
+    
+    if (existingItem) {
+      await existingItem.update({ quantity: existingItem.quantity + quantity });
+      res.json(existingItem);
+    } else {
+      const cartItem = await CartItem.create({
+        userId: req.user.id,
+        productId,
+        quantity
+      });
+      res.status(201).json(cartItem);
+    }
   } catch (err) {
     next(err);
   }
 };
 
-// Remove cart item
-export const removeCartItem = async (req, res, next) => {
-  const { itemId } = req.params;
+// Update cart item quantity
+export const updateCartItem = async (req, res, next) => {
   try {
-    const cartItem = await CartItem.findOneAndDelete({ _id: itemId, userId: req.user._id });
-    if (!cartItem) return res.status(404).json({ error: 'Cart item not found' });
-    res.json({ message: 'Item removed' });
+    const { quantity } = req.body;
+    const cartItem = await CartItem.findOne({
+      where: { id: req.params.id, userId: req.user.id }
+    });
+    
+    if (!cartItem) {
+      return res.status(404).json({ error: 'Cart item not found' });
+    }
+    
+    if (quantity <= 0) {
+      await cartItem.destroy();
+      res.json({ message: 'Item removed from cart' });
+    } else {
+      await cartItem.update({ quantity });
+      res.json(cartItem);
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Remove from cart
+export const removeFromCart = async (req, res, next) => {
+  try {
+    const cartItem = await CartItem.findOne({
+      where: { id: req.params.id, userId: req.user.id }
+    });
+    
+    if (!cartItem) {
+      return res.status(404).json({ error: 'Cart item not found' });
+    }
+    
+    await cartItem.destroy();
+    res.json({ message: 'Item removed from cart' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Clear cart
+export const clearCart = async (req, res, next) => {
+  try {
+    await CartItem.destroy({ where: { userId: req.user.id } });
+    res.json({ message: 'Cart cleared' });
   } catch (err) {
     next(err);
   }
@@ -47,19 +106,58 @@ export const removeCartItem = async (req, res, next) => {
 // Checkout (place order)
 export const checkout = async (req, res, next) => {
   try {
-    const cartItems = await CartItem.find({ userId: req.user._id });
-    if (cartItems.length === 0) return res.status(400).json({ error: 'Cart is empty' });
-    const items = cartItems.map(item => ({ productId: item.productId, quantity: item.quantity }));
+    const cartItems = await CartItem.findAll({
+      where: { userId: req.user.id },
+      include: [{ model: Product }]
+    });
+    
+    if (cartItems.length === 0) {
+      return res.status(400).json({ error: 'Cart is empty' });
+    }
+    
     // Calculate total
     let total = 0;
     for (const item of cartItems) {
-      const product = await Product.findById(item.productId);
-      if (product) total += product.price * item.quantity;
+      total += item.Product.price * item.quantity;
     }
+    
     const shippingAddress = req.body.shippingAddress || '';
-    const order = await Order.create({ userId: req.user._id, items, total, shippingAddress });
-    await CartItem.deleteMany({ userId: req.user._id });
-    res.status(201).json(order);
+    
+    // Create order and order items in a transaction
+    const result = await db.sequelize.transaction(async (t) => {
+      const order = await Order.create({ 
+        userId: req.user.id, 
+        total, 
+        shippingAddress 
+      }, { transaction: t });
+      
+      // Create order items
+      const orderItems = cartItems.map(item => ({
+        orderId: order.id,
+        productId: item.productId,
+        quantity: item.quantity
+      }));
+      await OrderItem.bulkCreate(orderItems, { transaction: t });
+      
+      // Decrement stock for each product
+      for (const item of cartItems) {
+        await Product.decrement('stock', {
+          by: item.quantity,
+          where: { id: item.productId },
+          transaction: t
+        });
+      }
+      
+      // Clear cart
+      await CartItem.destroy({ 
+        where: { userId: req.user.id }, 
+        transaction: t 
+      });
+      
+      return order;
+    });
+    
+    res.status(201).json(result);
   } catch (err) {
     next(err);
   }

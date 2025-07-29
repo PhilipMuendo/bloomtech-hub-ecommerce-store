@@ -5,33 +5,34 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Clock, MailCheck, CheckCircle, XCircle, FilePlus, User as UserIcon } from 'lucide-react';
+import { Clock, MailCheck, CheckCircle, XCircle, FilePlus, User as UserIcon, RefreshCw } from 'lucide-react';
 import { Quote } from '@/types';
+import { useQuery } from '@tanstack/react-query';
 
 const StatusBadge = ({ status }) => {
   switch (status) {
     case 'pending':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-yellow-100 text-yellow-800 text-xs font-semibold">
-          <Clock className="w-4 h-4" /> Pending
+        <span className="inline-flex items-center gap-2 px-3 py-2 rounded bg-yellow-100 text-yellow-800 text-sm font-semibold">
+          <Clock className="w-5 h-5" /> Pending
         </span>
       );
     case 'responded':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-blue-100 text-blue-800 text-xs font-semibold">
-          <MailCheck className="w-4 h-4" /> Responded
+        <span className="inline-flex items-center gap-2 px-3 py-2 rounded bg-blue-100 text-blue-800 text-sm font-semibold">
+          <MailCheck className="w-5 h-5" /> Responded
         </span>
       );
     case 'closed':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs font-semibold">
-          <CheckCircle className="w-4 h-4" /> Closed
+        <span className="inline-flex items-center gap-2 px-3 py-2 rounded bg-gray-200 text-gray-800 text-sm font-semibold">
+          <CheckCircle className="w-5 h-5" /> Closed
         </span>
       );
     case 'declined':
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-red-100 text-red-800 text-xs font-semibold">
-          <XCircle className="w-4 h-4" /> Declined
+        <span className="inline-flex items-center gap-2 px-3 py-2 rounded bg-red-100 text-red-800 text-sm font-semibold">
+          <XCircle className="w-5 h-5" /> Declined
         </span>
       );
     default:
@@ -44,38 +45,42 @@ const Quotes = () => {
   const [filterStart, setFilterStart] = useState('');
   const [filterEnd, setFilterEnd] = useState('');
   const [filterDay, setFilterDay] = useState('');
-  const [quotes, setQuotes] = useState<Quote[]>([]);
   const [sortBy, setSortBy] = useState<'newest' | 'status' | 'name'>('newest');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [response, setResponse] = useState('');
   const [status, setStatus] = useState('responded');
   const [responding, setResponding] = useState(false);
   const [showCreateOrder, setShowCreateOrder] = useState(false);
   const [finalPrice, setFinalPrice] = useState(0);
+  const [creatingOrder, setCreatingOrder] = useState(false);
+  const [showQuoteDetails, setShowQuoteDetails] = useState(false);
+  const [showRespondDialog, setShowRespondDialog] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const fetchQuotes = async () => {
+    try {
+      const res = await fetch('/api/quotes', {
+        headers: { Authorization: `Bearer ${user?.token}` },
+      });
+      if (!res.ok) throw new Error('Failed to fetch quotes');
+      const data = await res.json();
+      return data;
+    } catch (err: any) {
+      throw new Error(err.message || 'Error loading quotes');
+    }
+  };
+
+  const { data: quotes, isLoading: loading, error, refetch } = useQuery({
+    queryKey: ['quotes'],
+    queryFn: fetchQuotes,
+    refetchInterval: 30000, // Refetch every 30 seconds
+    enabled: !!user, // Only run when user is available
+  });
+
   useEffect(() => {
-    const fetchQuotes = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch('/api/quotes', {
-          headers: { Authorization: `Bearer ${user?.token}` },
-        });
-        if (!res.ok) throw new Error('Failed to fetch quotes');
-        const data = await res.json();
-        setQuotes(data);
-      } catch (err: any) {
-        setError(err.message || 'Error loading quotes');
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (user) fetchQuotes();
-  }, [user]);
+    if (user) refetch();
+  }, [user, refetch]);
 
   const handleRespond = async () => {
     if (!selectedQuote) return;
@@ -92,10 +97,10 @@ const Quotes = () => {
       if (!res.ok) throw new Error('Failed to update quote');
       toast({ title: 'Quote updated' });
       setSelectedQuote(null);
+      setShowRespondDialog(false);
       setResponse('');
       setStatus('responded');
-      const updated = await res.json();
-      setQuotes((prev) => prev.map((q) => (q._id === updated._id ? updated : q)));
+      refetch(); // Update the query data
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -105,6 +110,11 @@ const Quotes = () => {
 
   const handleCreateOrder = async () => {
     if (!selectedQuote) return;
+    if (selectedQuote.orderCreated) {
+      toast({ title: 'Error', description: 'Order has already been created for this quote', variant: 'destructive' });
+      return;
+    }
+    setCreatingOrder(true);
     try {
       const res = await fetch(`/api/quotes/${selectedQuote._id}/create-order`, {
         method: 'POST',
@@ -117,15 +127,21 @@ const Quotes = () => {
       if (!res.ok) throw new Error('Failed to create order');
       toast({ title: 'Order created successfully' });
       setShowCreateOrder(false);
-      const updatedQuote = { ...selectedQuote, status: 'closed' };
-      setQuotes((prev) => prev.map((q) => (q._id === updatedQuote._id ? updatedQuote : q)));
+      const updatedQuote = { 
+        ...selectedQuote, 
+        status: 'closed' as const, 
+        orderCreated: true 
+      };
+      refetch(); // Update the query data
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setCreatingOrder(false);
     }
   };
 
   // Sort quotes first
-  const sortedQuotes = [...quotes].sort((a, b) => {
+  const sortedQuotes = [...quotes || []].sort((a, b) => {
     if (sortBy === 'newest') {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     }
@@ -159,7 +175,13 @@ const Quotes = () => {
   return (
     <Card className="max-w-full">
       <CardHeader>
-        <CardTitle>Quote Requests</CardTitle>
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Quote Requests</h2>
+          <Button onClick={() => refetch()} variant="outline" size="sm">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
         <div className="mt-2 flex flex-wrap gap-4 items-center">
           <div className="flex gap-2 items-center">
             <label htmlFor="sortQuotes" className="text-sm font-medium">Sort by:</label>
@@ -207,7 +229,7 @@ const Quotes = () => {
         {loading ? (
           <div>Loading...</div>
         ) : error ? (
-          <div className="text-red-500">{error}</div>
+          <div className="text-red-500">{error?.message || 'Error loading quotes'}</div>
         ) : (
           <Table>
             <TableHeader>
@@ -222,15 +244,22 @@ const Quotes = () => {
             </TableHeader>
             <TableBody>
               {filteredQuotes.map((q) => (
-                <TableRow key={q._id}>
+                <TableRow 
+                  key={q._id} 
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => {
+                    setSelectedQuote(q);
+                    setShowQuoteDetails(true);
+                  }}
+                >
                   <TableCell>{q.name}</TableCell>
                   <TableCell>{q.email}</TableCell>
                   <TableCell>
-                    {q.items.map((item: any) => (
-                      <div key={item.productId?._id || item.productId}>
+                    {q.items?.map((item: any) => (
+                      <div key={item._id || item.productId?._id || item.productId}>
                         {item.productId?.name || item.productId} x {item.quantity}
                       </div>
-                    ))}
+                    )) || 'No items'}
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={q.status} />
@@ -240,27 +269,36 @@ const Quotes = () => {
                     {(q.status === 'pending' || q.status === 'responded') && (
                       <Button
                         size="sm"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedQuote(q);
                           setResponse(q.adminResponse || '');
-                          setStatus(q.status || 'responded');
+                          setStatus('responded'); // Default to responded when sending a response
+                          setShowRespondDialog(true);
                         }}
                       >
                         Respond
                       </Button>
                     )}
-                    {q.status === 'closed' && (
+                    {q.status === 'closed' && !q.orderCreated && (
                       <Button
                         size="sm"
                         variant="outline"
                         className="ml-2"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedQuote(q);
                           setShowCreateOrder(true);
+                          setShowRespondDialog(false); // Ensure respond dialog doesn't open
                         }}
                       >
                         <FilePlus className="w-4 h-4 mr-1" /> Create Order
                       </Button>
+                    )}
+                    {q.status === 'closed' && q.orderCreated && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-100 text-green-800 text-xs font-semibold">
+                        <CheckCircle className="w-4 h-4" /> Order Created
+                      </span>
                     )}
                   </TableCell>
                 </TableRow>
@@ -269,7 +307,7 @@ const Quotes = () => {
           </Table>
         )}
       </CardContent>
-      <Dialog open={!!selectedQuote} onOpenChange={() => setSelectedQuote(null)}>
+      <Dialog open={showRespondDialog} onOpenChange={setShowRespondDialog}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Respond to Quote</DialogTitle>
@@ -287,7 +325,7 @@ const Quotes = () => {
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-muted-foreground">Conversation History</h3>
                 <div className="max-h-48 space-y-3 overflow-y-auto rounded-lg border p-3">
-                  {selectedQuote.messages.map((msg: any) => (
+                  {selectedQuote.messages?.map((msg: any) => (
                     <div
                       key={msg._id}
                       className={`flex items-end gap-2 text-sm ${
@@ -305,7 +343,7 @@ const Quotes = () => {
                         </p>
                       </div>
                     </div>
-                  ))}
+                  )) || []}
                 </div>
               </div>
 
@@ -326,11 +364,17 @@ const Quotes = () => {
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                 >
-                  <option value="pending">Pending</option>
-                  <option value="responded">Responded</option>
-                  <option value="closed">Closed</option>
-                  <option value="declined">Declined</option>
+                  <option value="responded">Responded (Default)</option>
+                  <option value="closed">Close Deal</option>
+                  <option value="declined">Decline Request</option>
+                  <option value="pending">Keep Pending</option>
                 </select>
+                <p className="text-xs text-muted-foreground">
+                  {status === 'responded' && 'Quote will be marked as responded when you send a message'}
+                  {status === 'closed' && 'Quote will be closed and ready for order creation'}
+                  {status === 'declined' && 'Quote will be declined and conversation ended'}
+                  {status === 'pending' && 'Quote will remain pending for further review'}
+                </p>
               </div>
             </div>
           )}
@@ -341,22 +385,194 @@ const Quotes = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Quote Details Dialog */}
+      <Dialog open={showQuoteDetails} onOpenChange={setShowQuoteDetails}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="text-2xl font-bold">Quote Details</DialogTitle>
+          </DialogHeader>
+          {selectedQuote && (
+            <div className="space-y-8">
+              {/* Customer Information */}
+              <div className="flex items-start gap-4 rounded-lg border bg-muted/50 p-6">
+                <UserIcon className="h-8 w-8 text-muted-foreground mt-1" />
+                <div className="space-y-2">
+                  <div className="font-semibold text-xl">{selectedQuote.name}</div>
+                  <div className="text-base text-muted-foreground">{selectedQuote.email}</div>
+                  {selectedQuote.phone && (
+                    <div className="text-base text-muted-foreground">Phone: {selectedQuote.phone}</div>
+                  )}
+                  <div className="text-base text-muted-foreground">
+                    Requested: {new Date(selectedQuote.createdAt).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quote Items */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold">Requested Items</h3>
+                <div className="space-y-3">
+                  {selectedQuote.items?.map((item: any, index: number) => (
+                    <div key={item._id || index} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border">
+                      <div className="space-y-1">
+                        <p className="font-medium text-lg">{item.productId?.name || `Product ${item.productId}`}</p>
+                        <p className="text-base text-muted-foreground">Quantity: {item.quantity}</p>
+                      </div>
+                      <div className="text-right space-y-1">
+                        <p className="font-medium text-lg">KES {(item.productId?.price * item.quantity)?.toLocaleString() || 'N/A'}</p>
+                        <p className="text-base text-muted-foreground">KES {item.productId?.price?.toLocaleString() || 'N/A'} each</p>
+                      </div>
+                    </div>
+                  )) || (
+                    <div className="text-center text-muted-foreground py-8 text-lg">No items found</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-3">
+                <h3 className="text-xl font-semibold">Status</h3>
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={selectedQuote.status} />
+                  {selectedQuote.orderCreated && (
+                    <span className="inline-flex items-center gap-2 px-3 py-2 rounded bg-green-100 text-green-800 text-sm font-semibold">
+                      <CheckCircle className="w-5 h-5" /> Order Created
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Final Agreed Price */}
+              {selectedQuote.orderCreated && (
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold">Final Agreed Price</h3>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    {selectedQuote.finalPrice ? (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-lg font-medium text-green-800">Agreed Amount:</span>
+                          <span className="text-2xl font-bold text-green-800">
+                            KES {selectedQuote.finalPrice.toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-sm text-green-600 mt-2">
+                          This amount was sent to the customer via email for payment.
+                        </p>
+                      </>
+                    ) : (
+                      <div className="text-center">
+                        <p className="text-lg font-medium text-green-800">Order Created</p>
+                        <p className="text-sm text-green-600 mt-2">
+                          An order was created from this quote, but the final price was not recorded.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Conversation History */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-semibold">Conversation History</h3>
+                <div className="max-h-80 space-y-4 overflow-y-auto rounded-lg border p-6 bg-gray-50">
+                  {selectedQuote.messages?.length > 0 ? (
+                    selectedQuote.messages.map((msg: any) => (
+                      <div
+                        key={msg._id}
+                        className={`flex items-end gap-3 ${
+                          msg.sender === 'admin' ? 'justify-end' : 'justify-start'
+                        }`}
+                      >
+                        <div
+                          className={`max-w-md rounded-xl px-4 py-3 ${
+                            msg.sender === 'admin' ? 'bg-primary text-primary-foreground' : 'bg-white border'
+                          }`}
+                        >
+                          <p className="text-base">{msg.text}</p>
+                          <p className="text-xs opacity-70 mt-2 text-right">
+                            {new Date(msg.createdAt).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center text-muted-foreground py-8 text-lg">No messages yet</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-4 pt-6 border-t">
+                {(selectedQuote.status === 'pending' || selectedQuote.status === 'responded') && (
+                  <Button
+                    onClick={() => {
+                      setShowQuoteDetails(false);
+                      setResponse(selectedQuote.adminResponse || '');
+                      setStatus('responded'); // Default to responded when sending a response
+                      setShowRespondDialog(true);
+                    }}
+                    className="flex-1 py-3 text-base"
+                  >
+                    Respond to Quote
+                  </Button>
+                )}
+                {selectedQuote.status === 'closed' && !selectedQuote.orderCreated && (
+                  <Button
+                    onClick={() => {
+                      setShowQuoteDetails(false);
+                      setShowCreateOrder(true);
+                      setShowRespondDialog(false);
+                    }}
+                    variant="outline"
+                    className="flex-1 py-3 text-base"
+                  >
+                    <FilePlus className="w-5 h-5 mr-2" /> Create Order
+                  </Button>
+                )}
+                <Button
+                  variant="outline"
+                  onClick={() => setShowQuoteDetails(false)}
+                  size="sm"
+                  className="px-6"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      {/* Create Order Dialog */}
       <Dialog open={showCreateOrder} onOpenChange={setShowCreateOrder}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Order from Quote</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
-            <label>Final Price (KES)</label>
-            <input
-              type="number"
-              className="w-full border rounded p-2"
-              value={finalPrice}
-              onChange={(e) => setFinalPrice(Number(e.target.value))}
-            />
-          </div>
+          {selectedQuote?.orderCreated ? (
+            <div className="space-y-3">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-yellow-800">
+                  <strong>Note:</strong> An order has already been created for this quote.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <label>Final Price (KES)</label>
+              <input
+                type="number"
+                className="w-full border rounded p-2"
+                value={finalPrice}
+                onChange={(e) => setFinalPrice(Number(e.target.value))}
+              />
+            </div>
+          )}
           <DialogFooter>
-            <Button onClick={handleCreateOrder}>Create Order</Button>
+            <Button onClick={handleCreateOrder} disabled={creatingOrder || selectedQuote?.orderCreated}>
+              {creatingOrder ? <Clock className="animate-spin" /> : 'Create Order'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
