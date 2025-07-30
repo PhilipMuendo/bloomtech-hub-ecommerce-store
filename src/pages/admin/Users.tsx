@@ -11,12 +11,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 
 interface User {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   createdAt: string;
   role: 'user' | 'admin' | 'superadmin';
-  status: 'active' | 'inactive' | 'suspended';
+  status: 'active' | 'suspended';
   totalOrders: number;
   totalSpent: number;
 }
@@ -71,7 +71,7 @@ const Users = () => {
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user._id.toLowerCase().includes(searchTerm.toLowerCase());
+                         user.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -79,7 +79,6 @@ const Users = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'default';
-      case 'inactive': return 'secondary';
       case 'suspended': return 'destructive';
       default: return 'secondary';
     }
@@ -238,7 +237,6 @@ const Users = () => {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
                   <SelectItem value="suspended">Suspended</SelectItem>
                 </SelectContent>
               </Select>
@@ -265,12 +263,12 @@ const Users = () => {
                     </TableRow>
                   ) : (
                     filteredUsers.map((user) => (
-                      <TableRow key={user._id}>
+                      <TableRow key={user.id}>
                         <TableCell>
                           <div>
                             <div className="font-medium">{user.name}</div>
                             <div className="text-sm text-muted-foreground">{user.email}</div>
-                            <div className="text-xs text-muted-foreground">{user._id}</div>
+                            <div className="text-xs text-muted-foreground">{user.id}</div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -310,18 +308,17 @@ const Users = () => {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Select onValueChange={(value) => updateUserStatus(user._id, value)} disabled={user._id === currentUser?._id && user.role === 'superadmin'}>
+                            <Select onValueChange={(value) => updateUserStatus(user.id, value)} disabled={user.id === currentUser?.id && user.role === 'superadmin'}>
                               <SelectTrigger className="w-[100px] h-8">
                                 <SelectValue placeholder="Status" />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="active">Active</SelectItem>
-                                <SelectItem value="inactive">Inactive</SelectItem>
                                 <SelectItem value="suspended">Suspend</SelectItem>
                               </SelectContent>
                             </Select>
                             {isSuperAdmin() && (
-                              <Select onValueChange={(value) => updateUserRole(user._id, value)}>
+                              <Select onValueChange={(value) => updateUserRole(user.id, value)}>
                                 <SelectTrigger className="w-[120px] h-8">
                                   <SelectValue placeholder="Role" />
                                 </SelectTrigger>
@@ -359,7 +356,7 @@ const Users = () => {
                   <h4 className="font-semibold">Personal Information</h4>
                   <p><strong>Name:</strong> {selectedUser.name}</p>
                   <p><strong>Email:</strong> {selectedUser.email}</p>
-                  <p><strong>User ID:</strong> {selectedUser._id}</p>
+                  <p><strong>User ID:</strong> {selectedUser.id}</p>
                   <p><strong>Join Date:</strong> {new Date(selectedUser.createdAt).toLocaleDateString()}</p>
                 </div>
                 <div>

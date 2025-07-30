@@ -21,6 +21,7 @@ interface AuthContextType extends AuthState {
   isSuperAdmin: () => boolean;
   hasRole: (role: string) => boolean;
   updateUser: (user: User) => void;
+  checkUserStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -68,6 +69,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch({ type: 'SET_LOADING', payload: false });
   }, []);
 
+  // Periodically check user status when logged in
+  useEffect(() => {
+    if (!state.user?.token) return;
+    
+    const interval = setInterval(() => {
+      checkUserStatus();
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(interval);
+  }, [state.user?.token]);
+
   const login = async (email: string, password: string) => {
     dispatch({ type: 'LOGIN_START' });
     try {
@@ -82,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('user', JSON.stringify(data));
         dispatch({ type: 'LOGIN_SUCCESS', payload: data });
       } else {
-        throw new Error(data.message);
+        throw new Error(data.error || data.message || 'Login failed');
       }
     } catch (error) {
       dispatch({ type: 'LOGIN_FAILURE' });
@@ -139,6 +151,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     dispatch({ type: 'LOGIN_SUCCESS', payload: user });
   };
 
+  // Check if current user is still active
+  const checkUserStatus = async () => {
+    if (!state.user?.token) return;
+    
+    try {
+      const response = await fetch('/api/auth/profile', {
+        headers: {
+          'Authorization': `Bearer ${state.user.token}`
+        }
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        if (response.status === 403 && data.message) {
+          // User is suspended
+          logout();
+          // Show error message
+          alert(data.message);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking user status:', error);
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       ...state,
@@ -148,7 +185,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isAdmin,
       isSuperAdmin,
       hasRole,
-      updateUser
+      updateUser,
+      checkUserStatus
     }}>
       {children}
     </AuthContext.Provider>

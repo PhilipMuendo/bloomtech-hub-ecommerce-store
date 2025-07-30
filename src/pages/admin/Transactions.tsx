@@ -9,9 +9,9 @@ import { useAuth } from '@/context/AuthContext';
 import { Search, Download, RefreshCw } from 'lucide-react';
 
 interface Transaction {
-  _id: string;
+  id: string;
   orderId: {
-    _id: string;
+    id: string;
   };
   userId?: {
     name: string;
@@ -97,15 +97,15 @@ const Transactions = () => {
 
   const filteredTransactions = transactions.filter(transaction =>
     transaction.phoneNumber.includes(searchTerm) ||
-    transaction.orderId._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            transaction.orderId.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     transaction.mpesaReceiptNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     transaction.userId?.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const exportTransactions = () => {
     const csvData = filteredTransactions.map(t => ({
-      'Transaction ID': t._id,
-      'Order ID': t.orderId._id,
+              'Transaction ID': t.id,
+        'Order ID': t.orderId.id,
       'Customer': t.userId?.name || 'Guest',
       'Email': t.userId?.email || 'N/A',
       'Phone': t.phoneNumber,
@@ -261,9 +261,9 @@ const Transactions = () => {
               </TableHeader>
               <TableBody>
                 {filteredTransactions.map((transaction) => (
-                  <TableRow key={transaction._id}>
+                  <TableRow key={transaction.id}>
                     <TableCell className="font-mono text-xs">
-                      {transaction.orderId._id.slice(-8)}
+                      {transaction.orderId.id.slice(-8)}
                     </TableCell>
                     <TableCell>
                       <div>

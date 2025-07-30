@@ -85,8 +85,8 @@ const ProductDetail = () => {
         const data = await res.json();
         // Exclude current product and limit to 4
         const filtered = (data.products || data).filter((p: any) => {
-          const pId = p.id || p._id || p.productId;
-          const currentId = product.id || product._id || product.productId;
+          const pId = p.id || p.productId;
+          const currentId = product.id || product.productId;
           return pId !== currentId;
         }).slice(0, 4);
         setRelatedProducts(filtered);
@@ -270,7 +270,7 @@ const ProductDetail = () => {
               >
                 {isInStock ? 'Add to Cart' : 'Out of Stock'}
               </Button>
-              <WishlistButton productId={product.id || product._id} className="text-sm font-medium py-2 px-4 rounded-md min-w-[120px] h-[40px]" />
+              <WishlistButton productId={product.id} className="text-sm font-medium py-2 px-4 rounded-md min-w-[120px] h-[40px]" />
             </div>
 
             {/* Request Bulk Quote Button */}
@@ -312,7 +312,7 @@ const ProductDetail = () => {
           <div>
             <h3 className="text-lg font-semibold mb-2">Write a Review</h3>
             {user ? (
-          <ReviewForm productId={product._id} />
+          <ReviewForm productId={product.id} />
             ) : (
               <div className="text-muted-foreground mb-4">
                 <Link to="/login" className="text-primary underline">Log in</Link> to write a review.
@@ -321,7 +321,7 @@ const ProductDetail = () => {
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-2">All Reviews</h3>
-          <ReviewsList productId={product._id} />
+          <ReviewsList productId={product.id} />
           </div>
         </div>
       </div>
@@ -332,9 +332,9 @@ const ProductDetail = () => {
         {relatedProducts.length > 0 ? (
           <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {relatedProducts.map((prod) => (
-              <ProductCard key={prod.id || prod._id} product={{
-                ...prod,
-                id: prod.id || prod._id,
+                      <ProductCard key={prod.id} product={{
+          ...prod,
+          id: prod.id,
                 image: prod.image || prod.imageUrl || '/placeholder.svg',
                 inStock: typeof prod.inStock === 'boolean' ? prod.inStock : (typeof prod.stock === 'number' ? prod.stock > 0 : true),
               }} />
@@ -359,7 +359,7 @@ const ProductDetail = () => {
       <GetQuoteModal
         open={showQuote}
         onOpenChange={setShowQuote}
-        items={[{ productId: product.id || product._id, name: product.name, quantity }]}
+        items={[{ productId: product.id, name: product.name, quantity }]}
         userInfo={user ? { name: user.name, email: user.email } : {}}
       />
 

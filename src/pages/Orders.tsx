@@ -69,7 +69,7 @@ const Orders = () => {
         if (!res.ok) throw new Error('Failed to fetch orders');
         const data = await res.json();
         const normalized = data.orders.map((o: any) => ({
-          id: o._id || o.id,
+          id: o.id,
           date: o.createdAt,
           status: o.status,
           total: o.total,

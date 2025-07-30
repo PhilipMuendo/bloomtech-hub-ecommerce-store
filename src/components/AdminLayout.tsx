@@ -289,7 +289,7 @@ const AdminLayout = () => {
                       ) : (
                         <ul className="max-h-64 overflow-y-auto divide-y divide-gray-100">
                           {lowStockProducts.map((p) => (
-                            <li key={p._id} className="flex justify-between items-center px-4 py-3 hover:bg-gray-50 transition-colors">
+                            <li key={p.id} className="flex justify-between items-center px-4 py-3 hover:bg-gray-50 transition-colors">
                               <span className="truncate max-w-[160px] font-medium text-gray-800">{p.name}</span>
                               <span className="text-red-600 font-bold">{p.stock}</span>
                             </li>

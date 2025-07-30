@@ -62,7 +62,7 @@ const AdminOrders = () => {
         const data = await res.json();
         // Normalize order data for display
         const normalized = data.orders.map((o: any) => ({
-          id: o._id || o.id,
+          id: o.id,
           customerName: o.User?.name || o.customerName || 'N/A',
           customerEmail: o.User?.email || o.customerEmail || 'N/A',
           customerPhone: o.User?.phone || 'N/A',

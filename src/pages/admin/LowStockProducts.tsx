@@ -57,12 +57,12 @@ const LowStockProducts: React.FC = () => {
               </TableHeader>
               <TableBody>
                 {products.map((p) => (
-                  <TableRow key={p._id}>
+                  <TableRow key={p.id}>
                     <TableCell>{p.name}</TableCell>
                     <TableCell className="text-red-600 font-bold">{p.stock}</TableCell>
                     <TableCell>{p.category}</TableCell>
                     <TableCell>
-                      <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => navigate(`/admin/products?edit=${p._id}`)}>
+                      <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => navigate(`/admin/products?edit=${p.id}`)}>
                         Restock
                       </Button>
                     </TableCell>
