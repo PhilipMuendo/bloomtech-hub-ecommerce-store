@@ -15,10 +15,8 @@ import { useAuth } from '@/context/AuthContext';
 interface Subscriber {
   id: string;
   email: string;
-  name?: string;
-  subscribeDate: string;
-  status: 'active' | 'unsubscribed';
-  source: 'website' | 'manual' | 'import';
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface Campaign {
@@ -26,22 +24,18 @@ interface Campaign {
   subject: string;
   content: string;
   sentDate: string;
-  recipients: number;
-  openRate: number;
-  clickRate: number;
-  _id?: string; // Added for backend compatibility
+  recipients: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Utility function to convert subscribers to CSV
 function subscribersToCSV(subscribers: Subscriber[]): string {
-  const header = ['ID', 'Email', 'Name', 'Subscribe Date', 'Status', 'Source'];
+  const header = ['ID', 'Email', 'Subscribe Date'];
   const rows = subscribers.map(s => [
     s.id,
     s.email,
-    s.name || '',
-    s.subscribeDate,
-    s.status,
-    s.source
+    s.createdAt
   ]);
   return [header, ...rows].map(row => row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')).join('\r\n');
 }
@@ -83,7 +77,7 @@ const Newsletter = () => {
     setSubscribersLoading(true);
     setSubscribersError(null);
     try {
-      const res = await fetch('/api/subscribers', {
+      const res = await fetch('/api/newsletter/subscribers', {
         headers: { Authorization: `Bearer ${currentUser?.token}` }
       });
       if (!res.ok) throw new Error('Failed to fetch subscribers');
@@ -116,10 +110,9 @@ const Newsletter = () => {
   };
   useEffect(() => { fetchCampaigns(); /* eslint-disable-line */ }, []);
 
-  const activeSubscribers = subscribersState.filter(s => s.status === 'active');
+  const activeSubscribers = subscribersState; // All subscribers are active in this model
   const filteredSubscribers = subscribersState.filter(subscriber =>
-    subscriber.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (subscriber.name && subscriber.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    subscriber.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSendCampaign = async () => {
@@ -153,24 +146,34 @@ const Newsletter = () => {
     const ws = XLSX.utils.json_to_sheet(filteredSubscribers.map(s => ({
       ID: s.id,
       Email: s.email,
-      Name: s.name || '',
-      'Subscribe Date': s.subscribeDate,
-      Status: s.status,
-      Source: s.source
+      'Subscribe Date': s.createdAt
     })));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Subscribers');
     XLSX.writeFile(wb, 'subscribers.xlsx');
   };
 
-  const handleRemoveSubscriber = (subscriberId: string) => {
+  const handleRemoveSubscriber = async (subscriberId: string) => {
     if (window.confirm('Are you sure you want to remove this subscriber?')) {
-      setSubscribersState(prev => prev.filter(s => s.id !== subscriberId));
-      toast({
-        title: "Subscriber Removed",
-        description: "Subscriber has been removed from the newsletter",
-        variant: "destructive"
-      });
+      try {
+        const res = await fetch(`/api/newsletter/subscribers/${subscriberId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${currentUser?.token}` }
+        });
+        if (!res.ok) throw new Error('Failed to remove subscriber');
+        
+        setSubscribersState(prev => prev.filter(s => s.id !== subscriberId));
+        toast({
+          title: "Subscriber Removed",
+          description: "Subscriber has been removed from the newsletter"
+        });
+      } catch (err: any) {
+        toast({
+          title: "Error",
+          description: err.message,
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -317,10 +320,7 @@ const Newsletter = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Email</TableHead>
-                      <TableHead>Name</TableHead>
                       <TableHead>Subscribe Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Source</TableHead>
                       <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -328,18 +328,7 @@ const Newsletter = () => {
                     {filteredSubscribers.map((subscriber) => (
                       <TableRow key={subscriber.id}>
                         <TableCell className="font-medium">{subscriber.email}</TableCell>
-                        <TableCell>{subscriber.name || '-'}</TableCell>
-                        <TableCell>{new Date(subscriber.subscribeDate).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Badge variant={subscriber.status === 'active' ? 'default' : 'secondary'}>
-                            {subscriber.status.charAt(0).toUpperCase() + subscriber.status.slice(1)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {subscriber.source.charAt(0).toUpperCase() + subscriber.source.slice(1)}
-                          </Badge>
-                        </TableCell>
+                        <TableCell>{new Date(subscriber.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <Button
                             variant="outline"
@@ -382,7 +371,7 @@ const Newsletter = () => {
                   </TableHeader>
                   <TableBody>
                     {campaigns.map((c) => (
-                      <TableRow key={c._id || c.id}>
+                      <TableRow key={c.id}>
                         <TableCell>{c.subject}</TableCell>
                         <TableCell>{new Date(c.sentDate).toLocaleDateString()}</TableCell>
                         <TableCell>{c.recipients.length}</TableCell>

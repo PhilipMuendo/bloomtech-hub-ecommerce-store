@@ -83,10 +83,14 @@ const Quotes = () => {
   }, [user, refetch]);
 
   const handleRespond = async () => {
+    if (!response.trim()) {
+      toast({ title: 'Response required', description: 'Please enter a response or decline reason.', variant: 'destructive' });
+      return;
+    }
     if (!selectedQuote) return;
     setResponding(true);
     try {
-      const res = await fetch(`/api/quotes/${selectedQuote._id}`, {
+              const res = await fetch(`/api/quotes/${selectedQuote.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -116,7 +120,7 @@ const Quotes = () => {
     }
     setCreatingOrder(true);
     try {
-      const res = await fetch(`/api/quotes/${selectedQuote._id}/create-order`, {
+      const res = await fetch(`/api/quotes/${selectedQuote.id}/create-order`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -245,7 +249,7 @@ const Quotes = () => {
             <TableBody>
               {filteredQuotes.map((q) => (
                 <TableRow 
-                  key={q._id} 
+                  key={q.id} 
                   className="cursor-pointer hover:bg-muted/50"
                   onClick={() => {
                     setSelectedQuote(q);
@@ -256,7 +260,7 @@ const Quotes = () => {
                   <TableCell>{q.email}</TableCell>
                   <TableCell>
                     {q.items?.map((item: any) => (
-                      <div key={item._id || item.productId?._id || item.productId}>
+                      <div key={item.id || item.productId?.id || item.productId}>
                         {item.productId?.name || item.productId} x {item.quantity}
                       </div>
                     )) || 'No items'}
@@ -327,7 +331,7 @@ const Quotes = () => {
                 <div className="max-h-48 space-y-3 overflow-y-auto rounded-lg border p-3">
                   {selectedQuote.messages?.map((msg: any) => (
                     <div
-                      key={msg._id}
+                      key={msg.id}
                       className={`flex items-end gap-2 text-sm ${
                         msg.sender === 'admin' ? 'justify-end' : 'justify-start'
                       }`}
@@ -379,7 +383,7 @@ const Quotes = () => {
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleRespond} disabled={responding}>
+            <Button onClick={handleRespond} disabled={responding || !response.trim()}>
               {responding ? <Clock className="animate-spin" /> : 'Send Response'}
             </Button>
           </DialogFooter>
@@ -414,7 +418,7 @@ const Quotes = () => {
                 <h3 className="text-xl font-semibold">Requested Items</h3>
                 <div className="space-y-3">
                   {selectedQuote.items?.map((item: any, index: number) => (
-                    <div key={item._id || index} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border">
+                    <div key={item.id || index} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg border">
                       <div className="space-y-1">
                         <p className="font-medium text-lg">{item.productId?.name || `Product ${item.productId}`}</p>
                         <p className="text-base text-muted-foreground">Quantity: {item.quantity}</p>
@@ -479,7 +483,7 @@ const Quotes = () => {
                   {selectedQuote.messages?.length > 0 ? (
                     selectedQuote.messages.map((msg: any) => (
                       <div
-                        key={msg._id}
+                        key={msg.id}
                         className={`flex items-end gap-3 ${
                           msg.sender === 'admin' ? 'justify-end' : 'justify-start'
                         }`}

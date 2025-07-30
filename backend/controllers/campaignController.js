@@ -29,25 +29,7 @@ export const createAndSendCampaign = async (req, res) => {
       return res.status(400).json({ error: 'No subscribers to send to.' });
     }
     
-    // Send email via Nodemailer
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-    });
-    
-    await transporter.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
-      to: recipientEmails,
-      subject,
-      html: content,
-    });
-    
-    // Save campaign to DB
+    // Save campaign to DB first
     const campaign = await Campaign.create({
       subject,
       content,
@@ -55,7 +37,34 @@ export const createAndSendCampaign = async (req, res) => {
       sentDate: new Date(),
     });
     
-    res.status(201).json({ message: 'Campaign sent and saved.', campaign });
+    // Try to send emails (but don't fail if email config is not set up)
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+      
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || process.env.SMTP_USER,
+        to: recipientEmails,
+        subject,
+        html: content,
+      });
+      
+      res.status(201).json({ message: 'Campaign sent and saved.', campaign });
+    } catch (emailError) {
+      console.warn('Email sending failed, but campaign was saved:', emailError.message);
+      res.status(201).json({ 
+        message: 'Campaign saved but email sending failed. Please check email configuration.', 
+        campaign,
+        emailError: emailError.message 
+      });
+    }
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

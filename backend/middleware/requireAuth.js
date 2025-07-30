@@ -19,6 +19,18 @@ const requireAuth = async (req, res, next) => {
       return res.status(401).json({ message: 'User not found. Please log in.' });
     }
     
+    // Check if user account is active
+    if (user.status !== 'active') {
+      let errorMessage = '';
+      if (user.status === 'suspended') {
+        errorMessage = 'Your account has been suspended. Please contact our support team at support@bloomtechhub.com or call +254-XXX-XXX-XXX for assistance.';
+      } else {
+        errorMessage = `Your account is currently '${user.status}'. Please contact support if you believe this is a mistake.`;
+      }
+      
+      return res.status(403).json({ message: errorMessage });
+    }
+    
     req.user = user;
     // Add role to req.user for easy access
     req.user.role = req.user.role || 'user';

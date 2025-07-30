@@ -229,8 +229,16 @@ export const login = async (req, res, next) => {
     
     if (user.status !== 'active') {
       console.log('User account not active:', user.status);
+      
+      let errorMessage = '';
+      if (user.status === 'suspended') {
+        errorMessage = 'Your account has been suspended. Please contact our support team at support@bloomtechhub.com or call +254-XXX-XXX-XXX for assistance.';
+      } else {
+        errorMessage = `Your account is currently '${user.status}'. Please contact support if you believe this is a mistake.`;
+      }
+      
       return res.status(403).json({
-        error: `Your account is currently '${user.status}'. Please contact support if you believe this is a mistake.`
+        error: errorMessage
       });
     }
     

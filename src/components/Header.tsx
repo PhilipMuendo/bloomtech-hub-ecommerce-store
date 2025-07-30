@@ -421,7 +421,7 @@ const Header = () => {
                         const res = await fetch(`${SEARCH_API}${encodeURIComponent(e.target.value.trim())}`);
                         if (res.ok) {
                           const data = await res.json();
-                          setSuggestions(data.map((p: any) => ({ id: p._id || p.id, name: p.name })));
+                          setSuggestions(data.map((p: any) => ({ id: p.id, name: p.name })));
                           setSearchError(data.length === 0 ? 'No products found.' : null);
                         } else {
                           setSuggestions([]);
@@ -575,7 +575,7 @@ const Header = () => {
                             const res = await fetch(`${SEARCH_API}${encodeURIComponent(e.target.value.trim())}`);
                             if (res.ok) {
                               const data = await res.json();
-                              setSuggestions(data.map((p: any) => ({ id: p._id || p.id, name: p.name })));
+                              setSuggestions(data.map((p: any) => ({ id: p.id, name: p.name })));
                             } else {
                               setSuggestions([]);
                             }

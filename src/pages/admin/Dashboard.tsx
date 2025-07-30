@@ -465,11 +465,11 @@ const Dashboard = () => {
                 ) : (
                   <div className="space-y-3">
                     {recentOrders.map((order) => (
-                      <div key={order._id || order.id?.toString() || `order-${Math.random()}`} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div key={order.id?.toString() || `order-${Math.random()}`} className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                         <div className="flex items-center space-x-3">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <div>
-                            <p className="font-medium">Order #{order._id ? order._id.slice(-6) : (order.id ? order.id.toString().slice(-6) : 'N/A')}</p>
+                            <p className="font-medium">Order #{order.id ? order.id.toString().slice(-6) : 'N/A'}</p>
                             <p className="text-sm text-muted-foreground">{order.userId?.name || 'N/A'}</p>
                           </div>
                         </div>

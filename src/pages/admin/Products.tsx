@@ -116,7 +116,7 @@ const Products = () => {
     if (products.length > 0) {
       const editId = searchParams.get('edit');
       if (editId) {
-        const prod = products.find(p => p.id === editId || p._id === editId);
+        const prod = products.find(p => p.id === editId);
         if (prod) setEditingProduct(prod);
       }
     }
@@ -154,7 +154,7 @@ const Products = () => {
       const newProductData = await res.json();
               toast({ 
           title: 'Product Added', 
-          description: `${formData.name} has been added to the catalog. Product ID: ${newProductData.id || newProductData._id}`,
+          description: `${formData.name} has been added to the catalog. Product ID: ${newProductData.id}`,
           duration: 8000
         });
       setIsAddDialogOpen(false);
@@ -187,7 +187,7 @@ const Products = () => {
         featured: !!formData.featured,
       };
       console.log('Updating product with payload:', updatePayload);
-      const res = await fetch(`/api/products/${editingProduct.id || editingProduct._id}`, {
+              const res = await fetch(`/api/products/${editingProduct.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -549,7 +549,7 @@ const Products = () => {
               </TableHeader>
               <TableBody>
                 {filteredProducts.map((product) => (
-                  <TableRow key={product._id}>
+                  <TableRow key={product.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <img
@@ -593,7 +593,7 @@ const Products = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleDeleteProduct(product._id)}
+                          onClick={() => handleDeleteProduct(product.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

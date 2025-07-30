@@ -145,7 +145,7 @@ const CustomCheckout = () => {
           <CardHeader>
             <CardTitle className="text-2xl">Complete Your Custom Order</CardTitle>
             <CardDescription>
-              Order #{order.trackingNumber || order._id?.slice(-6) || order.id?.toString().slice(-6) || 'N/A'}
+              Order #{order.trackingNumber || order.id?.toString().slice(-6) || 'N/A'}
             </CardDescription>
           </CardHeader>
           
@@ -165,7 +165,7 @@ const CustomCheckout = () => {
               <h3 className="font-semibold mb-3">Order Items</h3>
               <div className="space-y-3">
                 {order.items?.map((item: any, index: number) => (
-                  <div key={item._id || item.id || index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <div key={item.id || index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                     <div>
                       <p className="font-medium">{item.productName || `Product ${item.productId}`}</p>
                       <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
@@ -238,7 +238,7 @@ const CustomCheckout = () => {
         <MpesaPaymentModal
           isOpen={showMpesa}
           onClose={() => setShowMpesa(false)}
-          orderId={order._id || order.id}
+          orderId={order.id}
           amount={order.total}
           onSuccess={handlePaymentSuccess}
         />
@@ -247,7 +247,7 @@ const CustomCheckout = () => {
         <PesapalPaymentModal
           isOpen={showPesapal}
           onClose={() => setShowPesapal(false)}
-          orderId={order._id || order.id}
+          orderId={order.id}
           amount={order.total}
           onSuccess={handlePaymentSuccess}
         />

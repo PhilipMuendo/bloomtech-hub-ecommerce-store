@@ -70,8 +70,8 @@ const Cart = () => {
         })
       });
       const orderData = await orderResponse.json();
-      if (orderData.id || orderData._id) {
-        setCurrentOrderId(orderData.id || orderData._id);
+      if (orderData.id) {
+        setCurrentOrderId(orderData.id);
         setShowPaymentSelector(true);
         localStorage.removeItem('pickupPoint');
       } else {

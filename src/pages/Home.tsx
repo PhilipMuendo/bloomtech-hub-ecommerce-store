@@ -36,7 +36,7 @@ const Home = () => {
         const data = await res.json();
         setFeaturedProducts(data.map((p: any) => ({
           ...p,
-          id: p._id || p.id,
+          id: p.id,
           image: p.image || p.imageUrl || '/placeholder.svg',
           inStock: typeof p.inStock === 'boolean' ? p.inStock : (typeof p.stock === 'number' ? p.stock > 0 : true),
         })));

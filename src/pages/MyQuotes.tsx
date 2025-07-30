@@ -83,7 +83,7 @@ const MyQuotes = () => {
     if (!selectedQuote) return;
     setReplying(true);
     try {
-      const res = await fetch(`/api/quotes/${selectedQuote._id}/reply`, {
+              const res = await fetch(`/api/quotes/${selectedQuote.id}/reply`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ const MyQuotes = () => {
       });
       if (!res.ok) throw new Error('Failed to send reply');
       const updatedQuote = await res.json();
-      setQuotes(prev => prev.map(q => q._id === updatedQuote._id ? updatedQuote : q));
+              setQuotes(prev => prev.map(q => q.id === updatedQuote.id ? updatedQuote : q));
       setSelectedQuote(null);
       setReply('');
     } catch (err: any) {
@@ -128,8 +128,8 @@ const MyQuotes = () => {
                 <div className="space-y-2">
                   {quotes.map(q => (
                     <div 
-                      key={q._id} 
-                      className={`p-3 rounded-lg cursor-pointer border ${selectedQuote?._id === q._id ? 'bg-muted border-primary' : 'hover:bg-muted/50'}`}
+                                      key={q.id}
+                className={`p-3 rounded-lg cursor-pointer border ${selectedQuote?.id === q.id ? 'bg-muted border-primary' : 'hover:bg-muted/50'}`}
                       onClick={() => setSelectedQuote(q)}
                     >
                       <div className="font-semibold">{q.items?.[0]?.productId?.name || 'Quote Request'}</div>
@@ -144,7 +144,7 @@ const MyQuotes = () => {
                   <div className="flex flex-col h-full">
                     <div className="flex-grow space-y-4 overflow-y-auto p-4 border rounded-lg h-96">
                       {selectedQuote.messages?.map((msg: any) => (
-                        <div key={msg._id} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div key={msg.id} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                           <div className={`max-w-md rounded-xl px-4 py-2 ${msg.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                             <p>{msg.text}</p>
                             <p className="text-xs opacity-70 mt-1">{new Date(msg.createdAt).toLocaleString()}</p>

@@ -184,7 +184,7 @@ async function addManualData() {
             { productId: orderProducts[0].id, quantity: 2 },
             { productId: orderProducts[1].id, quantity: 1 }
           ],
-          total: (orderProducts[0].price * 2) + orderProducts[1].price,
+          total: Number(orderProducts[0].price) * 2 + Number(orderProducts[1].price),
           status: 'delivered',
           shippingAddress: '123 Main Street, Nairobi, Kenya',
           trackingNumber: 'BT-20241201-123456'
@@ -195,7 +195,7 @@ async function addManualData() {
             { productId: orderProducts[2].id, quantity: 1 },
             { productId: orderProducts[3].id, quantity: 3 }
           ],
-          total: orderProducts[2].price + (orderProducts[3].price * 3),
+          total: Number(orderProducts[2].price) + (Number(orderProducts[3].price) * 3),
           status: 'processing',
           shippingAddress: '456 Oak Avenue, Mombasa, Kenya',
           trackingNumber: 'BT-20241201-789012'
@@ -205,7 +205,7 @@ async function addManualData() {
           items: [
             { productId: orderProducts[4].id, quantity: 1 }
           ],
-          total: orderProducts[4].price,
+          total: Number(orderProducts[4].price),
           status: 'pending',
           shippingAddress: '789 Pine Road, Kisumu, Kenya',
           trackingNumber: 'BT-20241201-345678'

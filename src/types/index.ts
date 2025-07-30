@@ -1,5 +1,5 @@
 export interface User {
-  _id: string;
+  id: string;
   name: string;
   email: string;
   role: 'user' | 'admin' | 'superadmin';
@@ -19,7 +19,7 @@ export interface Product {
 }
 
 export interface Message {
-  _id: string;
+  id: string;
   sender: 'user' | 'admin';
   text: string;
   createdAt: string;
@@ -33,7 +33,7 @@ export interface QuoteItem {
 }
 
 export interface Quote {
-  _id: string;
+  id: string;
   userId?: string;
   name: string;
   email: string;
