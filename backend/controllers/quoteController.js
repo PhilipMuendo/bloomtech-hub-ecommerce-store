@@ -566,6 +566,10 @@ export const respondToQuote = async (req, res) => {
     }
     
     const { adminResponse, status } = req.body;
+    if (!adminResponse || !adminResponse.trim()) {
+      return res.status(400).json({ error: 'Response is required.' });
+    }
+    
     const quote = await Quote.findByPk(req.params.id, {
       include: [
         { model: QuoteItem, include: [{ model: Product }] },

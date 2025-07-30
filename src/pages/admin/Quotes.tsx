@@ -83,6 +83,10 @@ const Quotes = () => {
   }, [user, refetch]);
 
   const handleRespond = async () => {
+    if (!response.trim()) {
+      toast({ title: 'Response required', description: 'Please enter a response or decline reason.', variant: 'destructive' });
+      return;
+    }
     if (!selectedQuote) return;
     setResponding(true);
     try {
@@ -379,7 +383,7 @@ const Quotes = () => {
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleRespond} disabled={responding}>
+            <Button onClick={handleRespond} disabled={responding || !response.trim()}>
               {responding ? <Clock className="animate-spin" /> : 'Send Response'}
             </Button>
           </DialogFooter>
