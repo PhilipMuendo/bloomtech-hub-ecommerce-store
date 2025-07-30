@@ -52,7 +52,7 @@ const Blog = () => {
       {error && <div className="text-red-500">{error}</div>}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {blogs.map((post) => (
-          <Card key={post._id} className="group card-hover">
+                      <Card key={post.id} className="group card-hover">
             <div className="relative overflow-hidden rounded-t-lg">
               {post.image && (
                 <img

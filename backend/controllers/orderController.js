@@ -111,15 +111,26 @@ export const createOrder = async (req, res, next) => {
       return res.status(400).json({ error: 'Items array cannot be empty' });
     }
     
-    // Validate total
-    if (!total) {
-      console.log('❌ No total provided');
-      return res.status(400).json({ error: 'Total amount is required' });
+    // Calculate total from items instead of trusting frontend
+    console.log('Calculating total from items...');
+    let calculatedTotal = 0;
+    
+    for (const item of items) {
+      const product = await Product.findByPk(item.productId);
+      if (product) {
+        calculatedTotal += Number(product.price) * item.quantity;
+        console.log(`Item: ${product.name} x ${item.quantity} = ${Number(product.price) * item.quantity}`);
+      }
     }
     
-    if (isNaN(total) || total <= 0) {
-      console.log('❌ Invalid total:', total);
-      return res.status(400).json({ error: 'Valid total amount is required' });
+    console.log(`Calculated total: ${calculatedTotal}, Frontend total: ${total}`);
+    
+    // Validate that frontend total matches calculated total (with small tolerance for rounding)
+    if (Math.abs(calculatedTotal - total) > 0.01) {
+      console.log('❌ Total mismatch detected');
+      return res.status(400).json({ 
+        error: `Total amount mismatch. Calculated: ${calculatedTotal}, Provided: ${total}` 
+      });
     }
     
     console.log('✅ Basic validation passed');
@@ -162,7 +173,7 @@ export const createOrder = async (req, res, next) => {
       console.log('Creating order...');
       const order = await Order.create({ 
         userId: req.user.id, 
-        total, 
+        total: calculatedTotal, 
         shippingAddress: shippingAddress || ''
       }, { transaction: t });
       

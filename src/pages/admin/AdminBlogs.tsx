@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import * as yup from 'yup';
 
 interface Blog {
-  _id: string;
+  id: string;
   title: string;
   content: string;
   image?: string;
@@ -23,7 +23,7 @@ interface Blog {
 const blogSchema = yup.object().shape({
   title: yup.string().required('Title is required').min(3, 'Title must be at least 3 characters'),
   content: yup.string().required('Content is required').min(10, 'Content must be at least 10 characters'),
-  author: yup.string().required('Author is required').matches(/[a-zA-Z]/, 'Author must contain letters').notOneOf([/^[0-9]+$/], 'Author cannot be only digits'),
+  author: yup.string().required('Author is required').matches(/[a-zA-Z]/, 'Author must contain letters').test('not-only-digits', 'Author cannot be only digits', value => !/^[0-9]+$/.test(value || '')),
   slug: yup.string().required('Slug is required').matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be URL-safe (lowercase, hyphens, no spaces)'),
   image: yup.string(),
   published: yup.boolean(),
@@ -50,7 +50,11 @@ const AdminBlogs = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/blogs');
+      const res = await fetch('/api/blogs/admin/all', {
+        headers: {
+          Authorization: `Bearer ${user?.token}`
+        }
+      });
       if (!res.ok) throw new Error('Failed to fetch blogs');
       const data = await res.json();
       setBlogs(data);
@@ -89,7 +93,8 @@ const AdminBlogs = () => {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
     setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
@@ -99,7 +104,7 @@ const AdminBlogs = () => {
     setError(null);
     try {
       const method = editingBlog ? 'PUT' : 'POST';
-      const url = editingBlog ? `/api/blogs/${editingBlog._id}` : '/api/blogs';
+      const url = editingBlog ? `/api/blogs/${editingBlog.id}` : '/api/blogs';
       const res = await fetch(url, {
         method,
         headers: {
@@ -162,14 +167,14 @@ const AdminBlogs = () => {
             </TableHeader>
             <TableBody>
               {blogs.map((blog) => (
-                <TableRow key={blog._id}>
+                <TableRow key={blog.id}>
                   <TableCell>{blog.title}</TableCell>
                   <TableCell>{blog.author}</TableCell>
                   <TableCell>{blog.slug}</TableCell>
                   <TableCell>{blog.published ? 'Yes' : 'No'}</TableCell>
                   <TableCell>
                     <Button size="sm" variant="outline" onClick={() => handleOpenDialog(blog)}>Edit</Button>
-                    <Button size="sm" variant="destructive" className="ml-2" onClick={() => handleDelete(blog._id)}>Delete</Button>
+                    <Button size="sm" variant="destructive" className="ml-2" onClick={() => handleDelete(blog.id)}>Delete</Button>
                   </TableCell>
                 </TableRow>
               ))}

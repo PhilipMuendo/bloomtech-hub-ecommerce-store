@@ -74,7 +74,7 @@ export const createQuote = async (req, res) => {
     // Transform the data to match frontend expectations
     const quoteData = completeQuote.toJSON();
     const transformedQuote = {
-      _id: quoteData.id,
+      id: quoteData.id,
       userId: quoteData.userId,
       name: quoteData.name,
       email: quoteData.email,
@@ -85,16 +85,16 @@ export const createQuote = async (req, res) => {
       createdAt: quoteData.createdAt,
       updatedAt: quoteData.updatedAt,
       items: quoteData.QuoteItems?.map(item => ({
-        _id: item.id,
+        id: item.id,
         productId: {
-          _id: item.Product?.id,
+          id: item.Product?.id,
           name: item.Product?.name,
           price: item.Product?.price
         },
         quantity: item.quantity
       })) || [],
       messages: quoteData.Messages?.map(msg => ({
-        _id: msg.id,
+        id: msg.id,
         sender: msg.sender,
         text: msg.text,
         createdAt: msg.createdAt,
@@ -141,7 +141,7 @@ export const getQuotes = async (req, res) => {
     const transformedQuotes = quotes.map(quote => {
       const quoteData = quote.toJSON();
       return {
-        _id: quoteData.id,
+        id: quoteData.id,
         userId: quoteData.userId,
         name: quoteData.name,
         email: quoteData.email,
@@ -154,16 +154,16 @@ export const getQuotes = async (req, res) => {
         createdAt: quoteData.createdAt,
         updatedAt: quoteData.updatedAt,
         items: quoteData.QuoteItems?.map(item => ({
-          _id: item.id,
+          id: item.id,
           productId: {
-            _id: item.Product?.id,
+            id: item.Product?.id,
             name: item.Product?.name,
             price: item.Product?.price
           },
           quantity: item.quantity
         })) || [],
         messages: quoteData.Messages?.map(msg => ({
-          _id: msg.id,
+          id: msg.id,
           sender: msg.sender,
           text: msg.text,
           createdAt: msg.createdAt,
@@ -196,7 +196,7 @@ export const getUserQuotes = async (req, res) => {
     const transformedQuotes = quotes.map(quote => {
       const quoteData = quote.toJSON();
       return {
-        _id: quoteData.id,
+        id: quoteData.id,
         userId: quoteData.userId,
         name: quoteData.name,
         email: quoteData.email,
@@ -209,15 +209,15 @@ export const getUserQuotes = async (req, res) => {
         createdAt: quoteData.createdAt,
         updatedAt: quoteData.updatedAt,
         items: quoteData.QuoteItems?.map(item => ({
-          _id: item.id,
+          id: item.id,
           productId: {
-            _id: item.Product?.id,
+            id: item.Product?.id,
             name: item.Product?.name
           },
           quantity: item.quantity
         })) || [],
         messages: quoteData.Messages?.map(msg => ({
-          _id: msg.id,
+          id: msg.id,
           sender: msg.sender,
           text: msg.text,
           createdAt: msg.createdAt,
@@ -254,7 +254,7 @@ export const getQuoteById = async (req, res) => {
     // Transform the data to match frontend expectations
     const quoteData = quote.toJSON();
     const transformedQuote = {
-      _id: quoteData.id,
+      id: quoteData.id,
       userId: quoteData.userId,
       name: quoteData.name,
       email: quoteData.email,
@@ -267,16 +267,16 @@ export const getQuoteById = async (req, res) => {
       createdAt: quoteData.createdAt,
       updatedAt: quoteData.updatedAt,
       items: quoteData.QuoteItems?.map(item => ({
-        _id: item.id,
+        id: item.id,
         productId: {
-          _id: item.Product?.id,
+          id: item.Product?.id,
           name: item.Product?.name,
           price: item.Product?.price
         },
         quantity: item.quantity
       })) || [],
       messages: quoteData.Messages?.map(msg => ({
-        _id: msg.id,
+        id: msg.id,
         sender: msg.sender,
         text: msg.text,
         createdAt: msg.createdAt,
@@ -606,7 +606,7 @@ export const respondToQuote = async (req, res) => {
     // Transform the data to match frontend expectations
     const quoteData = updatedQuote.toJSON();
     const transformedQuote = {
-      _id: quoteData.id,
+      id: quoteData.id,
       userId: quoteData.userId,
       name: quoteData.name,
       email: quoteData.email,
@@ -617,16 +617,16 @@ export const respondToQuote = async (req, res) => {
       createdAt: quoteData.createdAt,
       updatedAt: quoteData.updatedAt,
       items: quoteData.QuoteItems?.map(item => ({
-        _id: item.id,
+        id: item.id,
         productId: {
-          _id: item.Product?.id,
+          id: item.Product?.id,
           name: item.Product?.name,
           price: item.Product?.price
         },
         quantity: item.quantity
       })) || [],
       messages: quoteData.Messages?.map(msg => ({
-        _id: msg.id,
+        id: msg.id,
         sender: msg.sender,
         text: msg.text,
         createdAt: msg.createdAt,
@@ -686,7 +686,7 @@ export const replyToQuote = async (req, res) => {
     // Transform the data to match frontend expectations
     const quoteData = updatedQuote.toJSON();
     const transformedQuote = {
-      _id: quoteData.id,
+      id: quoteData.id,
       userId: quoteData.userId,
       name: quoteData.name,
       email: quoteData.email,
@@ -697,16 +697,16 @@ export const replyToQuote = async (req, res) => {
       createdAt: quoteData.createdAt,
       updatedAt: quoteData.updatedAt,
       items: quoteData.QuoteItems?.map(item => ({
-        _id: item.id,
+        id: item.id,
         productId: {
-          _id: item.Product?.id,
+          id: item.Product?.id,
           name: item.Product?.name,
           price: item.Product?.price
         },
         quantity: item.quantity
       })) || [],
       messages: quoteData.Messages?.map(msg => ({
-        _id: msg.id,
+        id: msg.id,
         sender: msg.sender,
         text: msg.text,
         createdAt: msg.createdAt,

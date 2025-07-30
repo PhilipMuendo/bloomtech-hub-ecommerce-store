@@ -96,3 +96,64 @@ export const resendVerificationEmail = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateUserStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    const user = await User.findByPk(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Validate status
+    const validStatuses = ['active', 'suspended'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+    
+    await user.update({ status });
+    
+    // Return user without password
+    const userWithoutPassword = await User.findByPk(req.params.id, {
+      attributes: { exclude: ['password'] }
+    });
+    
+    res.json(userWithoutPassword);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateUserRole = async (req, res, next) => {
+  try {
+    const { role } = req.body;
+    const user = await User.findByPk(req.params.id);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Validate role
+    const validRoles = ['user', 'admin', 'superadmin'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+    
+    // Prevent superadmin from changing their own role
+    if (user.id === req.user.id && user.role === 'superadmin') {
+      return res.status(403).json({ error: 'Cannot change your own role' });
+    }
+    
+    await user.update({ role });
+    
+    // Return user without password
+    const userWithoutPassword = await User.findByPk(req.params.id, {
+      attributes: { exclude: ['password'] }
+    });
+    
+    res.json(userWithoutPassword);
+  } catch (error) {
+    next(error);
+  }
+};
