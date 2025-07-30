@@ -20,10 +20,9 @@ export const useReviews = (productId: string) => {
   const fetchReviews = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/reviews/public/${productId}`);
+      const res = await fetch(`/api/reviews/product/${productId}`);
       if (!res.ok) throw new Error('Failed to fetch reviews');
       const data = await res.json();
-      console.log('[useReviews] productId:', productId, 'Fetched reviews:', data); // Debug log
       setReviews(
         data.map((r: any) => ({
           ...r,

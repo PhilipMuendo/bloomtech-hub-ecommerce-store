@@ -280,7 +280,7 @@ async function addManualData() {
             productId: reviewData.productId,
             rating: reviewData.rating,
             comment: reviewData.comment,
-            approved: true
+            status: 'approved'
           });
           console.log(`✅ Review created: ${reviewData.rating}⭐ for product ${reviewData.productId}`);
         } else {

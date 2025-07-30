@@ -470,7 +470,7 @@ const Dashboard = () => {
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                           <div>
                             <p className="font-medium">Order #{order.id ? order.id.toString().slice(-6) : 'N/A'}</p>
-                            <p className="text-sm text-muted-foreground">{order.userId?.name || 'N/A'}</p>
+                            <p className="text-sm text-muted-foreground">{order.customerName || 'N/A'}</p>
                           </div>
                         </div>
                         <div className="text-right">

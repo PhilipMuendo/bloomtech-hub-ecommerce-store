@@ -41,14 +41,18 @@ export const getOrders = async (req, res, next) => {
     });
     
     // Map productName into each item for frontend compatibility
-    const ordersWithProductNames = orders.map(order => ({
-      ...order.toJSON(),
-      items: order.OrderItems.map(item => ({
-        ...item.toJSON(),
-        productName: item.Product?.name || 'N/A',
-        price: item.Product?.price || 0,
-      })),
-    }));
+    const ordersWithProductNames = orders.map(order => {
+      const orderJson = order.toJSON();
+      return {
+        ...orderJson,
+        customerName: orderJson.User?.name || 'N/A',
+        items: order.OrderItems.map(item => ({
+          ...item.toJSON(),
+          productName: item.Product?.name || 'N/A',
+          price: item.Product?.price || 0,
+        })),
+      };
+    });
     
     res.json({
       orders: ordersWithProductNames,
