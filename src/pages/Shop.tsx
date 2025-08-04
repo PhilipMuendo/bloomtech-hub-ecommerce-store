@@ -45,7 +45,7 @@ const Shop = () => {
         const normalized = data.products.map((p: any) => ({
           ...p,
           id: p.id || p.productId, // Ensure id is always set (MySQL uses 'id')
-          image: p.image || p.imageUrl || '/placeholder.svg',
+          imageUrl: p.imageUrl || '/placeholder.svg',
           inStock: typeof p.inStock === 'boolean' ? p.inStock : (typeof p.stock === 'number' ? p.stock > 0 : true),
         }));
         setProducts(normalized);

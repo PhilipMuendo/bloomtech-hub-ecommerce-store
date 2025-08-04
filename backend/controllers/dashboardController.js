@@ -24,29 +24,27 @@ export const getQuoteSummary = async (req, res, next) => {
     if (req.user.role !== 'superadmin') {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    const pendingQuotes = await Quote.count({ where: { status: 'pending' } });
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-    const closedThisMonth = await Quote.count({
-      where: {
-        status: 'closed',
-        updatedAt: { [Op.gte]: startOfMonth },
-      },
-    });
-    res.json({
-      pendingQuotes,
-      closedThisMonth,
-    });
+
+    const [pendingQuotes, closedThisMonth] = await Promise.all([
+      Quote.count({ where: { status: 'pending' } }),
+      Quote.count({
+        where: {
+          status: 'closed',
+          updatedAt: {
+            [Op.gte]: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+          },
+        },
+      }),
+    ]);
+
+    res.json({ pendingQuotes, closedThisMonth });
   } catch (err) {
-    next(err);
+    res.status(500).json({ message: 'Failed to fetch quote summary', error: err.message });
   }
 };
 
-// GET /api/dashboard/revenue-trend
-export const getRevenueTrend = async (req, res) => {
+export const getRevenueTrend = async (req, res, next) => {
   try {
-    // Last 6 months revenue by month
     const now = new Date();
     const months = [];
     for (let i = 5; i >= 0; i--) {
@@ -103,7 +101,6 @@ export const getOrdersByCategory = async (req, res) => {
 // GET /api/dashboard/user-signups
 export const getUserSignups = async (req, res) => {
   try {
-    // Last 6 months user signups by month
     const now = new Date();
     const months = [];
     for (let i = 5; i >= 0; i--) {

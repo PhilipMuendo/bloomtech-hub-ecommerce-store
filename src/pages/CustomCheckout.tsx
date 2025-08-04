@@ -130,7 +130,7 @@ const CustomCheckout = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'paid': return 'bg-green-100 text-green-800';
+
       case 'processing': return 'bg-blue-100 text-blue-800';
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
@@ -207,7 +207,7 @@ const CustomCheckout = () => {
               <div className="pt-4">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
                   <p className="text-blue-800">
-                    {order.status === 'paid' ? 'Payment completed successfully!' :
+                    {order.status === 'delivered' ? 'Order delivered successfully!' :
                      order.status === 'processing' ? 'Your order is being processed.' :
                      order.status === 'delivered' ? 'Your order has been delivered!' :
                      'This order has been processed.'}

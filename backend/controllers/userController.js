@@ -3,12 +3,44 @@ import { sendVerificationEmail, generateVerificationToken } from './authControll
 
 const { User } = db;
 
+// Helper function to calculate user statistics
+const calculateUserStats = (userData) => {
+  const orders = userData.Orders || [];
+  
+  const totalOrders = orders.length;
+  const totalSpent = orders.reduce((sum, order) => {
+    // Only count completed orders (delivered or processing)
+    if (order.status === 'delivered' || order.status === 'processing') {
+      return sum + parseFloat(order.total || 0);
+    }
+    return sum;
+  }, 0);
+
+  return {
+    ...userData,
+    totalOrders,
+    totalSpent,
+    Orders: undefined // Remove the orders array from response
+  };
+};
+
 export const getAllUsers = async (req, res, next) => {
   try {
     const users = await User.findAll({
-      attributes: { exclude: ['password'] }
+      attributes: { exclude: ['password'] },
+      include: [
+        {
+          model: db.Order,
+          attributes: ['id', 'total', 'status'],
+          required: false
+        }
+      ]
     });
-    res.json(users);
+
+    // Calculate orders and total spent for each user
+    const usersWithStats = users.map(user => calculateUserStats(user.toJSON()));
+
+    res.json(usersWithStats);
   } catch (error) {
     next(error);
   }
@@ -17,14 +49,24 @@ export const getAllUsers = async (req, res, next) => {
 export const getUserById = async (req, res, next) => {
   try {
     const user = await User.findByPk(req.params.id, {
-      attributes: { exclude: ['password'] }
+      attributes: { exclude: ['password'] },
+      include: [
+        {
+          model: db.Order,
+          attributes: ['id', 'total', 'status'],
+          required: false
+        }
+      ]
     });
     
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
+
+    // Calculate orders and total spent for the user
+    const userWithStats = calculateUserStats(user.toJSON());
     
-    res.json(user);
+    res.json(userWithStats);
   } catch (error) {
     next(error);
   }
@@ -48,12 +90,22 @@ export const updateUser = async (req, res, next) => {
     
     await user.update(updateData);
     
-    // Return user without password
+    // Return user without password and with statistics
     const userWithoutPassword = await User.findByPk(req.params.id, {
-      attributes: { exclude: ['password'] }
+      attributes: { exclude: ['password'] },
+      include: [
+        {
+          model: db.Order,
+          attributes: ['id', 'total', 'status'],
+          required: false
+        }
+      ]
     });
+
+    // Calculate orders and total spent for the user
+    const userWithStats = calculateUserStats(userWithoutPassword.toJSON());
     
-    res.json(userWithoutPassword);
+    res.json(userWithStats);
   } catch (error) {
     next(error);
   }
@@ -114,12 +166,22 @@ export const updateUserStatus = async (req, res, next) => {
     
     await user.update({ status });
     
-    // Return user without password
+    // Return user without password and with statistics
     const userWithoutPassword = await User.findByPk(req.params.id, {
-      attributes: { exclude: ['password'] }
+      attributes: { exclude: ['password'] },
+      include: [
+        {
+          model: db.Order,
+          attributes: ['id', 'total', 'status'],
+          required: false
+        }
+      ]
     });
+
+    // Calculate orders and total spent for the user
+    const userWithStats = calculateUserStats(userWithoutPassword.toJSON());
     
-    res.json(userWithoutPassword);
+    res.json(userWithStats);
   } catch (error) {
     next(error);
   }
@@ -135,7 +197,7 @@ export const updateUserRole = async (req, res, next) => {
     }
     
     // Validate role
-    const validRoles = ['user', 'admin', 'superadmin'];
+    const validRoles = ['user', 'admin', 'superadmin', 'warehouse'];
     if (!validRoles.includes(role)) {
       return res.status(400).json({ error: 'Invalid role' });
     }
@@ -147,12 +209,22 @@ export const updateUserRole = async (req, res, next) => {
     
     await user.update({ role });
     
-    // Return user without password
+    // Return user without password and with statistics
     const userWithoutPassword = await User.findByPk(req.params.id, {
-      attributes: { exclude: ['password'] }
+      attributes: { exclude: ['password'] },
+      include: [
+        {
+          model: db.Order,
+          attributes: ['id', 'total', 'status'],
+          required: false
+        }
+      ]
     });
+
+    // Calculate orders and total spent for the user
+    const userWithStats = calculateUserStats(userWithoutPassword.toJSON());
     
-    res.json(userWithoutPassword);
+    res.json(userWithStats);
   } catch (error) {
     next(error);
   }

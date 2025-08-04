@@ -15,7 +15,7 @@ interface User {
   name: string;
   email: string;
   createdAt: string;
-  role: 'user' | 'admin' | 'superadmin';
+  role: 'user' | 'admin' | 'superadmin' | 'warehouse';
   status: 'active' | 'suspended';
   totalOrders: number;
   totalSpent: number;
@@ -69,10 +69,25 @@ const Users = () => {
   };
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = 
+      user.name?.toLowerCase().includes(searchLower) ||
+      user.email?.toLowerCase().includes(searchLower) ||
+      user.id?.toString().toLowerCase().includes(searchLower);
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+    
+    // Debug logging
+    if (searchTerm && (matchesSearch || matchesStatus)) {
+      console.log('Search match:', {
+        searchTerm,
+        userName: user.name,
+        userEmail: user.email,
+        userId: user.id,
+        matchesSearch,
+        matchesStatus
+      });
+    }
+    
     return matchesSearch && matchesStatus;
   });
 
@@ -201,6 +216,14 @@ const Users = () => {
           </Card>
           <Card>
             <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium">Warehouse Staff</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{users.filter(u => u.role === 'warehouse').length}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium">New This Month</CardTitle>
             </CardHeader>
             <CardContent>
@@ -216,7 +239,7 @@ const Users = () => {
           <CardHeader>
             <CardTitle>User Management</CardTitle>
             <CardDescription>
-              {filteredUsers.length} of {users.length} users
+              {searchTerm ? `${filteredUsers.length} of ${users.length} users matching "${searchTerm}"` : `${filteredUsers.length} of ${users.length} users`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -224,11 +247,21 @@ const Users = () => {
               <div className="relative flex-1">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search users..."
+                  placeholder="Search by name, email, or user ID..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-8"
                 />
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-2 top-1.5 h-6 w-6 p-0"
+                  >
+                    ×
+                  </Button>
+                )}
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[180px]">
@@ -258,7 +291,7 @@ const Users = () => {
                   {filteredUsers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        No users found.
+                        {searchTerm ? `No users found matching "${searchTerm}"` : 'No users found.'}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -287,6 +320,11 @@ const Users = () => {
                               <Badge variant="default" className="flex items-center gap-1">
                                 <ShieldCheck className="h-3 w-3" />
                                 Admin
+                              </Badge>
+                            ) : user.role === 'warehouse' ? (
+                              <Badge variant="secondary" className="flex items-center gap-1">
+                                <Shield className="h-3 w-3" />
+                                Warehouse
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="flex items-center gap-1">
@@ -325,6 +363,7 @@ const Users = () => {
                                 <SelectContent>
                                   <SelectItem value="user">User</SelectItem>
                                   <SelectItem value="admin">Admin</SelectItem>
+                                  <SelectItem value="warehouse">Warehouse</SelectItem>
                                   <SelectItem value="superadmin">Super Admin</SelectItem>
                                 </SelectContent>
                               </Select>
@@ -368,6 +407,8 @@ const Users = () => {
                     <Badge variant="default" className="ml-1">Super Admin</Badge>
                   ) : selectedUser.role === 'admin' ? (
                     <Badge variant="default" className="ml-1">Admin</Badge>
+                  ) : selectedUser.role === 'warehouse' ? (
+                    <Badge variant="secondary" className="ml-1">Warehouse</Badge>
                   ) : (
                     <Badge variant="outline" className="ml-1">User</Badge>
                   )}</p>

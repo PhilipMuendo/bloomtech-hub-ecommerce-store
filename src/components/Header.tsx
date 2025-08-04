@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingCart, Search as SearchIcon, User, List, Heart, LogOut, ChevronDown, Shield, Bell, MailCheck, RefreshCw } from 'lucide-react';
+import { Search, ShoppingCart, Search as SearchIcon, User, List, Heart, LogOut, ChevronDown, Shield, Bell, MailCheck, RefreshCw, Package } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +53,14 @@ const UserDropdown = () => {
           <DropdownMenuItem asChild>
             <Link to="/admin" className="flex items-center gap-2 text-blue-600 font-semibold">
               <Shield className="w-4 h-4" /> Admin Panel
+            </Link>
+          </DropdownMenuItem>
+        )}
+        {/* Warehouse Panel link for warehouse staff and superadmin */}
+        {(user.role === 'warehouse' || user.role === 'superadmin') && (
+          <DropdownMenuItem asChild>
+            <Link to="/warehouse" className="flex items-center gap-2 text-green-600 font-semibold">
+              <Package className="w-4 h-4" /> Warehouse Panel
             </Link>
           </DropdownMenuItem>
         )}
@@ -263,7 +271,7 @@ const Header = () => {
         
         if (adminOrderRes.ok) {
           const adminOrderData = await adminOrderRes.json();
-          // Count orders that need attention (pending, awaiting_payment, processing)
+          // Count orders that need attention (pending, processing)
           orderCount = adminOrderData.length;
         }
       } else {

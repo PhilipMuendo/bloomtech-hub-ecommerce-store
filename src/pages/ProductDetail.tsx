@@ -13,6 +13,25 @@ import ProductCard from '@/components/ProductCard';
 import GetQuoteModal from '@/components/GetQuoteModal';
 import { useAuth } from '@/context/AuthContext';
 
+// Type definitions
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  imageUrl?: string;
+  category: string;
+  description?: string;
+  stock?: number;
+  inStock?: boolean;
+  featured?: boolean;
+  reviews?: any[];
+  productId?: string; // Add this for backward compatibility
+}
+
+interface RelatedProduct extends Product {
+  productId?: string;
+}
+
 // Skeleton loader for product
 const ProductSkeleton = () => (
   <div className="container mx-auto px-4 py-8">
@@ -37,14 +56,16 @@ const ProductDetail = () => {
   const location = useLocation();
   const [showQuote, setShowQuote] = React.useState(false);
 
-  const [product, setProduct] = React.useState<any>(null);
+  const [product, setProduct] = React.useState<Product | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [quantity, setQuantity] = React.useState(1);
-  const [relatedProducts, setRelatedProducts] = React.useState<any[]>([]);
+  const [relatedProducts, setRelatedProducts] = React.useState<RelatedProduct[]>([]);
+  const [imageError, setImageError] = React.useState(false);
 
   // Sticky Add to Cart bar (mobile)
   const [showStickyBar, setShowStickyBar] = React.useState(false);
+  
   React.useEffect(() => {
     const handleScroll = () => {
       setShowStickyBar(window.innerWidth < 768 && window.scrollY > 350);
@@ -53,46 +74,120 @@ const ProductDetail = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Fetch product data
   React.useEffect(() => {
     if (!id) return;
+    
     setLoading(true);
     setError(null);
-    fetch(`/api/products/${id}`)
-      .then(async (res) => {
-        if (res.status === 404) {
+    setImageError(false);
+    
+    const fetchProduct = async () => {
+      try {
+        const response = await fetch(`/api/products/${id}`);
+        
+        if (response.status === 404) {
           setProduct(null);
           setError('Product Not Found');
-        } else if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
+        } else if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
           setError(data.error || 'Failed to fetch product');
         } else {
-          const data = await res.json();
+          const data = await response.json();
           setProduct(data);
         }
-      })
-      .catch((err) => {
+      } catch (err: any) {
         setError(err.message || 'Failed to fetch product');
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
   }, [id]);
 
   // Fetch related products by category (excluding current product)
   React.useEffect(() => {
-    if (!product || !product.category) return;
-    fetch(`/api/products?category=${product.category}&limit=5`)
-      .then(async (res) => {
-        if (!res.ok) return setRelatedProducts([]);
-        const data = await res.json();
+    if (!product?.category) return;
+    
+    const fetchRelatedProducts = async () => {
+      try {
+        const response = await fetch(`/api/products?category=${product.category}&limit=5`);
+        
+        if (!response.ok) {
+          setRelatedProducts([]);
+          return;
+        }
+        
+        const data = await response.json();
+        const products = data.products || data;
+        
         // Exclude current product and limit to 4
-        const filtered = (data.products || data).filter((p: any) => {
-          const pId = p.id || p.productId;
-          const currentId = product.id || product.productId;
-          return pId !== currentId;
-        }).slice(0, 4);
+        const filtered = products
+          .filter((p: RelatedProduct) => {
+            const pId = p.id || p.productId;
+            const currentId = product.id || product.productId;
+            return pId !== currentId;
+          })
+          .slice(0, 4);
+        
         setRelatedProducts(filtered);
-      })
-      .catch(() => setRelatedProducts([]));
+      } catch (error) {
+        console.error('Failed to fetch related products:', error);
+        setRelatedProducts([]);
+      }
+    };
+
+    fetchRelatedProducts();
+  }, [product?.category, product?.id]);
+
+  // Memoized values for performance
+  const isInStock = React.useMemo(() => {
+    if (!product) return false;
+    return typeof product.inStock === 'boolean'
+      ? product.inStock
+      : typeof product.stock === 'number'
+        ? product.stock > 0
+        : false;
   }, [product]);
+
+  const formatPrice = React.useCallback((price: number) => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES',
+      minimumFractionDigits: 0
+    }).format(price);
+  }, []);
+
+  const handleAddToCart = React.useCallback(() => {
+    if (!product) return;
+    
+    try {
+      addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        category: product.category
+      }, quantity);
+      toast({ title: 'Added to cart!', description: product.name });
+    } catch (error: any) {
+      toast({ 
+        title: 'Error', 
+        description: error?.message || 'Failed to add to cart', 
+        variant: 'destructive' 
+      });
+    }
+  }, [product, quantity, addToCart, toast]);
+
+  const handleQuantityChange = React.useCallback((newQuantity: number) => {
+    const maxStock = typeof product?.stock === 'number' ? product.stock : 99;
+    setQuantity(Math.max(1, Math.min(newQuantity, maxStock)));
+  }, [product?.stock]);
+
+  const handleImageError = React.useCallback(() => {
+    setImageError(true);
+  }, []);
 
   if (loading) {
     return <ProductSkeleton />;
@@ -103,7 +198,9 @@ const ProductDetail = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
-          <p className="text-muted-foreground mb-4">The product you're looking for doesn't exist.</p>
+          <p className="text-muted-foreground mb-4">
+            {error || "The product you're looking for doesn't exist."}
+          </p>
           <Button asChild>
             <Link to="/shop">Back to Shop</Link>
           </Button>
@@ -111,35 +208,6 @@ const ProductDetail = () => {
       </div>
     );
   }
-
-  const handleAddToCart = () => {
-    try {
-      addToCart({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        category: product.category
-      }, quantity);
-      toast({ title: 'Added to cart!', description: product.name });
-    } catch (error: any) {
-      toast({ title: 'Error', description: error?.message || 'Failed to add to cart', variant: 'destructive' });
-    }
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0
-    }).format(price);
-  };
-
-  const isInStock = typeof product.inStock === 'boolean'
-    ? product.inStock
-    : typeof product.stock === 'number'
-      ? product.stock > 0
-      : false;
 
   // Breadcrumbs
   const breadcrumbs = [
@@ -149,6 +217,15 @@ const ProductDetail = () => {
     { name: product.name, to: location.pathname }
   ];
 
+  const getCategoryDisplayName = (category: string) => {
+    switch (category) {
+      case 'ict': return 'ICT Equipment';
+      case 'security': return 'Security Systems';
+      case 'power': return 'Power Solutions';
+      default: return 'Electrical Materials';
+    }
+  };
+
   return (
     <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
       {/* Breadcrumbs */}
@@ -156,7 +233,11 @@ const ProductDetail = () => {
         {breadcrumbs.map((crumb, idx) => (
           <span key={crumb.to} className="flex items-center gap-1">
             {idx > 0 && <ChevronRight className="w-4 h-4" />}
-            <Link to={crumb.to} className={idx === breadcrumbs.length - 1 ? "font-semibold text-primary" : "hover:underline"}>
+            <Link 
+              to={crumb.to} 
+              className={idx === breadcrumbs.length - 1 ? "font-semibold text-primary" : "hover:underline"}
+              aria-current={idx === breadcrumbs.length - 1 ? "page" : undefined}
+            >
               {idx === 0 ? <Home className="w-4 h-4 inline" /> : crumb.name}
             </Link>
           </span>
@@ -178,16 +259,17 @@ const ProductDetail = () => {
         <div className="space-y-4 flex flex-col items-center">
           <div className="relative overflow-hidden rounded-lg bg-white shadow-md flex flex-col items-center justify-center p-2" style={{ minWidth: '300px', maxWidth: '340px', margin: '0 auto' }}>
             <img
-              src={product.imageUrl || product.image || '/placeholder.svg'}
+              src={imageError ? '/placeholder.svg' : (product.imageUrl || '/placeholder.svg')}
               srcSet={
-                product.imageUrl || product.image
-                  ? `${product.imageUrl || product.image}?w=320 320w, ${product.imageUrl || product.image}?w=400 400w, ${product.imageUrl || product.image}?w=600 600w`
+                product.imageUrl && !imageError
+                  ? `${product.imageUrl}?w=320 320w, ${product.imageUrl}?w=400 400w, ${product.imageUrl}?w=600 600w`
                   : undefined
               }
               sizes="(max-width: 640px) 100vw, 340px"
               alt={product.name || 'Product image'}
               className="w-[320px] h-[320px] sm:w-[340px] sm:h-[340px] object-contain border rounded-lg bg-white"
               loading="lazy"
+              onError={handleImageError}
             />
             {product.featured && (
               <div className="absolute top-3 left-3 bg-accent text-white px-2 py-1 text-xs font-medium rounded">
@@ -201,10 +283,7 @@ const ProductDetail = () => {
         <div className="space-y-6">
           <div className="space-y-2">
             <span className="text-xs sm:text-sm bg-muted px-2 sm:px-3 py-1 rounded capitalize text-muted-foreground">
-              {product.category === 'ict' ? 'ICT Equipment' : 
-               product.category === 'security' ? 'Security Systems' :
-               product.category === 'power' ? 'Power Solutions' : 
-               'Electrical Materials'}
+              {getCategoryDisplayName(product.category)}
             </span>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mt-2 sm:mt-3 mb-2 sm:mb-3">
               {product.name}
@@ -258,15 +337,17 @@ const ProductDetail = () => {
                   min={1}
                   max={typeof product.stock === 'number' ? product.stock : 99}
                   value={quantity}
-                  onChange={e => setQuantity(Math.max(1, Math.min(Number(e.target.value), typeof product.stock === 'number' ? product.stock : 99)))}
+                  onChange={e => handleQuantityChange(Number(e.target.value))}
                   className="w-14 border rounded px-2 py-1 text-center text-sm"
                   disabled={!isInStock}
+                  aria-label="Quantity"
                 />
               </div>
               <Button
                 onClick={handleAddToCart}
                 disabled={!isInStock}
                 className="bg-accent hover:bg-accent/90 text-sm font-medium py-2 px-4 rounded-md min-w-[120px] h-[40px]"
+                aria-label={isInStock ? 'Add to cart' : 'Out of stock'}
               >
                 {isInStock ? 'Add to Cart' : 'Out of Stock'}
               </Button>
@@ -279,6 +360,7 @@ const ProductDetail = () => {
               className="px-6 py-2 flex items-center gap-2 border-dashed border-2 border-accent hover:bg-accent/10 rounded-md text-base mt-2"
               style={{ minWidth: '220px', maxWidth: '320px' }}
               onClick={() => setShowQuote(true)}
+              aria-label="Request bulk quote"
             >
               <Tag className="w-5 h-5 text-accent" />
               Request Bulk Quote
@@ -312,7 +394,7 @@ const ProductDetail = () => {
           <div>
             <h3 className="text-lg font-semibold mb-2">Write a Review</h3>
             {user ? (
-          <ReviewForm productId={product.id} />
+              <ReviewForm productId={product.id} />
             ) : (
               <div className="text-muted-foreground mb-4">
                 <Link to="/login" className="text-primary underline">Log in</Link> to write a review.
@@ -321,7 +403,7 @@ const ProductDetail = () => {
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-2">All Reviews</h3>
-          <ReviewsList productId={product.id} />
+            <ReviewsList productId={product.id} />
           </div>
         </div>
       </div>
@@ -332,12 +414,15 @@ const ProductDetail = () => {
         {relatedProducts.length > 0 ? (
           <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {relatedProducts.map((prod) => (
-                      <ProductCard key={prod.id} product={{
-          ...prod,
-          id: prod.id,
-                image: prod.image || prod.imageUrl || '/placeholder.svg',
-                inStock: typeof prod.inStock === 'boolean' ? prod.inStock : (typeof prod.stock === 'number' ? prod.stock > 0 : true),
-              }} />
+              <ProductCard 
+                key={prod.id} 
+                product={{
+                  ...prod,
+                  id: prod.id,
+                  imageUrl: prod.imageUrl || '/placeholder.svg',
+                  inStock: typeof prod.inStock === 'boolean' ? prod.inStock : (typeof prod.stock === 'number' ? prod.stock > 0 : true),
+                }} 
+              />
             ))}
           </div>
         ) : (
@@ -345,10 +430,7 @@ const ProductDetail = () => {
             <p>No related products found.</p>
             <Button asChild className="mt-3 sm:mt-4">
               <Link to={`/shop?category=${product.category}`}>
-                View More {product.category === 'ict' ? 'ICT Equipment' : 
-                           product.category === 'security' ? 'Security Systems' :
-                           product.category === 'power' ? 'Power Solutions' : 
-                           'Electrical Materials'}
+                View More {getCategoryDisplayName(product.category)}
               </Link>
             </Button>
           </div>
@@ -372,9 +454,10 @@ const ProductDetail = () => {
               min={1}
               max={typeof product.stock === 'number' ? product.stock : 99}
               value={quantity}
-              onChange={e => setQuantity(Math.max(1, Math.min(Number(e.target.value), typeof product.stock === 'number' ? product.stock : 99)))}
+              onChange={e => handleQuantityChange(Number(e.target.value))}
               className="w-12 border rounded px-2 py-1 text-center text-sm"
               disabled={!isInStock}
+              aria-label="Quantity"
             />
             <span className="font-medium">{product.name}</span>
           </div>
@@ -382,6 +465,7 @@ const ProductDetail = () => {
             onClick={handleAddToCart}
             disabled={!isInStock}
             className="bg-accent hover:bg-accent/90 text-sm font-medium py-2 px-4 rounded-md min-w-[100px] h-[40px]"
+            aria-label={isInStock ? 'Add to cart' : 'Out of stock'}
           >
             {isInStock ? 'Add to Cart' : 'Out of Stock'}
           </Button>

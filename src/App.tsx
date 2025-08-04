@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import { Suspense, lazy } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./components/AdminLayout";
+import WarehouseLayout from "./components/WarehouseLayout";
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect } from "react";
 import ResetPassword from './pages/ResetPassword';
@@ -48,6 +49,7 @@ const Newsletter = lazy(() => import("./pages/admin/Newsletter"));
 const AdminBlogs = lazy(() => import('./pages/admin/AdminBlogs'));
 const LowStockProducts = lazy(() => import('./pages/admin/LowStockProducts'));
 const Quotes = lazy(() => import("./pages/admin/Quotes"));
+const WarehouseOrders = lazy(() => import("./pages/warehouse/WarehouseOrders"));
 
 const queryClient = new QueryClient();
 
@@ -327,6 +329,19 @@ const AnimatedRoutes = () => {
             </Suspense>
           } />
         </Route>
+        <Route path="/warehouse" element={
+          <ProtectedRoute allowedRoles={['warehouse', 'admin', 'superadmin']}>
+            <Suspense fallback={<LoadingSpinner />}>
+              <WarehouseLayout />
+            </Suspense>
+          </ProtectedRoute>
+        }>
+          <Route index element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <WarehouseOrders />
+            </Suspense>
+          } />
+        </Route>
         <Route path="*" element={
           <Suspense fallback={<LoadingSpinner />}>
             <NotFound />
@@ -340,6 +355,7 @@ const AnimatedRoutes = () => {
 const App = () => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
+  const isWarehouseRoute = location.pathname.startsWith("/warehouse");
 
   // Scroll to top on route change
   useEffect(() => {
@@ -353,11 +369,11 @@ const App = () => {
           <Toaster />
           <Sonner />
           <div className="min-h-screen flex flex-col">
-            {!isAdminRoute && <Header />}
+            {!isAdminRoute && !isWarehouseRoute && <Header />}
             <main className="flex-1">
               <AnimatedRoutes />
             </main>
-            {!isAdminRoute && <Footer />}
+            {!isAdminRoute && !isWarehouseRoute && <Footer />}
           </div>
         </CartProvider>
       </TooltipProvider>

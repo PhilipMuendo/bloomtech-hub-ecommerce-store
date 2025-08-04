@@ -45,18 +45,18 @@ export default (sequelize) => {
     },
     password: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true, // Allow null for OAuth users
       validate: {
         len: [6, 100],
         notSimple(value) {
-          if (["123456", "password", "qwerty"].includes(value)) {
+          if (value && ["123456", "password", "qwerty"].includes(value)) {
             throw new Error('Password is too simple.');
           }
         }
       }
     },
     role: {
-      type: DataTypes.ENUM('user', 'admin', 'superadmin'),
+      type: DataTypes.ENUM('user', 'admin', 'superadmin', 'warehouse'),
       defaultValue: 'user',
     },
     status: {
@@ -83,13 +83,35 @@ export default (sequelize) => {
     resetPasswordExpires: {
       type: DataTypes.DATE,
     },
+    // OAuth fields
+    googleId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
+    },
+    googleEmail: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    googleName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    googlePicture: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    authProvider: {
+      type: DataTypes.ENUM('local', 'google'),
+      defaultValue: 'local',
+    },
   }, {
     sequelize,
     modelName: 'User',
     timestamps: true,
     hooks: {
       beforeSave: async (user) => {
-        if (user.changed('password')) {
+        if (user.changed('password') && user.password) {
           user.password = await bcrypt.hash(user.password, 10);
         }
       }

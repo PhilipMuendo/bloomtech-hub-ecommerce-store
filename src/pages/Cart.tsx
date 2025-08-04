@@ -152,7 +152,7 @@ const Cart = () => {
             <Card key={item.id} className="flex flex-col sm:flex-row sm:items-center p-4 sm:p-6">
               <div className="flex-1 flex items-center space-x-4">
                 <img
-                  src={item.image}
+                  src={item.imageUrl}
                   alt={item.name}
                   className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg"
                 />

@@ -41,7 +41,7 @@ async function validateData() {
       }
       
       // Check role values
-      const validRoles = ['user', 'admin', 'superadmin'];
+      const validRoles = ['user', 'admin', 'superadmin', 'warehouse'];
       if (!validRoles.includes(user.role)) {
         userIssues.push(`User ${index + 1}: Invalid role - ${user.role}`);
       }

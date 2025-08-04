@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
-import Order from '../models/Order.js';
+import db from '../sequelize_models/index.js';
+const { Order } = db;
 import dotenv from 'dotenv';
 
 dotenv.config();

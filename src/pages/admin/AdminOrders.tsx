@@ -15,7 +15,7 @@ interface Order {
   customerEmail: string;
   customerPhone: string;
   date: string;
-  status: 'pending' | 'processing' | 'delivered' | 'cancelled' | 'awaiting_payment' | 'paid';
+  status: 'pending' | 'processing' | 'delivered' | 'cancelled';
   total: number;
   items: Array<{
     productName: string;
@@ -67,7 +67,7 @@ const AdminOrders = () => {
           customerEmail: o.User?.email || o.customerEmail || 'N/A',
           customerPhone: o.User?.phone || 'N/A',
           date: o.createdAt,
-          status: o.status as 'pending' | 'processing' | 'delivered' | 'cancelled' | 'awaiting_payment' | 'paid',
+                      status: o.status as 'pending' | 'processing' | 'delivered' | 'cancelled',
           total: o.total,
           items: o.OrderItems?.map((item: any) => ({
             productName: item.Product?.name || 'N/A',
@@ -119,8 +119,7 @@ const AdminOrders = () => {
   const formatStatusDisplay = (status: string): string => {
     switch (status) {
       case 'pending': return 'Pending';
-      case 'awaiting_payment': return 'Awaiting Payment';
-      case 'paid': return 'Paid';
+
       case 'processing': return 'Processing';
       case 'delivered': return 'Delivered';
       case 'cancelled': return 'Cancelled';
@@ -131,8 +130,7 @@ const AdminOrders = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'secondary';
-      case 'awaiting_payment': return 'outline';
-      case 'paid': return 'default';
+
       case 'processing': return 'default';
       case 'delivered': return 'default';
       case 'cancelled': return 'destructive';
@@ -177,7 +175,7 @@ const AdminOrders = () => {
       
       // Update the order's status in local state immediately
       setOrders(prevOrders => prevOrders.map(order =>
-        order.id === orderId ? { ...order, status: newStatus as 'pending' | 'processing' | 'delivered' | 'cancelled' | 'awaiting_payment' | 'paid' } : order
+        order.id === orderId ? { ...order, status: newStatus as 'pending' | 'processing' | 'delivered' | 'cancelled' } : order
       ));
     } catch (err: any) {
       toast({
@@ -221,8 +219,7 @@ const AdminOrders = () => {
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="awaiting_payment">Awaiting Payment</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
+                
                 <SelectItem value="processing">Processing</SelectItem>
                 <SelectItem value="delivered">Delivered</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
@@ -311,12 +308,7 @@ const AdminOrders = () => {
                             <SelectItem value="pending" disabled={order.status === 'pending'}>
                               {order.status === 'pending' ? '✓ Pending (Current)' : 'Pending'}
                             </SelectItem>
-                            <SelectItem value="awaiting_payment" disabled={order.status === 'awaiting_payment'}>
-                              {order.status === 'awaiting_payment' ? '✓ Awaiting Payment (Current)' : 'Awaiting Payment'}
-                            </SelectItem>
-                            <SelectItem value="paid" disabled={order.status === 'paid'}>
-                              {order.status === 'paid' ? '✓ Paid (Current)' : 'Paid'}
-                            </SelectItem>
+                            
                             <SelectItem value="processing" disabled={order.status === 'processing'}>
                               {order.status === 'processing' ? '✓ Processing (Current)' : 'Processing'}
                             </SelectItem>

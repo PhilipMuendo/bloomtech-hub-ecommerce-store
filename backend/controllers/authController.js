@@ -4,8 +4,12 @@ import { Op } from 'sequelize';
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import { OAuth2Client } from 'google-auth-library';
 
 const { User } = db;
+
+// Initialize Google OAuth client
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Configure nodemailer for SMTP
 const createTransporter = () => {
@@ -428,5 +432,95 @@ export const changePassword = async (req, res, next) => {
   } catch (error) {
     console.error('Error changing password:', error);
     res.status(500).json({ error: 'Failed to change password. Please try again.' });
+  }
+};
+
+// Google OAuth functions
+export const googleAuth = async (req, res, next) => {
+  try {
+    const { idToken } = req.body;
+    
+    if (!idToken) {
+      return res.status(400).json({ error: 'ID token is required' });
+    }
+    
+    // Verify the Google ID token
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture } = payload;
+    
+    // Check if user already exists
+    let user = await User.findOne({
+      where: {
+        [Op.or]: [
+          { googleId },
+          { email }
+        ]
+      }
+    });
+    
+    if (user) {
+      // Update existing user with Google info if needed
+      if (!user.googleId) {
+        await user.update({
+          googleId,
+          googleEmail: email,
+          googleName: name,
+          googlePicture: picture,
+          authProvider: 'google',
+          verified: true // Google users are automatically verified
+        });
+      }
+    } else {
+      // Create new user
+      user = await User.create({
+        name,
+        email,
+        googleId,
+        googleEmail: email,
+        googleName: name,
+        googlePicture: picture,
+        authProvider: 'google',
+        verified: true, // Google users are automatically verified
+        status: 'active'
+      });
+    }
+    
+    // Generate JWT token
+    const token = generateToken(user.id, user.role);
+    
+    res.json({
+      message: 'Google authentication successful',
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        verified: user.verified,
+        authProvider: user.authProvider,
+        googlePicture: user.googlePicture
+      }
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(500).json({ error: 'Google authentication failed. Please try again.' });
+  }
+};
+
+// Get Google OAuth URL for frontend
+export const getGoogleAuthUrl = async (req, res, next) => {
+  try {
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile`;
+    
+    res.json({ authUrl });
+  } catch (error) {
+    console.error('Error generating Google auth URL:', error);
+    res.status(500).json({ error: 'Failed to generate Google auth URL' });
   }
 };

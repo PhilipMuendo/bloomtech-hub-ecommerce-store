@@ -4,7 +4,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'user' | 'admin' | 'superadmin';
+  role: 'user' | 'admin' | 'superadmin' | 'warehouse';
   token: string;
 }
 
@@ -15,10 +15,12 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
+  googleLogin: (idToken: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<any>;
   logout: () => void;
   isAdmin: () => boolean;
   isSuperAdmin: () => boolean;
+  isWarehouse: () => boolean;
   hasRole: (role: string) => boolean;
   updateUser: (user: User) => void;
   checkUserStatus: () => Promise<void>;
@@ -102,6 +104,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const googleLogin = async (idToken: string) => {
+    dispatch({ type: 'LOGIN_START' });
+    try {
+      const response = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem('user', JSON.stringify(data));
+        dispatch({ type: 'LOGIN_SUCCESS', payload: data });
+      } else {
+        throw new Error(data.error || data.message || 'Google login failed');
+      }
+    } catch (error) {
+      dispatch({ type: 'LOGIN_FAILURE' });
+      throw error;
+    }
+  };
+
   const register = async (name: string, email: string, password: string): Promise<any> => {
     dispatch({ type: 'LOGIN_START' });
     try {
@@ -142,6 +166,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return state.user?.role === 'superadmin';
   };
 
+  const isWarehouse = () => {
+    return state.user?.role === 'warehouse' || state.user?.role === 'admin' || state.user?.role === 'superadmin';
+  };
+
   const hasRole = (role: string) => {
     return state.user?.role === role;
   };
@@ -180,10 +208,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider value={{
       ...state,
       login,
+      googleLogin,
       register,
       logout,
       isAdmin,
       isSuperAdmin,
+      isWarehouse,
       hasRole,
       updateUser,
       checkUserStatus

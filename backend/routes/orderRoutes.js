@@ -1,17 +1,32 @@
 import express from 'express';
-import { getOrders, getOrderById, getOrderByTrackingNumber, createOrder, updateOrderStatus, getRecentOrdersForNotifications } from '../controllers/orderController.js';
+import { 
+  getOrders, 
+  getOrderById, 
+  createOrder, 
+  updateOrderStatus,
+  getRecentOrdersForNotifications
+} from '../controllers/orderController.js';
 import requireAuth from '../middleware/requireAuth.js';
-import { requireAdmin } from '../middleware/roleAuth.js';
-// import authMiddleware from '../middleware/authMiddleware.js';
+import { requireAdmin, requireWarehouse } from '../middleware/roleAuth.js';
 
 const router = express.Router();
 
-router.get('/', requireAuth, getOrders);
-router.get('/user', requireAuth, getOrders); // User's own orders
-router.get('/notifications', requireAuth, requireAdmin, getRecentOrdersForNotifications);
-router.get('/tracking/:trackingNumber', getOrderByTrackingNumber); // No auth required for quote-based orders
-router.get('/:id', requireAuth, getOrderById);
-router.post('/', requireAuth, createOrder);
-router.put('/:id/status', requireAuth, requireAdmin, updateOrderStatus);
+// All routes require authentication
+router.use(requireAuth);
+
+// GET /api/orders - Get user's orders or all orders for admin
+router.get('/', getOrders);
+
+// GET /api/orders/:id - Get specific order details
+router.get('/:id', getOrderById);
+
+// POST /api/orders - Create new order
+router.post('/', createOrder);
+
+// PUT /api/orders/:id/status - Update order status (admin/warehouse only)
+router.put('/:id/status', requireWarehouse, updateOrderStatus);
+
+// GET /api/orders/recent/notifications - Get recent orders for notifications
+router.get('/recent/notifications', getRecentOrdersForNotifications);
 
 export default router; 

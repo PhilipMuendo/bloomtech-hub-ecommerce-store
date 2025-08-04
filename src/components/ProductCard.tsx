@@ -14,7 +14,7 @@ interface Product {
   id: string;
   name: string;
   price: number;
-  image: string;
+  imageUrl: string;
   category: string;
   inStock: boolean;
   featured?: boolean;
@@ -45,7 +45,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       id: product.id,
       name: product.name,
       price: product.price,
-      image: product.image,
+      imageUrl: product.imageUrl,
       category: product.category
     });
     setAdding(false);
@@ -77,7 +77,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </div>
           ) : (
             <img
-              src={product.image}
+              src={product.imageUrl}
               alt={product.name}
               className={`w-full h-full object-cover transition-opacity duration-300 ${
                 imageLoaded ? 'opacity-100' : 'opacity-0'

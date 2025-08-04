@@ -16,7 +16,7 @@ export default (sequelize) => {
       }
     },
     status: {
-      type: DataTypes.ENUM('pending', 'processing', 'delivered', 'cancelled', 'awaiting_payment', 'paid'),
+      type: DataTypes.ENUM('pending', 'processing', 'delivered', 'cancelled'),
       defaultValue: 'pending',
     },
     shippingAddress: {

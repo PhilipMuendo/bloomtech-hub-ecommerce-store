@@ -4,7 +4,8 @@ import bodyParser from 'body-parser';
 import sinon from 'sinon';
 import axios from 'axios';
 import * as pesapalController from '../controllers/pesapalController.js';
-import Order from '../models/Order.js';
+import db from '../sequelize_models/index.js';
+const { Order } = db;
 
 const app = express();
 app.use(bodyParser.json());

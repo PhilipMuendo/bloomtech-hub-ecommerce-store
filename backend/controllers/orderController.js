@@ -1,17 +1,15 @@
 import db, { sequelize } from '../sequelize_models/index.js';
 import { Op } from 'sequelize';
 
-const { Order, Product, User } = db;
-// OrderItem is a named export from Order.js, so we need to import it differently
-const OrderItem = db.OrderItem;
+const { Order, Product, User, OrderItem } = db;
 
 // Get current user's orders or all orders for admin
 export const getOrders = async (req, res, next) => {
   try {
     const { page = 1, limit = 20, status, sort = '-createdAt', userId } = req.query;
     const where = {};
-    // If not admin, only allow user's own orders
-    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
+    // If not admin/superadmin/warehouse, only allow user's own orders
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin' && req.user.role !== 'warehouse')) {
       where.userId = req.user.id;
     } else if (userId) {
       where.userId = userId;
@@ -46,8 +44,8 @@ export const getOrders = async (req, res, next) => {
       return {
         ...orderJson,
         customerName: orderJson.User?.name || 'N/A',
-        items: order.OrderItems.map(item => ({
-          ...item.toJSON(),
+        items: orderJson.OrderItems.map(item => ({
+          ...item,
           productName: item.Product?.name || 'N/A',
           price: item.Product?.price || 0,
         })),
@@ -70,8 +68,15 @@ export const getOrders = async (req, res, next) => {
 // Get order details
 export const getOrderById = async (req, res, next) => {
   try {
+    const where = { id: req.params.id };
+    
+    // If not admin/superadmin/warehouse, only allow user's own orders
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin' && req.user.role !== 'warehouse')) {
+      where.userId = req.user.id;
+    }
+    
     const order = await Order.findOne({ 
-      where: { id: req.params.id, userId: req.user.id },
+      where,
       include: [
         { model: User, attributes: ['name', 'email', 'phone'] },
         { 
@@ -226,10 +231,10 @@ export const createOrder = async (req, res, next) => {
   }
 };
 
-// Update order status, shipping info, or tracking number (admin only)
+// Update order status, shipping info, or tracking number (admin/warehouse only)
 export const updateOrderStatus = async (req, res, next) => {
   try {
-    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin' && req.user.role !== 'warehouse')) {
       return res.status(403).json({ error: 'Forbidden' });
     }
     const { status, shippingAddress, trackingNumber } = req.body;
@@ -242,9 +247,7 @@ export const updateOrderStatus = async (req, res, next) => {
     
     // Define status transition rules
     const statusTransitions = {
-      'pending': ['processing', 'cancelled', 'awaiting_payment'],
-      'awaiting_payment': ['paid', 'cancelled', 'pending'],
-      'paid': ['processing', 'cancelled'],
+      'pending': ['processing', 'cancelled'],
       'processing': ['delivered', 'cancelled'],
       'delivered': [], // Cannot change from delivered
       'cancelled': []  // Cannot change from cancelled
@@ -294,7 +297,7 @@ export const getRecentOrdersForNotifications = async (req, res, next) => {
           { createdAt: { [Op.gte]: twentyFourHoursAgo } },
           { updatedAt: { [Op.gte]: twentyFourHoursAgo } }
         ],
-        status: { [Op.in]: ['pending', 'awaiting_payment', 'processing', 'shipped', 'delivered'] }
+        status: { [Op.in]: ['pending', 'processing', 'delivered'] }
       },
       include: [{ model: User, attributes: ['name', 'email', 'phone'] }],
       order: [['updatedAt', 'DESC']], // Order by most recently updated
