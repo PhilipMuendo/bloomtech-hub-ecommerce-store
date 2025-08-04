@@ -1,5 +1,6 @@
 import db, { sequelize } from '../sequelize_models/index.js';
 import { Op } from 'sequelize';
+import AuditService from '../services/auditService.js';
 
 const { Order, Product, User, OrderItem } = db;
 
@@ -273,7 +274,69 @@ export const updateOrderStatus = async (req, res, next) => {
       return res.status(400).json({ error: 'No valid fields to update' });
     }
     
+    // Store previous values for audit
+    const previousValues = {
+      status: currentOrder.status,
+      shippingAddress: currentOrder.shippingAddress,
+      trackingNumber: currentOrder.trackingNumber
+    };
+
     await currentOrder.update(updateData);
+
+    // Log audit event for status change
+    if (status && status !== previousValues.status) {
+      await AuditService.logOrderAction({
+        performedBy: req.user.id,
+        action: `order_status_changed`,
+        orderId: currentOrder.id,
+        details: `Order status changed from ${previousValues.status} to ${status}`,
+        previousValues: { status: previousValues.status },
+        newValues: { status },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+
+      // Update audit fields based on status
+      if (status === 'processing') {
+        await currentOrder.update({
+          processedBy: req.user.id,
+          processedAt: new Date()
+        });
+      } else if (status === 'delivered') {
+        await currentOrder.update({
+          deliveredBy: req.user.id,
+          deliveredAt: new Date()
+        });
+      }
+    }
+
+    // Log audit event for other changes
+    if (shippingAddress && shippingAddress !== previousValues.shippingAddress) {
+      await AuditService.logOrderAction({
+        performedBy: req.user.id,
+        action: `order_shipping_updated`,
+        orderId: currentOrder.id,
+        details: `Shipping address updated`,
+        previousValues: { shippingAddress: previousValues.shippingAddress },
+        newValues: { shippingAddress },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+    }
+
+    if (trackingNumber && trackingNumber !== previousValues.trackingNumber) {
+      await AuditService.logOrderAction({
+        performedBy: req.user.id,
+        action: `order_tracking_updated`,
+        orderId: currentOrder.id,
+        details: `Tracking number updated`,
+        previousValues: { trackingNumber: previousValues.trackingNumber },
+        newValues: { trackingNumber },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+    }
+
     res.json(currentOrder);
   } catch (err) {
     console.error('Error in updateOrderStatus:', err);
@@ -288,7 +351,7 @@ export const getRecentOrdersForNotifications = async (req, res, next) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
     
-    // Get orders from the last 24 hours (created OR updated)
+    // Get orders from the last 24 hours (created OR updated) that haven't been viewed by admin
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
     const recentOrders = await Order.findAll({
@@ -297,7 +360,8 @@ export const getRecentOrdersForNotifications = async (req, res, next) => {
           { createdAt: { [Op.gte]: twentyFourHoursAgo } },
           { updatedAt: { [Op.gte]: twentyFourHoursAgo } }
         ],
-        status: { [Op.in]: ['pending', 'processing', 'delivered'] }
+        status: { [Op.in]: ['pending', 'processing', 'delivered'] },
+        adminViewed: false
       },
       include: [{ model: User, attributes: ['name', 'email', 'phone'] }],
       order: [['updatedAt', 'DESC']], // Order by most recently updated
@@ -319,6 +383,107 @@ export const getRecentOrdersForNotifications = async (req, res, next) => {
     res.json(formattedOrders);
   } catch (err) {
     console.error('Error in getRecentOrdersForNotifications:', err);
+    next(err);
+  }
+};
+
+// Mark orders as viewed by admin
+export const markOrdersAsViewed = async (req, res, next) => {
+  try {
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin')) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    
+    const { orderIds } = req.body;
+    
+    if (!orderIds || !Array.isArray(orderIds)) {
+      return res.status(400).json({ error: 'orderIds array is required' });
+    }
+    
+    // Update orders to mark them as viewed
+    await Order.update(
+      { adminViewed: true },
+      { 
+        where: { 
+          id: { [Op.in]: orderIds },
+          adminViewed: false 
+        }
+      }
+    );
+    
+    res.json({ message: 'Orders marked as viewed successfully' });
+  } catch (err) {
+    console.error('Error in markOrdersAsViewed:', err);
+    next(err);
+  }
+};
+
+// Get user notifications (unviewed orders for the current user)
+export const getUserNotifications = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    // Get unviewed orders for the current user from the last 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    
+    const unviewedOrders = await Order.findAll({
+      where: {
+        userId: req.user.id,
+        userViewed: false,
+        createdAt: { [Op.gte]: thirtyDaysAgo },
+        status: { [Op.in]: ['pending', 'processing', 'delivered'] }
+      },
+      order: [['createdAt', 'DESC']],
+      limit: 10
+    });
+    
+    // Format for frontend
+    const formattedOrders = unviewedOrders.map(order => ({
+      id: order.id,
+      total: order.total,
+      status: order.status,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      trackingNumber: order.trackingNumber
+    }));
+    
+    res.json(formattedOrders);
+  } catch (err) {
+    console.error('Error in getUserNotifications:', err);
+    next(err);
+  }
+};
+
+// Mark orders as viewed by user
+export const markUserOrdersAsViewed = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const { orderIds } = req.body;
+    
+    if (!orderIds || !Array.isArray(orderIds)) {
+      return res.status(400).json({ error: 'orderIds array is required' });
+    }
+    
+    // Update orders to mark them as viewed by the user
+    await Order.update(
+      { userViewed: true },
+      { 
+        where: { 
+          id: { [Op.in]: orderIds },
+          userId: req.user.id,
+          userViewed: false 
+        }
+      }
+    );
+    
+    res.json({ message: 'Orders marked as viewed successfully' });
+  } catch (err) {
+    console.error('Error in markUserOrdersAsViewed:', err);
     next(err);
   }
 }; 

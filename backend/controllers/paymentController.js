@@ -38,25 +38,82 @@ export const initiatePayment = async (req, res) => {
   try {
     const { orderId, phoneNumber } = req.body;
     
+    // Validate required fields
     if (!orderId || !phoneNumber) {
-      return res.status(400).json({ error: 'Order ID and phone number are required' });
-    }
-    
-    // Find the order
-    const order = await Order.findByPk(orderId);
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-    
-    // Check if order belongs to user
-    if (order.userId !== req.user.id) {
-      return res.status(403).json({ error: 'Access denied' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Missing required fields',
+        message: 'Order ID and phone number are required' 
+      });
     }
     
     // Validate phone number format
     const formattedPhone = formatPhoneNumber(phoneNumber);
     if (!formattedPhone) {
-      return res.status(400).json({ error: 'Invalid phone number format' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid phone number',
+        message: 'Please enter a valid Kenyan phone number (e.g., 0712345678 or 254712345678)' 
+      });
+    }
+    
+    // Find the order
+    const order = await Order.findByPk(orderId);
+    if (!order) {
+      return res.status(404).json({ 
+        success: false,
+        error: 'Order not found',
+        message: 'The specified order does not exist' 
+      });
+    }
+    
+    // Check if order belongs to user
+    if (order.userId !== req.user.id) {
+      return res.status(403).json({ 
+        success: false,
+        error: 'Access denied',
+        message: 'You can only pay for your own orders' 
+      });
+    }
+    
+    // Check if order is already paid
+    if (order.status === 'paid') {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Order already paid',
+        message: 'This order has already been paid for' 
+      });
+    }
+    
+    // Check if there's already a pending transaction for this order
+    const existingTransaction = await Transaction.findOne({
+      where: { 
+        orderId: order.id,
+        status: 'pending'
+      }
+    });
+    
+    if (existingTransaction) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Payment already initiated',
+        message: 'A payment request is already pending for this order' 
+      });
+    }
+    
+    // Validate M-Pesa configuration
+    if (!MPESA_CONFIG.consumer_key || !MPESA_CONFIG.consumer_secret || !MPESA_CONFIG.shortcode || !MPESA_CONFIG.passkey) {
+      console.error('M-Pesa configuration missing:', {
+        hasConsumerKey: !!MPESA_CONFIG.consumer_key,
+        hasConsumerSecret: !!MPESA_CONFIG.consumer_secret,
+        hasShortcode: !!MPESA_CONFIG.shortcode,
+        hasPasskey: !!MPESA_CONFIG.passkey
+      });
+      return res.status(500).json({ 
+        success: false,
+        error: 'Payment service unavailable',
+        message: 'Payment service is not properly configured' 
+      });
     }
     
     // Get M-Pesa access token
@@ -65,6 +122,14 @@ export const initiatePayment = async (req, res) => {
     // Generate timestamp and password
     const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, -3);
     const password = Buffer.from(`${MPESA_CONFIG.shortcode}${MPESA_CONFIG.passkey}${timestamp}`).toString('base64');
+    
+    console.log('Initiating M-Pesa payment:', {
+      orderId: order.id,
+      amount: order.total,
+      phoneNumber: formattedPhone,
+      shortcode: MPESA_CONFIG.shortcode,
+      timestamp
+    });
     
     // Initiate STK push
     const response = await axios.post(`${MPESA_CONFIG.base_url}/mpesa/stkpush/v1/processrequest`, {
@@ -86,6 +151,8 @@ export const initiatePayment = async (req, res) => {
       }
     });
     
+    console.log('M-Pesa response:', response.data);
+    
     // Save transaction record
     const transaction = await Transaction.create({
       orderId: order.id,
@@ -99,19 +166,51 @@ export const initiatePayment = async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Payment initiated successfully',
+      message: 'Payment initiated successfully. Check your phone for the M-Pesa prompt.',
       data: {
         checkoutRequestId: response.data.CheckoutRequestID,
-        transactionId: transaction.id
+        transactionId: transaction.id,
+        orderId: order.id
       }
     });
     
   } catch (error) {
     console.error('Payment initiation error:', error.response?.data || error.message);
+    
+    // Handle specific M-Pesa errors
+    if (error.response?.data?.errorCode) {
+      const errorCode = error.response.data.errorCode;
+      let userMessage = 'Payment initiation failed';
+      
+      switch (errorCode) {
+        case '400.002.02':
+          userMessage = 'Invalid phone number format';
+          break;
+        case '400.002.08':
+          userMessage = 'Insufficient funds in your M-Pesa account';
+          break;
+        case '400.002.01':
+          userMessage = 'Invalid consumer key or secret';
+          break;
+        case '400.002.03':
+          userMessage = 'Invalid shortcode';
+          break;
+        default:
+          userMessage = error.response.data.errorMessage || 'Payment initiation failed';
+      }
+      
+      return res.status(400).json({ 
+        success: false,
+        error: 'M-Pesa Error',
+        message: userMessage,
+        errorCode
+      });
+    }
+    
     res.status(500).json({ 
       success: false,
-      error: 'Failed to initiate payment',
-      message: error.response?.data?.errorMessage || error.message 
+      error: 'Payment service error',
+      message: 'Failed to initiate payment. Please try again later.' 
     });
   }
 };
@@ -132,30 +231,56 @@ const formatPhoneNumber = (phone) => {
 // M-Pesa callback
 export const mpesaCallback = async (req, res) => {
   try {
-    const { Body } = req.body;
-    const { stkCallback } = Body;
+    console.log('M-Pesa callback received:', JSON.stringify(req.body, null, 2));
     
-    if (stkCallback.ResultCode === 0) {
+    const { Body } = req.body;
+    if (!Body || !Body.stkCallback) {
+      console.error('Invalid callback structure:', req.body);
+      return res.status(400).json({ error: 'Invalid callback structure' });
+    }
+    
+    const { stkCallback } = Body;
+    const { ResultCode, CheckoutRequestID, ResultDesc, CallbackMetadata } = stkCallback;
+    
+    console.log('Processing callback:', {
+      resultCode: ResultCode,
+      checkoutRequestId: CheckoutRequestID,
+      resultDesc: ResultDesc
+    });
+    
+    // Find transaction by checkout request ID
+    const transaction = await Transaction.findOne({
+      where: { checkoutRequestId: CheckoutRequestID }
+    });
+    
+    if (!transaction) {
+      console.error('Transaction not found for checkout request ID:', CheckoutRequestID);
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+    
+    if (ResultCode === 0) {
       // Payment successful
-      const { CheckoutRequestID, ResultDesc, CallbackMetadata } = stkCallback;
+      console.log('Payment successful for transaction:', transaction.id);
       
-      // Find transaction by checkout request ID
-      const transaction = await Transaction.findOne({
-        where: { checkoutRequestId: CheckoutRequestID }
-      });
-      
-      if (transaction) {
+      if (CallbackMetadata && CallbackMetadata.Item) {
         // Extract payment details
         const metadata = CallbackMetadata.Item;
         const mpesaReceiptNumber = metadata.find(item => item.Name === 'MpesaReceiptNumber')?.Value;
         const transactionDate = metadata.find(item => item.Name === 'TransactionDate')?.Value;
+        const amount = metadata.find(item => item.Name === 'Amount')?.Value;
+        
+        console.log('Payment details:', {
+          mpesaReceiptNumber,
+          transactionDate,
+          amount
+        });
         
         // Update transaction
         await transaction.update({
           status: 'completed',
           mpesaReceiptNumber,
-          transactionDate: new Date(transactionDate),
-          resultCode: stkCallback.ResultCode.toString(),
+          transactionDate: transactionDate ? new Date(transactionDate) : new Date(),
+          resultCode: ResultCode.toString(),
           resultDesc: ResultDesc,
           rawCallback: req.body
         });
@@ -165,25 +290,30 @@ export const mpesaCallback = async (req, res) => {
           { status: 'paid' },
           { where: { id: transaction.orderId } }
         );
-      }
-    } else {
-      // Payment failed
-      const { CheckoutRequestID, ResultDesc } = stkCallback;
-      
-      const transaction = await Transaction.findOne({
-        where: { checkoutRequestId: CheckoutRequestID }
-      });
-      
-      if (transaction) {
+        
+        console.log('Order updated to paid:', transaction.orderId);
+      } else {
+        console.error('Missing callback metadata for successful payment');
         await transaction.update({
           status: 'failed',
-          resultCode: stkCallback.ResultCode.toString(),
-          resultDesc: ResultDesc,
+          resultCode: ResultCode.toString(),
+          resultDesc: 'Missing callback metadata',
           rawCallback: req.body
         });
       }
+    } else {
+      // Payment failed
+      console.log('Payment failed for transaction:', transaction.id, 'Reason:', ResultDesc);
+      
+      await transaction.update({
+        status: 'failed',
+        resultCode: ResultCode.toString(),
+        resultDesc: ResultDesc,
+        rawCallback: req.body
+      });
     }
     
+    console.log('Callback processed successfully');
     res.json({ message: 'Callback processed successfully' });
   } catch (error) {
     console.error('Callback processing error:', error);

@@ -6,6 +6,7 @@ export interface Product {
   imageUrl?: string; // optional for backend compatibility
   stock?: number; // optional for backend compatibility
   category: 'security' | 'ict' | 'electrical' | 'power';
+  subcategory?: string;
   description: string;
   specifications: string[];
   inStock: boolean;

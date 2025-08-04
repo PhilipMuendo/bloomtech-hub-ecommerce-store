@@ -101,6 +101,9 @@ const NotificationDropdown = ({ totalNotifications, quoteNotifications, orderNot
   quoteNotifications: number;
   orderNotifications: number;
 }) => {
+  const [orderDetails, setOrderDetails] = useState<any[]>([]);
+  const [quoteDetails, setQuoteDetails] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -110,6 +113,48 @@ const NotificationDropdown = ({ totalNotifications, quoteNotifications, orderNot
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['notifications', user.id, user.role] });
   };
+
+  const fetchNotificationDetails = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      // Fetch order details for regular users
+      if (user.role !== 'admin' && user.role !== 'superadmin' && orderNotifications > 0) {
+        const orderRes = await fetch('/api/orders/user/notifications', {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        if (orderRes.ok) {
+          const orderData = await orderRes.json();
+          setOrderDetails(orderData);
+        }
+      }
+      
+      // Fetch quote details
+      if (quoteNotifications > 0) {
+        const quoteRes = await fetch('/api/quotes/user', {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        if (quoteRes.ok) {
+          const quoteData = await quoteRes.json();
+          const quotes = Array.isArray(quoteData) ? quoteData : (quoteData.quotes || []);
+          const unviewedQuotes = quotes.filter((q: any) => q.status === 'responded' && q.userSeen === false);
+          setQuoteDetails(unviewedQuotes);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching notification details:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch notification details when component mounts or notifications change
+  useEffect(() => {
+    if (totalNotifications > 0) {
+      fetchNotificationDetails();
+    }
+  }, [totalNotifications, quoteNotifications, orderNotifications]);
 
   const handleNotificationClick = async (type: 'quotes' | 'orders') => {
     try {
@@ -126,6 +171,29 @@ const NotificationDropdown = ({ totalNotifications, quoteNotifications, orderNot
             Authorization: `Bearer ${user.token}`,
           },
         });
+      }
+      
+      // Mark orders as viewed for regular users
+      if (type === 'orders' && orderNotifications > 0 && (user.role !== 'admin' && user.role !== 'superadmin')) {
+        // Get the current unviewed orders and mark them as viewed
+        const orderRes = await fetch('/api/orders/user/notifications', {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        
+        if (orderRes.ok) {
+          const orderData = await orderRes.json();
+          if (orderData.length > 0) {
+            const orderIds = orderData.map((order: any) => order.id);
+            await fetch('/api/orders/user/mark-viewed', {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${user.token}`,
+              },
+              body: JSON.stringify({ orderIds })
+            });
+          }
+        }
       }
       
       // Invalidate queries to refresh notifications
@@ -155,8 +223,8 @@ const NotificationDropdown = ({ totalNotifications, quoteNotifications, orderNot
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold">Notifications</h3>
-            <Button variant="ghost" size="sm" onClick={handleRefresh}>
-              <RefreshCw className="w-4 h-4" />
+            <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={isLoading}>
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
           
@@ -193,6 +261,56 @@ const NotificationDropdown = ({ totalNotifications, quoteNotifications, orderNot
                   </div>
                   <Badge variant="secondary">{orderNotifications}</Badge>
                 </div>
+              )}
+              
+              {/* Detailed notifications for regular users */}
+              {user.role !== 'admin' && user.role !== 'superadmin' && (
+                <>
+                  {quoteDetails.length > 0 && (
+                    <div className="mt-3 pt-3 border-t">
+                      <h4 className="text-xs font-medium text-gray-600 mb-2">Quote Details:</h4>
+                      <div className="space-y-2">
+                        {quoteDetails.slice(0, 3).map((quote: any) => (
+                          <div key={quote.id} className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                            <div className="font-medium">Quote #{quote.id}</div>
+                            <div className="text-gray-500">Status: {quote.status}</div>
+                            <div className="text-gray-500">
+                              {new Date(quote.updatedAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                        {quoteDetails.length > 3 && (
+                          <div className="text-xs text-blue-600 text-center">
+                            +{quoteDetails.length - 3} more quotes
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {orderDetails.length > 0 && (
+                    <div className="mt-3 pt-3 border-t">
+                      <h4 className="text-xs font-medium text-gray-600 mb-2">Order Details:</h4>
+                      <div className="space-y-2">
+                        {orderDetails.slice(0, 3).map((order: any) => (
+                          <div key={order.id} className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                            <div className="font-medium">Order #{order.trackingNumber}</div>
+                            <div className="text-gray-500">Status: {order.status}</div>
+                            <div className="text-gray-500">KES {order.total.toLocaleString()}</div>
+                            <div className="text-gray-500">
+                              {new Date(order.createdAt).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                        {orderDetails.length > 3 && (
+                          <div className="text-xs text-blue-600 text-center">
+                            +{orderDetails.length - 3} more orders
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -265,7 +383,7 @@ const Header = () => {
       // Different notification logic for admins vs users
       if (user.role === 'admin' || user.role === 'superadmin') {
         // Admin notifications: Track recent order activity and status changes
-        const adminOrderRes = await fetch('/api/orders/notifications', {
+        const adminOrderRes = await fetch('/api/orders/recent/notifications', {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         
@@ -275,21 +393,14 @@ const Header = () => {
           orderCount = adminOrderData.length;
         }
       } else {
-        // User notifications: Count recent orders (last 7 days)
-        const orderRes = await fetch('/api/orders/user', {
+        // User notifications: Get unviewed orders
+        const orderRes = await fetch('/api/orders/user/notifications', {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         
         if (orderRes.ok) {
           const orderData = await orderRes.json();
-          const orders = Array.isArray(orderData) ? orderData : (orderData.orders || []);
-          // Count recent orders (last 7 days)
-          const recentOrders = orders.filter((o: any) => {
-            const orderDate = new Date(o.createdAt);
-            const daysAgo = (Date.now() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
-            return daysAgo <= 7;
-          });
-          orderCount = recentOrders.length;
+          orderCount = orderData.length;
         }
       }
 

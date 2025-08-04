@@ -99,6 +99,10 @@ if (db.Order && db.Transaction) {
   db.Order.hasMany(db.Transaction, { foreignKey: 'orderId' });
   db.Transaction.belongsTo(db.Order, { foreignKey: 'orderId' });
 }
+if (db.User && db.Audit) {
+  db.User.hasMany(db.Audit, { foreignKey: 'performedBy', as: 'performer' });
+  db.Audit.belongsTo(db.User, { foreignKey: 'performedBy', as: 'performer' });
+}
 
 // Export
 export { sequelize };

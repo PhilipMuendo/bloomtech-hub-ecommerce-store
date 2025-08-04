@@ -4,7 +4,10 @@ import {
   getOrderById, 
   createOrder, 
   updateOrderStatus,
-  getRecentOrdersForNotifications
+  getRecentOrdersForNotifications,
+  markOrdersAsViewed,
+  getUserNotifications,
+  markUserOrdersAsViewed
 } from '../controllers/orderController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireAdmin, requireWarehouse } from '../middleware/roleAuth.js';
@@ -28,5 +31,14 @@ router.put('/:id/status', requireWarehouse, updateOrderStatus);
 
 // GET /api/orders/recent/notifications - Get recent orders for notifications
 router.get('/recent/notifications', getRecentOrdersForNotifications);
+
+// PATCH /api/orders/mark-viewed - Mark orders as viewed by admin
+router.patch('/mark-viewed', requireAdmin, markOrdersAsViewed);
+
+// GET /api/orders/user/notifications - Get user notifications (unviewed orders)
+router.get('/user/notifications', getUserNotifications);
+
+// PATCH /api/orders/user/mark-viewed - Mark orders as viewed by user
+router.patch('/user/mark-viewed', markUserOrdersAsViewed);
 
 export default router; 

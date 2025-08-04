@@ -40,6 +40,31 @@ export default (sequelize) => {
     finalPrice: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true
+    },
+    // Audit fields
+    createdBy: {
+      type: DataTypes.INTEGER, // User ID who created the quote
+      allowNull: true,
+    },
+    respondedBy: {
+      type: DataTypes.INTEGER, // User ID who responded to the quote
+      allowNull: true,
+    },
+    respondedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    closedBy: {
+      type: DataTypes.INTEGER, // User ID who closed the quote
+      allowNull: true,
+    },
+    closedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    notes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
     }
   }, {
     sequelize,

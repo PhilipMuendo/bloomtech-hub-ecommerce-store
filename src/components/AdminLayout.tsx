@@ -13,7 +13,10 @@ import {
   ArrowLeft,
   BookOpen,
   Menu,
-  Bell
+  Bell,
+  Activity,
+  CreditCard,
+  Globe
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
@@ -53,7 +56,7 @@ const AdminLayout = () => {
     async function fetchNewOrders() {
       if (!user?.token || (user.role !== 'admin' && user.role !== 'superadmin')) return;
       try {
-        const res = await fetch('/api/orders/notifications', {
+        const res = await fetch('/api/orders/recent/notifications', {
           headers: { Authorization: `Bearer ${user.token}` },
         });
         if (!res.ok) throw new Error('Failed to fetch new orders');
@@ -105,12 +108,19 @@ const AdminLayout = () => {
   const menuItems = [
     { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { path: '/admin/products', icon: Package, label: 'Products' },
+    { path: '/admin/subcategories', icon: Package, label: 'Subcategories' },
     { path: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
     { path: '/admin/quotes', icon: Bell, label: 'Quotes' },
     { path: '/admin/users', icon: Users, label: 'Users' },
     { path: '/admin/reviews', icon: MessageSquare, label: 'Reviews' },
     { path: '/admin/newsletter', icon: Mail, label: 'Newsletter' },
     { path: '/admin/blogs', icon: BookOpen, label: 'Blogs' },
+    { path: '/admin/mpesa-transactions', icon: CreditCard, label: 'M-Pesa Transactions' },
+    { path: '/admin/pesapal-transactions', icon: Globe, label: 'Pesapal Transactions' },
+    // Superadmin only items
+    ...(user?.role === 'superadmin' ? [
+      { path: '/admin/audit-logs', icon: Activity, label: 'Audit Logs' }
+    ] : []),
   ];
 
   const handleLogout = () => {
@@ -339,14 +349,35 @@ const AdminLayout = () => {
                           ))}
                         </ul>
                       )}
-                      <div className="p-2 border-t bg-gray-50 text-center">
-                        <button
-                          className="text-primary font-semibold hover:underline text-sm"
-                          onClick={() => { setShowNotif(false); navigate('/admin/orders'); }}
-                        >
-                          View All Orders
-                        </button>
-                      </div>
+                                             <div className="p-2 border-t bg-gray-50 text-center">
+                         <button
+                           className="text-primary font-semibold hover:underline text-sm"
+                           onClick={async () => { 
+                             // Mark all current orders as viewed
+                             if (newOrders.length > 0) {
+                               try {
+                                 const orderIds = newOrders.map(order => order.id);
+                                 await fetch('/api/orders/mark-viewed', {
+                                   method: 'PATCH',
+                                   headers: {
+                                     'Content-Type': 'application/json',
+                                     Authorization: `Bearer ${user.token}`,
+                                   },
+                                   body: JSON.stringify({ orderIds })
+                                 });
+                                 // Clear the new orders list
+                                 setNewOrders([]);
+                               } catch (error) {
+                                 console.error('Error marking orders as viewed:', error);
+                               }
+                             }
+                             setShowNotif(false); 
+                             navigate('/admin/orders'); 
+                           }}
+                         >
+                           View All Orders
+                         </button>
+                       </div>
                     </>
                   )}
                 </div>,

@@ -1,6 +1,7 @@
 import db from '../sequelize_models/index.js';
 import { Op } from 'sequelize';
 import { Parser as Json2csvParser } from 'json2csv';
+import AuditService from '../services/auditService.js';
 
 const { Product } = db;
 
@@ -96,6 +97,18 @@ export const getProductById = async (req, res, next) => {
 export const createProduct = async (req, res, next) => {
   try {
     const product = await Product.create(req.body);
+    
+    // Log audit event
+    await AuditService.logProductAction({
+      performedBy: req.user.id,
+      action: 'product_created',
+      productId: product.id,
+      details: `Product "${product.name}" created`,
+      newValues: product.toJSON(),
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent')
+    });
+    
     res.status(201).json(product);
   } catch (err) {
     next(err);
@@ -109,7 +122,24 @@ export const updateProduct = async (req, res, next) => {
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
+    
+    // Store previous values for audit
+    const previousValues = product.toJSON();
+    
     await product.update(req.body);
+    
+    // Log audit event
+    await AuditService.logProductAction({
+      performedBy: req.user.id,
+      action: 'product_updated',
+      productId: product.id,
+      details: `Product "${product.name}" updated`,
+      previousValues,
+      newValues: product.toJSON(),
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent')
+    });
+    
     res.json(product);
   } catch (err) {
     next(err);
@@ -123,7 +153,23 @@ export const deleteProduct = async (req, res, next) => {
     if (!product) {
       return res.status(404).json({ error: 'Product not found' });
     }
+    
+    // Store product data before deletion for audit
+    const deletedProduct = product.toJSON();
+    
     await product.destroy();
+    
+    // Log audit event
+    await AuditService.logProductAction({
+      performedBy: req.user.id,
+      action: 'product_deleted',
+      productId: parseInt(req.params.id),
+      details: `Product "${deletedProduct.name}" deleted`,
+      previousValues: deletedProduct,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent')
+    });
+    
     res.json({ message: 'Product deleted successfully' });
   } catch (err) {
     next(err);

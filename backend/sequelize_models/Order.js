@@ -26,6 +26,41 @@ export default (sequelize) => {
     trackingNumber: {
       type: DataTypes.STRING,
       unique: true
+    },
+    // Audit fields
+    createdBy: {
+      type: DataTypes.INTEGER, // User ID who created the order
+      allowNull: true,
+    },
+    processedBy: {
+      type: DataTypes.INTEGER, // User ID who processed the order
+      allowNull: true,
+    },
+    deliveredBy: {
+      type: DataTypes.INTEGER, // User ID who delivered the order
+      allowNull: true,
+    },
+    processedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    deliveredAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    notes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    adminViewed: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false
+    },
+    userViewed: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false
     }
   }, {
     sequelize,

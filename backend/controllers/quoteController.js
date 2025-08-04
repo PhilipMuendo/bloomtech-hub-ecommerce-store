@@ -1,5 +1,6 @@
 import db, { sequelize } from '../sequelize_models/index.js';
 import nodemailer from 'nodemailer';
+import AuditService from '../services/auditService.js';
 
 const { Quote, QuoteItem, Message, Product, Order, OrderItem, User } = db;
 
@@ -329,7 +330,24 @@ export const updateQuoteStatus = async (req, res) => {
     const quote = await Quote.findByPk(req.params.id);
     if (!quote) return res.status(404).json({ error: 'Quote not found' });
     
+    const previousStatus = quote.status;
+    
     await quote.update({ status });
+    
+    // Log audit event for quote status change
+    if (status !== previousStatus) {
+      await AuditService.logQuoteAction({
+        performedBy: req.user.id,
+        action: `quote_status_changed`,
+        quoteId: quote.id,
+        details: `Quote status changed from ${previousStatus} to ${status}`,
+        previousValues: { status: previousStatus },
+        newValues: { status },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+    }
+    
     res.json(quote);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -401,13 +419,36 @@ export const createOrderFromQuote = async (req, res) => {
       // Mark quote as having an order created and save final price
       await quote.update({ 
         orderCreated: true,
-        finalPrice: finalPrice
+        finalPrice: finalPrice,
+        respondedBy: req.user.id,
+        respondedAt: new Date()
       }, { transaction: t });
       
       return order;
     });
     
     console.log('Order creation successful:', result.id);
+    
+    // Log audit events
+    await AuditService.logQuoteAction({
+      performedBy: req.user.id,
+      action: `quote_order_created`,
+      quoteId: quote.id,
+      details: `Order created from quote with final price: ${finalPrice}`,
+      newValues: { orderId: result.id, finalPrice },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
+
+    await AuditService.logOrderAction({
+      performedBy: req.user.id,
+      action: `order_created_from_quote`,
+      orderId: result.id,
+      details: `Order created from quote ID: ${quote.id}`,
+      newValues: { quoteId: quote.id, finalPrice },
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    });
     
     // Send customer email with payment link
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';

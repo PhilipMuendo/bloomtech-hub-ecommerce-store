@@ -41,6 +41,13 @@ export default (sequelize) => {
         len: [2]
       }
     },
+    subcategory: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      validate: {
+        len: [2]
+      }
+    },
     stock: {
       type: DataTypes.INTEGER,
       allowNull: false,

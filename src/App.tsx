@@ -42,6 +42,7 @@ const CustomCheckout = lazy(() => import('./pages/CustomCheckout'));
 // Lazy load admin pages separately for better code splitting
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
 const Products = lazy(() => import("./pages/admin/Products"));
+const Subcategories = lazy(() => import("./pages/admin/Subcategories"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const Users = lazy(() => import("./pages/admin/Users"));
 const Reviews = lazy(() => import("./pages/admin/Reviews"));
@@ -49,6 +50,9 @@ const Newsletter = lazy(() => import("./pages/admin/Newsletter"));
 const AdminBlogs = lazy(() => import('./pages/admin/AdminBlogs'));
 const LowStockProducts = lazy(() => import('./pages/admin/LowStockProducts'));
 const Quotes = lazy(() => import("./pages/admin/Quotes"));
+const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
+const MpesaTransactions = lazy(() => import("./pages/admin/MpesaTransactions"));
+const PesapalTransactions = lazy(() => import("./pages/admin/PesapalTransactions"));
 const WarehouseOrders = lazy(() => import("./pages/warehouse/WarehouseOrders"));
 
 const queryClient = new QueryClient();
@@ -293,6 +297,11 @@ const AnimatedRoutes = () => {
               <Products />
             </Suspense>
           } />
+          <Route path="subcategories" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <Subcategories />
+            </Suspense>
+          } />
           <Route path="orders" element={
             <Suspense fallback={<LoadingSpinner />}>
               <AdminOrders />
@@ -326,6 +335,21 @@ const AnimatedRoutes = () => {
           <Route path="low-stock" element={
             <Suspense fallback={<LoadingSpinner />}>
               <LowStockProducts />
+            </Suspense>
+          } />
+          <Route path="audit-logs" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AuditLogs />
+            </Suspense>
+          } />
+          <Route path="mpesa-transactions" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <MpesaTransactions />
+            </Suspense>
+          } />
+          <Route path="pesapal-transactions" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <PesapalTransactions />
             </Suspense>
           } />
         </Route>

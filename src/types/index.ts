@@ -13,6 +13,7 @@ export interface Product {
   description: string;
   price: number;
   category: string;
+  subcategory?: string;
   stock: number;
   imageUrl: string;
   featured?: boolean;

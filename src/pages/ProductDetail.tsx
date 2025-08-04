@@ -20,6 +20,7 @@ interface Product {
   price: number;
   imageUrl?: string;
   category: string;
+  subcategory?: string;
   description?: string;
   stock?: number;
   inStock?: boolean;
@@ -65,6 +66,16 @@ const ProductDetail = () => {
 
   // Sticky Add to Cart bar (mobile)
   const [showStickyBar, setShowStickyBar] = React.useState(false);
+  
+  // Helper function for category display names
+  const getCategoryDisplayName = (category: string) => {
+    switch (category) {
+      case 'ict': return 'ICT Equipment';
+      case 'security': return 'Security Systems';
+      case 'power': return 'Power Solutions';
+      default: return 'Electrical Materials';
+    }
+  };
   
   React.useEffect(() => {
     const handleScroll = () => {
@@ -213,18 +224,10 @@ const ProductDetail = () => {
   const breadcrumbs = [
     { name: 'Home', to: '/' },
     { name: 'Shop', to: '/shop' },
-    { name: product.category, to: `/shop?category=${product.category}` },
+    { name: getCategoryDisplayName(product.category), to: `/shop?category=${product.category}` },
+    ...(product.subcategory ? [{ name: product.subcategory, to: `/shop?category=${product.category}&subcategory=${product.subcategory}` }] : []),
     { name: product.name, to: location.pathname }
   ];
-
-  const getCategoryDisplayName = (category: string) => {
-    switch (category) {
-      case 'ict': return 'ICT Equipment';
-      case 'security': return 'Security Systems';
-      case 'power': return 'Power Solutions';
-      default: return 'Electrical Materials';
-    }
-  };
 
   return (
     <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">
@@ -282,9 +285,16 @@ const ProductDetail = () => {
         {/* Product Details & Actions */}
         <div className="space-y-6">
           <div className="space-y-2">
-            <span className="text-xs sm:text-sm bg-muted px-2 sm:px-3 py-1 rounded capitalize text-muted-foreground">
-              {getCategoryDisplayName(product.category)}
-            </span>
+            <div className="flex items-center gap-2 text-xs sm:text-sm">
+              <span className="bg-muted px-2 sm:px-3 py-1 rounded capitalize text-muted-foreground">
+                {getCategoryDisplayName(product.category)}
+              </span>
+              {product.subcategory && (
+                <span className="bg-muted px-2 sm:px-3 py-1 rounded capitalize text-muted-foreground">
+                  {product.subcategory}
+                </span>
+              )}
+            </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mt-2 sm:mt-3 mb-2 sm:mb-3">
               {product.name}
             </h1>

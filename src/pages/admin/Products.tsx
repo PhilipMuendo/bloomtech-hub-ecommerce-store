@@ -12,6 +12,7 @@ import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { categories, categoryDisplayMap } from '@/data/categories';
+
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -27,11 +28,21 @@ export interface Product {
   price: number;
   imageUrl: string;
   category: 'security' | 'ict' | 'electrical' | 'power';
+  subcategory?: string;
   description: string;
   stock: number;
   featured?: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface Subcategory {
+  id: number;
+  name: string;
+  category: string;
+  displayName: string;
+  description: string;
+  isActive: boolean;
 }
 
 const productSchema = yup.object().shape({
@@ -49,6 +60,9 @@ const productSchema = yup.object().shape({
     .min(2, 'Category must be at least 2 characters')
     .oneOf(categories.map(c => c.value), 'Select a valid category')
     .required('Category is required'),
+  subcategory: yup.string()
+    .min(2, 'Subcategory must be at least 2 characters')
+    .optional(),
   imageUrl: yup.string().required('Image is required'),
   description: yup.string()
     .required('Description is required')
@@ -186,8 +200,7 @@ const Products = () => {
         imageUrl: formData.imageUrl,
         featured: !!formData.featured,
       };
-      console.log('Updating product with payload:', updatePayload);
-              const res = await fetch(`/api/products/${editingProduct.id}`, {
+      const res = await fetch(`/api/products/${editingProduct.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -196,7 +209,6 @@ const Products = () => {
         body: JSON.stringify(updatePayload)
       });
       const data = await res.json();
-      console.log('Update response:', data);
       if (!res.ok) throw new Error('Failed to update product');
       toast({ title: 'Product Updated', description: `${formData.name} has been updated.` });
       setEditingProduct(null);
@@ -271,6 +283,7 @@ const Products = () => {
       name: product.name,
       price: product.price,
       category: product.category,
+      subcategory: product.subcategory || 'none',
       imageUrl: product.imageUrl,
       description: product.description,
       stock: product.stock,
@@ -278,7 +291,8 @@ const Products = () => {
     } : {
       name: '',
       price: 0,
-      category: categories[0].value,
+      category: 'ict', // Set a default category
+      subcategory: 'none',
       imageUrl: '',
       description: '',
       stock: 1,
@@ -326,9 +340,44 @@ const Products = () => {
     }
 
     const onSubmit = async (data: any) => {
-      console.log('Form submit data:', data);
+      
+      // Convert "none" back to empty string for subcategory
+      if (data.subcategory === 'none') {
+        data.subcategory = '';
+      }
+      
       await onSave(data);
     };
+
+    // Watch for category changes to update subcategories
+    const selectedCategory = watch('category');
+    const [availableSubcategories, setAvailableSubcategories] = React.useState<Subcategory[]>([]);
+
+    // Fetch subcategories from API when category changes
+    React.useEffect(() => {
+      const fetchSubcategories = async () => {
+        try {
+          const response = await fetch(`/api/subcategories/category/${selectedCategory}`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            setAvailableSubcategories(data.data || []);
+          } else {
+            console.error('Failed to fetch subcategories:', response.status, response.statusText);
+            setAvailableSubcategories([]);
+          }
+        } catch (error) {
+          console.error('Error fetching subcategories:', error);
+          setAvailableSubcategories([]);
+        }
+      };
+
+      if (selectedCategory) {
+        fetchSubcategories();
+        // Reset subcategory when category changes
+        setValue('subcategory', 'none');
+      }
+    }, [selectedCategory, setValue]);
 
     // Live preview data
     const previewData = watch();
@@ -381,6 +430,29 @@ const Products = () => {
             {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
           </div>
           <div>
+            <Label htmlFor="subcategory">Subcategory</Label>
+            <Controller
+              name="subcategory"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="subcategory">
+                    <SelectValue placeholder="Select subcategory (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No subcategory</SelectItem>
+                    {availableSubcategories.map(subcat => (
+                      <SelectItem key={subcat.name} value={subcat.name}>{subcat.displayName}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.subcategory && <p className="text-red-500 text-xs mt-1">{errors.subcategory.message}</p>}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
             <Label htmlFor="stock">Stock</Label>
             <Controller
               name="stock"
@@ -398,7 +470,6 @@ const Products = () => {
               name="featured"
               control={control}
               render={({ field }) => {
-                console.log('Checkbox field.value:', field.value);
                 return (
                   <>
                     <input id="featured" type="checkbox" checked={!!field.value} onChange={e => field.onChange(e.target.checked)} />
@@ -452,7 +523,14 @@ const Products = () => {
                     <img src={getImageUrl(previewData.imageUrl)} alt="Preview" className="w-32 h-32 object-cover rounded-lg mb-2" />
                   )}
                   <div className="font-bold text-lg mb-1">{previewData.name || 'Product Name'}</div>
-                  <div className="text-muted-foreground mb-1">{categoryDisplayMap[previewData.category] || 'Category'}</div>
+                  <div className="text-muted-foreground mb-1">
+                    {categoryDisplayMap[previewData.category] || 'Category'}
+                    {previewData.subcategory && previewData.subcategory !== 'none' && (
+                      <span className="text-xs text-muted-foreground block">
+                        {availableSubcategories.find(sub => sub.name === previewData.subcategory)?.displayName || previewData.subcategory}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-primary font-semibold mb-1">KES {previewData.price || 0}</div>
                   <div className="text-xs text-muted-foreground mb-1">{previewData.description || 'Description...'}</div>
                   <ul className="text-xs text-muted-foreground list-disc pl-4">
@@ -566,9 +644,16 @@ const Products = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="default" className="category-badge">
-                        {categoryDisplayMap[product.category] || product.category}
-                      </Badge>
+                      <div className="space-y-1">
+                        <Badge variant="default" className="category-badge">
+                          {categoryDisplayMap[product.category] || product.category}
+                        </Badge>
+                        {product.subcategory && (
+                          <div className="text-xs text-muted-foreground">
+                            {product.subcategory}
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>KES {product.price.toLocaleString()}</TableCell>
                     <TableCell>
