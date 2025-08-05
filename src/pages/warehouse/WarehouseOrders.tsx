@@ -62,10 +62,10 @@ const WarehouseOrders = () => {
           date: o.createdAt,
           status: o.status,
           total: o.total,
-          items: o.OrderItems?.map((item: any) => ({
-            productName: item.Product?.name || 'N/A',
+          items: o.items?.map((item: any) => ({
+            productName: item.productName || item.Product?.name || 'N/A',
             quantity: item.quantity,
-            price: item.Product?.price || 0,
+            price: item.price || item.Product?.price || 0,
           })) || [],
           shippingAddress: o.shippingAddress,
         }));

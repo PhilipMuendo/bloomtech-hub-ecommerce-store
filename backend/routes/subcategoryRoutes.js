@@ -13,6 +13,8 @@ import { requireAdmin } from '../middleware/roleAuth.js';
 
 const router = express.Router();
 
+
+
 // Public routes
 router.get('/', getAllSubcategories);
 router.get('/category/:category', getSubcategoriesByCategory);

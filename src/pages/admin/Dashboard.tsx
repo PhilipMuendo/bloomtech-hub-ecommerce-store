@@ -85,7 +85,6 @@ const Dashboard = () => {
           'Authorization': `Bearer ${token}`,
         };
         const fetchOptions = { method: 'GET', headers };
-        console.log('Fetch options:', fetchOptions);
         const [summaryRes, revenueRes, ordersCatRes, signupsRes] = await Promise.all([
           fetch('/api/dashboard/summary', fetchOptions),
           fetch('/api/dashboard/revenue-trend', fetchOptions),
@@ -407,29 +406,68 @@ const Dashboard = () => {
                 <CardDescription>Distribution of orders</CardDescription>
               </CardHeader>
               <CardContent className="overflow-x-auto max-w-full">
-                <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[320px] max-w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={ordersByCategoryData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        dataKey="orders"
-                        nameKey="category"
-                        isAnimationActive={true}
-                      >
-                        {ordersByCategoryData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={categoryColors[entry.category] || '#1E3A8A'} />
-                        ))}
-                      </Pie>
-                      <ChartTooltip
-                        content={<OrdersByCategoryTooltip totalOrders={totalOrdersByCategory} />}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
+                {ordersByCategoryData.length === 0 ? (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    <div className="text-center">
+                      <p className="text-lg font-medium">No Data Available</p>
+                      <p className="text-sm">Loading orders data...</p>
+                    </div>
+                  </div>
+                ) : totalOrdersByCategory === 0 ? (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    <div className="text-center">
+                      <p className="text-lg font-medium">No Orders Yet</p>
+                      <p className="text-sm">Orders will appear here once customers start placing orders</p>
+                      {/* Show empty chart with all categories */}
+                      <div className="mt-4">
+                        <ChartContainer config={chartConfig} className="h-[200px] w-full min-w-[320px] max-w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={ordersByCategoryData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={40}
+                                outerRadius={80}
+                                dataKey="orders"
+                                nameKey="category"
+                                isAnimationActive={false}
+                              >
+                                {ordersByCategoryData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={categoryColors[entry.category] || '#1E3A8A'} opacity={0.3} />
+                                ))}
+                              </Pie>
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </ChartContainer>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[320px] max-w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={ordersByCategoryData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={100}
+                          dataKey="orders"
+                          nameKey="category"
+                          isAnimationActive={true}
+                        >
+                          {ordersByCategoryData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={categoryColors[entry.category] || '#1E3A8A'} />
+                          ))}
+                        </Pie>
+                        <ChartTooltip
+                          content={<OrdersByCategoryTooltip totalOrders={totalOrdersByCategory} />}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                )}
                 {/* Legend */}
                 <div className="flex flex-wrap gap-4 mt-4 justify-center">
                   {ordersByCategoryData.map((entry, idx) => (

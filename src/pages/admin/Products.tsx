@@ -62,7 +62,7 @@ const productSchema = yup.object().shape({
     .required('Category is required'),
   subcategory: yup.string()
     .min(2, 'Subcategory must be at least 2 characters')
-    .optional(),
+    .required('Subcategory is required'),
   imageUrl: yup.string().required('Image is required'),
   description: yup.string()
     .required('Description is required')
@@ -375,7 +375,7 @@ const Products = () => {
       if (selectedCategory) {
         fetchSubcategories();
         // Reset subcategory when category changes
-        setValue('subcategory', 'none');
+        setValue('subcategory', '');
       }
     }, [selectedCategory, setValue]);
 
@@ -430,17 +430,16 @@ const Products = () => {
             {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
           </div>
           <div>
-            <Label htmlFor="subcategory">Subcategory</Label>
+            <Label htmlFor="subcategory">Subcategory *</Label>
             <Controller
               name="subcategory"
               control={control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger id="subcategory">
-                    <SelectValue placeholder="Select subcategory (optional)" />
+                    <SelectValue placeholder="Select subcategory (required)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">No subcategory</SelectItem>
                     {availableSubcategories.map(subcat => (
                       <SelectItem key={subcat.name} value={subcat.name}>{subcat.displayName}</SelectItem>
                     ))}
@@ -525,7 +524,7 @@ const Products = () => {
                   <div className="font-bold text-lg mb-1">{previewData.name || 'Product Name'}</div>
                   <div className="text-muted-foreground mb-1">
                     {categoryDisplayMap[previewData.category] || 'Category'}
-                    {previewData.subcategory && previewData.subcategory !== 'none' && (
+                    {previewData.subcategory && (
                       <span className="text-xs text-muted-foreground block">
                         {availableSubcategories.find(sub => sub.name === previewData.subcategory)?.displayName || previewData.subcategory}
                       </span>

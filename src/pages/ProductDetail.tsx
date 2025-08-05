@@ -76,6 +76,100 @@ const ProductDetail = () => {
       default: return 'Electrical Materials';
     }
   };
+
+  // Helper function for subcategory display names
+  const getSubcategoryDisplayName = (subcategory: string) => {
+    // Map common subcategory names to display names
+    const subcategoryMap: { [key: string]: string } = {
+      'dome-cameras': 'Dome Cameras',
+      'bullet-cameras': 'Bullet Cameras',
+      'ptz-cameras': 'PTZ Cameras',
+      'ip-cameras': 'IP Cameras',
+      'analog-cameras': 'Analog Cameras',
+      'night-vision-cameras': 'Night Vision Cameras',
+      'wireless-cameras': 'Wireless Cameras',
+      '4k-hd-cameras': '4K/HD Cameras',
+      'fingerprint-scanners': 'Fingerprint Scanners',
+      'face-recognition-systems': 'Face Recognition Systems',
+      'iris-scanners': 'Iris Scanners',
+      'hand-geometry-readers': 'Hand Geometry Readers',
+      'voice-recognition': 'Voice Recognition',
+      'multi-factor-biometric-systems': 'Multi-factor Biometric Systems',
+      'motion-sensors': 'Motion Sensors',
+      'door-window-sensors': 'Door/Window Sensors',
+      'glass-break-detectors': 'Glass Break Detectors',
+      'smoke-detectors': 'Smoke Detectors',
+      'carbon-monoxide-detectors': 'Carbon Monoxide Detectors',
+      'control-panels': 'Control Panels',
+      'sirens-strobes': 'Sirens & Strobes',
+      'wireless-alarm-systems': 'Wireless Alarm Systems',
+      'desktop-computers': 'Desktop Computers',
+      'laptops-notebooks': 'Laptops & Notebooks',
+      'all-in-one-pcs': 'All-in-One PCs',
+      'gaming-computers': 'Gaming Computers',
+      'workstations': 'Workstations',
+      'mini-pcs': 'Mini PCs',
+      'computer-accessories': 'Computer Accessories',
+      'routers': 'Routers',
+      'switches': 'Switches',
+      'network-adapters': 'Network Adapters',
+      'network-cables': 'Network Cables',
+      'wireless-access-points': 'Wireless Access Points',
+      'network-security-devices': 'Network Security Devices',
+      'modems': 'Modems',
+      'network-storage': 'Network Storage',
+      'online-ups': 'Online UPS',
+      'offline-ups': 'Offline UPS',
+      'line-interactive-ups': 'Line Interactive UPS',
+      'battery-backup-systems': 'Battery Backup Systems',
+      'replacement-batteries': 'Replacement Batteries',
+      'power-strips': 'Power Strips',
+      'surge-protectors': 'Surge Protectors',
+      'power-cables': 'Power Cables',
+      'data-cables': 'Data Cables',
+      'hdmi-cables': 'HDMI Cables',
+      'usb-cables': 'USB Cables',
+      'ethernet-cables': 'Ethernet Cables',
+      'coaxial-cables': 'Coaxial Cables',
+      'speaker-wires': 'Speaker Wires',
+      'extension-cords': 'Extension Cords',
+      'light-switches': 'Light Switches',
+      'power-outlets': 'Power Outlets',
+      'usb-outlets': 'USB Outlets',
+      'dimmer-switches': 'Dimmer Switches',
+      'smart-switches': 'Smart Switches',
+      'industrial-sockets': 'Industrial Sockets',
+      'weatherproof-outlets': 'Weatherproof Outlets',
+      'main-circuit-breakers': 'Main Circuit Breakers',
+      'branch-circuit-breakers': 'Branch Circuit Breakers',
+      'ground-fault-circuit-interrupters': 'Ground Fault Circuit Interrupters',
+      'arc-fault-circuit-interrupters': 'Arc Fault Circuit Interrupters',
+      'miniature-circuit-breakers': 'Miniature Circuit Breakers',
+      'industrial-circuit-breakers': 'Industrial Circuit Breakers',
+      'monocrystalline-panels': 'Monocrystalline Panels',
+      'polycrystalline-panels': 'Polycrystalline Panels',
+      'thin-film-panels': 'Thin-Film Panels',
+      'solar-panel-mounting-systems': 'Solar Panel Mounting Systems',
+      'solar-panel-accessories': 'Solar Panel Accessories',
+      'portable-solar-panels': 'Portable Solar Panels',
+      'grid-tie-inverters': 'Grid-Tie Inverters',
+      'off-grid-inverters': 'Off-Grid Inverters',
+      'hybrid-inverters': 'Hybrid Inverters',
+      'micro-inverters': 'Micro Inverters',
+      'string-inverters': 'String Inverters',
+      'industrial-inverters': 'Industrial Inverters',
+      'deep-cycle-batteries': 'Deep Cycle Batteries',
+      'lithium-ion-batteries': 'Lithium-Ion Batteries',
+      'lead-acid-batteries': 'Lead-Acid Batteries',
+      'agm-batteries': 'AGM Batteries',
+      'gel-batteries': 'Gel Batteries',
+      'battery-chargers': 'Battery Chargers',
+      'battery-management-systems': 'Battery Management Systems',
+      'Access control': 'Access Control'
+    };
+    
+    return subcategoryMap[subcategory] || subcategory;
+  };
   
   React.useEffect(() => {
     const handleScroll = () => {
@@ -225,7 +319,7 @@ const ProductDetail = () => {
     { name: 'Home', to: '/' },
     { name: 'Shop', to: '/shop' },
     { name: getCategoryDisplayName(product.category), to: `/shop?category=${product.category}` },
-    ...(product.subcategory ? [{ name: product.subcategory, to: `/shop?category=${product.category}&subcategory=${product.subcategory}` }] : []),
+    ...(product.subcategory ? [{ name: getSubcategoryDisplayName(product.subcategory), to: `/shop?category=${product.category}&subcategory=${product.subcategory}` }] : []),
     { name: product.name, to: location.pathname }
   ];
 
@@ -291,7 +385,7 @@ const ProductDetail = () => {
               </span>
               {product.subcategory && (
                 <span className="bg-muted px-2 sm:px-3 py-1 rounded capitalize text-muted-foreground">
-                  {product.subcategory}
+                  {getSubcategoryDisplayName(product.subcategory)}
                 </span>
               )}
             </div>

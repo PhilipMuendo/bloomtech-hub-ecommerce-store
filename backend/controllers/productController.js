@@ -103,7 +103,7 @@ export const createProduct = async (req, res, next) => {
       performedBy: req.user.id,
       action: 'product_created',
       productId: product.id,
-      details: `Product "${product.name}" created`,
+      details: `Product "${product.name}" created with subcategory "${product.subcategory}"`,
       newValues: product.toJSON(),
       ipAddress: req.ip,
       userAgent: req.get('user-agent')
@@ -133,7 +133,7 @@ export const updateProduct = async (req, res, next) => {
       performedBy: req.user.id,
       action: 'product_updated',
       productId: product.id,
-      details: `Product "${product.name}" updated`,
+      details: `Product "${product.name}" updated with subcategory "${product.subcategory}"`,
       previousValues,
       newValues: product.toJSON(),
       ipAddress: req.ip,
@@ -164,7 +164,7 @@ export const deleteProduct = async (req, res, next) => {
       performedBy: req.user.id,
       action: 'product_deleted',
       productId: parseInt(req.params.id),
-      details: `Product "${deletedProduct.name}" deleted`,
+      details: `Product "${deletedProduct.name}" deleted (subcategory: "${deletedProduct.subcategory}")`,
       previousValues: deletedProduct,
       ipAddress: req.ip,
       userAgent: req.get('user-agent')

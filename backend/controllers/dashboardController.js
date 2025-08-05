@@ -79,19 +79,36 @@ export const getRevenueTrend = async (req, res, next) => {
 // GET /api/dashboard/orders-by-category
 export const getOrdersByCategory = async (req, res) => {
   try {
+    // Define the 4 main categories
+    const mainCategories = ['security', 'ict', 'electrical', 'power'];
+    
     // Group orders by product category
     const orderItems = await OrderItem.findAll({
       include: [{ model: Product, attributes: ['category'] }],
       raw: true,
     });
+    
     const categoryCounts = {};
+    
+    // Initialize all main categories with 0 orders
+    mainCategories.forEach(category => {
+      categoryCounts[category] = 0;
+    });
+    
+    // Count orders for each category
     orderItems.forEach(item => {
       const category = item['Product.category'];
-      if (category) {
+      if (category && mainCategories.includes(category)) {
         categoryCounts[category] = (categoryCounts[category] || 0) + 1;
       }
     });
-    const data = Object.entries(categoryCounts).map(([category, orders]) => ({ category, orders }));
+    
+    // Convert to array format expected by frontend
+    const data = mainCategories.map(category => ({ 
+      category, 
+      orders: categoryCounts[category] || 0 
+    }));
+    
     res.json(data);
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch orders by category', error: err.message });

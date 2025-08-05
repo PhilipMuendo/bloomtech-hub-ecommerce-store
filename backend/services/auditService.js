@@ -153,6 +153,32 @@ class AuditService {
   }
 
   /**
+   * Log subcategory-related actions
+   */
+  static async logSubcategoryAction({
+    performedBy,
+    action,
+    subcategoryId,
+    details = null,
+    previousValues = null,
+    newValues = null,
+    ipAddress = null,
+    userAgent = null
+  }) {
+    return this.logAuditEvent({
+      performedBy,
+      action,
+      entityType: 'subcategory',
+      entityId: subcategoryId,
+      details,
+      previousValues,
+      newValues,
+      ipAddress,
+      userAgent
+    });
+  }
+
+  /**
    * Get audit logs with filters
    */
   static async getAuditLogs({

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Textarea } from '@/components/ui/textarea';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -20,9 +20,6 @@ export interface Subcategory {
   id: number;
   name: string;
   category: string;
-  displayName: string;
-  description: string;
-  isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -31,19 +28,10 @@ const subcategorySchema = yup.object().shape({
   name: yup.string()
     .required('Subcategory name is required')
     .min(2, 'Subcategory name must be at least 2 characters')
-    .max(100, 'Subcategory name must be at most 100 characters')
-    .matches(/^[a-z0-9-]+$/, 'Subcategory name must contain only lowercase letters, numbers, and hyphens'),
+    .max(100, 'Subcategory name must be at most 100 characters'),
   category: yup.string()
     .oneOf(categories.map(c => c.value), 'Select a valid category')
-    .required('Category is required'),
-  displayName: yup.string()
-    .required('Display name is required')
-    .min(2, 'Display name must be at least 2 characters')
-    .max(100, 'Display name must be at most 100 characters'),
-  description: yup.string()
-    .required('Description is required')
-    .min(10, 'Description must be at least 10 characters'),
-  isActive: yup.boolean()
+    .required('Category is required')
 });
 
 const Subcategories = () => {
@@ -84,18 +72,33 @@ const Subcategories = () => {
 
   const handleAddSubcategory = async (formData: any) => {
     try {
+      // Get token from user object (this is where it's actually stored)
+      const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+      const token = userObj.token;
+      
+      if (!token) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+
+      // Add displayName field (same as name) to satisfy database requirements
+      const dataToSend = {
+        ...formData,
+        displayName: formData.name,
+        isActive: true
+      };
+
       const res = await fetch('/api/subcategories', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSend)
       });
 
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to create subcategory');
+        throw new Error(errorData.error || errorData.message || 'Failed to create subcategory');
       }
 
       const newSubcategory = await res.json();
@@ -122,13 +125,26 @@ const Subcategories = () => {
     if (!editingSubcategory) return;
 
     try {
+      const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+      const token = userObj.token;
+      
+      if (!token) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+
+      // Add displayName field (same as name) to satisfy database requirements
+      const dataToSend = {
+        ...formData,
+        displayName: formData.name
+      };
+
       const res = await fetch(`/api/subcategories/${editingSubcategory.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(dataToSend)
       });
 
       if (!res.ok) {
@@ -158,10 +174,17 @@ const Subcategories = () => {
     if (!confirm('Are you sure you want to delete this subcategory?')) return;
 
     try {
+      const userObj = JSON.parse(localStorage.getItem('user') || '{}');
+      const token = userObj.token;
+      
+      if (!token) {
+        throw new Error('No authentication token found. Please log in again.');
+      }
+
       const res = await fetch(`/api/subcategories/${subcategoryId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -193,15 +216,9 @@ const Subcategories = () => {
     const defaultValues = subcategory ? {
       name: subcategory.name,
       category: subcategory.category,
-      displayName: subcategory.displayName,
-      description: subcategory.description,
-      isActive: subcategory.isActive,
     } : {
       name: '',
       category: categories[0].value,
-      displayName: '',
-      description: '',
-      isActive: true,
     };
 
     const { control, handleSubmit, formState: { errors, isSubmitting } } = useForm({
@@ -218,12 +235,12 @@ const Subcategories = () => {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <Label htmlFor="name">Subcategory Name (slug)</Label>
+            <Label htmlFor="name">Subcategory Name</Label>
             <Controller
               name="name"
               control={control}
               render={({ field }) => (
-                <Input id="name" {...field} placeholder="e.g., dome-cameras" aria-invalid={!!errors.name} />
+                <Input id="name" {...field} placeholder="e.g., Dome Cameras" aria-invalid={!!errors.name} />
               )}
             />
             {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
@@ -249,42 +266,6 @@ const Subcategories = () => {
             {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category.message}</p>}
           </div>
         </div>
-        <div>
-          <Label htmlFor="displayName">Display Name</Label>
-          <Controller
-            name="displayName"
-            control={control}
-            render={({ field }) => (
-              <Input id="displayName" {...field} placeholder="e.g., Dome Cameras" aria-invalid={!!errors.displayName} />
-            )}
-          />
-          {errors.displayName && <p className="text-red-500 text-xs mt-1">{errors.displayName.message}</p>}
-        </div>
-        <div>
-          <Label htmlFor="description">Description</Label>
-          <Controller
-            name="description"
-            control={control}
-            render={({ field }) => (
-              <Textarea id="description" {...field} placeholder="Enter subcategory description" aria-invalid={!!errors.description} />
-            )}
-          />
-          {errors.description && <p className="text-red-500 text-xs mt-1">{errors.description.message}</p>}
-        </div>
-        <div>
-          <Label htmlFor="isActive" className="flex items-center gap-2">
-            <Controller
-              name="isActive"
-              control={control}
-              render={({ field }) => (
-                <>
-                  <input id="isActive" type="checkbox" checked={!!field.value} onChange={e => field.onChange(e.target.checked)} />
-                  <span>Active</span>
-                </>
-              )}
-            />
-          </Label>
-        </div>
         <div className="flex justify-end space-x-2">
           <Button variant="outline" type="button" onClick={onCancel}>Cancel</Button>
           <Button type="submit" disabled={isSubmitting}>{isEdit ? 'Update Subcategory' : 'Save Subcategory'}</Button>
@@ -295,15 +276,15 @@ const Subcategories = () => {
 
   // Filter subcategories
   const filteredSubcategories = subcategories.filter(subcategory => {
-    const matchesSearch = subcategory.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         subcategory.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         subcategory.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = subcategory.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || subcategory.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
   return (
     <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
+      
+      
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4 sm:mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Subcategories</h1>
@@ -331,7 +312,7 @@ const Subcategories = () => {
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search subcategories..."
+                placeholder="Search by subcategory name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -351,13 +332,11 @@ const Subcategories = () => {
           </div>
 
           <div className="overflow-x-auto max-w-full">
-            <Table className="min-w-[700px] w-full">
+            <Table className="min-w-[500px] w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Subcategory</TableHead>
+                  <TableHead>Subcategory Name</TableHead>
                   <TableHead>Category</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -365,24 +344,11 @@ const Subcategories = () => {
                 {filteredSubcategories.map((subcategory) => (
                   <TableRow key={subcategory.id}>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{subcategory.displayName}</div>
-                        <div className="text-sm text-muted-foreground">{subcategory.name}</div>
-                      </div>
+                      <div className="font-medium">{subcategory.name}</div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="default" className="category-badge">
                         {categoryDisplayMap[subcategory.category] || subcategory.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm text-muted-foreground max-w-xs truncate">
-                        {subcategory.description}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={subcategory.isActive ? 'default' : 'secondary'}>
-                        {subcategory.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </TableCell>
                     <TableCell>

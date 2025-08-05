@@ -60,8 +60,7 @@ const Home = () => {
                 Your Tech Solutions Hub
               </h1>
               <p className="text-lg sm:text-xl md:text-2xl mb-6 sm:mb-8 opacity-90 max-w-3xl mx-auto">
-                Premium ICT equipment and electrical materials for professionals, 
-                businesses, and tech enthusiasts across Kenya.
+                Your trusted source for high-quality ICT and electrical solutions, serving individuals and enterprises across the globe.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
                 <Button size="lg" asChild className="bg-white text-primary hover:bg-gray-100 text-base sm:text-lg px-6 py-3">
