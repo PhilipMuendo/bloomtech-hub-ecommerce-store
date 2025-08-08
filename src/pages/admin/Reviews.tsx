@@ -83,13 +83,12 @@ const Reviews = () => {
 
   const updateReviewStatus = async (reviewId: string, newStatus: 'approved' | 'rejected') => {
     try {
-      const res = await fetch(`/api/reviews/${reviewId}/status`, {
+      const endpoint = newStatus === 'approved' ? 'approve' : 'reject';
+      const res = await fetch(`/api/reviews/${reviewId}/${endpoint}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': user?.token ? `Bearer ${user.token}` : ''
-        },
-        body: JSON.stringify({ status: newStatus })
+        }
       });
       if (!res.ok) throw new Error('Failed to update review status');
       setReviews(prev => prev.map(r => r.id === reviewId ? { ...r, status: newStatus } : r));

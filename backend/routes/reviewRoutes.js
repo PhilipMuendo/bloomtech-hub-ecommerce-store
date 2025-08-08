@@ -1,7 +1,8 @@
 import express from 'express';
-import { getAllReviews, createReview, getProductReviews, approveReview, rejectReview, markHelpful } from '../controllers/reviewController.js';
+import { getAllReviews, createReview, getProductReviews, approveReview, rejectReview, markHelpful, deleteReview } from '../controllers/reviewController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireAdmin } from '../middleware/roleAuth.js';
+import { validateId } from '../middleware/idValidation.js';
 
 const router = express.Router();
 
@@ -12,10 +13,12 @@ router.post('/', requireAuth, createReview);
 // Public: get approved reviews for a product
 router.get('/product/:productId', getProductReviews);
 // Admin: approve review
-router.put('/:id/approve', requireAuth, requireAdmin, approveReview);
+router.put('/:id/approve', requireAuth, requireAdmin, validateId, approveReview);
 // Admin: reject review
-router.put('/:id/reject', requireAuth, requireAdmin, rejectReview);
+router.put('/:id/reject', requireAuth, requireAdmin, validateId, rejectReview);
 // User: mark review as helpful
-router.put('/:id/helpful', requireAuth, markHelpful);
+router.put('/:id/helpful', requireAuth, validateId, markHelpful);
+// Admin: delete review
+router.delete('/:id', requireAuth, requireAdmin, validateId, deleteReview);
 
 export default router; 

@@ -3,10 +3,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import * as yup from 'yup';
+
+const CATEGORIES = [
+  'Technology', 'Business', 'Tutorial', 'News', 'Product', 'Industry', 'Tips'
+];
 
 interface Blog {
   id: string;
@@ -18,6 +22,21 @@ interface Blog {
   published: boolean;
   createdAt: string;
   updatedAt: string;
+  scheduledAt?: string;
+  publishedAt?: string;
+  category?: string;
+  tags?: string[];
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  featured?: boolean;
+  priority?: number;
+  excerpt?: string;
+  socialImage?: string;
+  readingTime?: number;
+  status?: string;
+  views?: number;
+  likes?: number;
 }
 
 const blogSchema = yup.object().shape({
@@ -27,6 +46,16 @@ const blogSchema = yup.object().shape({
   slug: yup.string().required('Slug is required').matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug must be URL-safe (lowercase, hyphens, no spaces)'),
   image: yup.string(),
   published: yup.boolean(),
+  scheduledAt: yup.string().nullable(),
+  category: yup.string().nullable(),
+  tags: yup.array().of(yup.string()),
+  metaTitle: yup.string(),
+  metaDescription: yup.string(),
+  metaKeywords: yup.string(),
+  featured: yup.boolean(),
+  priority: yup.number().min(0).max(10),
+  excerpt: yup.string(),
+  socialImage: yup.string(),
 });
 
 const AdminBlogs = () => {
@@ -35,13 +64,9 @@ const AdminBlogs = () => {
   const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
-  const [form, setForm] = useState({
-    title: '',
-    content: '',
-    image: '',
-    author: '',
-    slug: '',
-    published: false,
+  const [form, setForm] = useState<any>({
+    title: '', content: '', image: '', author: '', slug: '', published: false,
+    scheduledAt: '', category: '', tags: [], metaTitle: '', metaDescription: '', metaKeywords: '', featured: false, priority: 0, excerpt: '', socialImage: ''
   });
   const { user } = useAuth();
   const { toast } = useToast();
@@ -51,13 +76,11 @@ const AdminBlogs = () => {
     setError(null);
     try {
       const res = await fetch('/api/blogs/admin/all', {
-        headers: {
-          Authorization: `Bearer ${user?.token}`
-        }
+        headers: { Authorization: `Bearer ${user?.token}` }
       });
       if (!res.ok) throw new Error('Failed to fetch blogs');
       const data = await res.json();
-      setBlogs(data);
+      setBlogs(data.blogs || data); // support both paginated and array
     } catch (err: any) {
       setError(err.message);
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -72,16 +95,15 @@ const AdminBlogs = () => {
     if (blog) {
       setEditingBlog(blog);
       setForm({
-        title: blog.title,
-        content: blog.content,
-        image: blog.image || '',
-        author: blog.author,
-        slug: blog.slug,
-        published: blog.published,
+        ...blog,
+        tags: blog.tags || [],
+        scheduledAt: blog.scheduledAt ? blog.scheduledAt.slice(0, 16) : '',
+        priority: blog.priority ?? 0,
+        featured: blog.featured ?? false,
       });
     } else {
       setEditingBlog(null);
-      setForm({ title: '', content: '', image: '', author: '', slug: '', published: false });
+      setForm({ title: '', content: '', image: '', author: '', slug: '', published: false, scheduledAt: '', category: '', tags: [], metaTitle: '', metaDescription: '', metaKeywords: '', featured: false, priority: 0, excerpt: '', socialImage: '' });
     }
     setIsDialogOpen(true);
   };
@@ -89,13 +111,18 @@ const AdminBlogs = () => {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingBlog(null);
-    setForm({ title: '', content: '', image: '', author: '', slug: '', published: false });
+    setForm({ title: '', content: '', image: '', author: '', slug: '', published: false, scheduledAt: '', category: '', tags: [], metaTitle: '', metaDescription: '', metaKeywords: '', featured: false, priority: 0, excerpt: '', socialImage: '' });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     const checked = (e.target as HTMLInputElement).checked;
-    setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setForm((prev: any) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const handleTagsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const tags = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
+    setForm((prev: any) => ({ ...prev, tags }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,7 +138,12 @@ const AdminBlogs = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${user?.token}`,
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          tags: form.tags,
+          scheduledAt: form.scheduledAt ? new Date(form.scheduledAt).toISOString() : null,
+          priority: Number(form.priority) || 0,
+        }),
       });
       if (!res.ok) throw new Error('Failed to save blog');
       handleCloseDialog();
@@ -155,48 +187,78 @@ const AdminBlogs = () => {
         </CardHeader>
         <CardContent>
           <div className="w-full overflow-x-auto">
-            <Table className="min-w-[600px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Author</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead>Published</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {blogs.map((blog) => (
-                <TableRow key={blog.id}>
-                  <TableCell>{blog.title}</TableCell>
-                  <TableCell>{blog.author}</TableCell>
-                  <TableCell>{blog.slug}</TableCell>
-                  <TableCell>{blog.published ? 'Yes' : 'No'}</TableCell>
-                  <TableCell>
-                    <Button size="sm" variant="outline" onClick={() => handleOpenDialog(blog)}>Edit</Button>
-                    <Button size="sm" variant="destructive" className="ml-2" onClick={() => handleDelete(blog.id)}>Delete</Button>
-                  </TableCell>
+            <Table className="min-w-[1200px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Title</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Scheduled</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Tags</TableHead>
+                  <TableHead>Featured</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead>Views</TableHead>
+                  <TableHead>Likes</TableHead>
+                  <TableHead>Reading Time</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {blogs.map((blog) => (
+                  <TableRow key={blog.id}>
+                    <TableCell>{blog.title}</TableCell>
+                    <TableCell>{blog.status || (blog.published ? 'published' : 'draft')}</TableCell>
+                    <TableCell>{blog.scheduledAt ? new Date(blog.scheduledAt).toLocaleString() : '-'}</TableCell>
+                    <TableCell>{blog.category || '-'}</TableCell>
+                    <TableCell>{blog.tags?.join(', ') || '-'}</TableCell>
+                    <TableCell>{blog.featured ? 'Yes' : 'No'}</TableCell>
+                    <TableCell>{blog.priority ?? 0}</TableCell>
+                    <TableCell>{blog.views ?? 0}</TableCell>
+                    <TableCell>{blog.likes ?? 0}</TableCell>
+                    <TableCell>{blog.readingTime ? `${blog.readingTime} min` : '-'}</TableCell>
+                    <TableCell>
+                      <Button size="sm" variant="outline" onClick={() => handleOpenDialog(blog)}>Edit</Button>
+                      <Button size="sm" variant="destructive" className="ml-2" onClick={() => handleDelete(blog.id)}>Delete</Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </CardContent>
       </Card>
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingBlog ? 'Edit Blog' : 'Create Blog'}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input name="title" value={form.title} onChange={handleChange} placeholder="Title" required />
-            <Input name="author" value={form.author} onChange={handleChange} placeholder="Author" required />
-            <Input name="slug" value={form.slug} onChange={handleChange} placeholder="Slug (unique)" required />
-            <Input name="image" value={form.image} onChange={handleChange} placeholder="Image URL" />
-            <textarea name="content" value={form.content} onChange={handleChange} placeholder="Content" rows={6} className="w-full border rounded p-2" required />
-            <label className="flex items-center gap-2">
-              <input type="checkbox" name="published" checked={form.published} onChange={handleChange} /> Published
-            </label>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Input name="title" value={form.title} onChange={handleChange} placeholder="Title" required />
+              <Input name="author" value={form.author} onChange={handleChange} placeholder="Author" required />
+              <Input name="slug" value={form.slug} onChange={handleChange} placeholder="Slug (unique)" required />
+              <Input name="image" value={form.image} onChange={handleChange} placeholder="Image URL" />
+              <Input name="socialImage" value={form.socialImage} onChange={handleChange} placeholder="Social Image URL" />
+              <Input name="metaTitle" value={form.metaTitle} onChange={handleChange} placeholder="Meta Title (SEO)" />
+              <Input name="metaDescription" value={form.metaDescription} onChange={handleChange} placeholder="Meta Description (SEO)" />
+              <Input name="metaKeywords" value={form.metaKeywords} onChange={handleChange} placeholder="Meta Keywords (comma separated)" />
+              <Input name="excerpt" value={form.excerpt} onChange={handleChange} placeholder="Excerpt (short preview)" />
+              <Input name="priority" type="number" min={0} max={10} value={form.priority} onChange={handleChange} placeholder="Priority (0-10)" />
+              <select name="category" value={form.category} onChange={handleChange} className="border rounded p-2">
+                <option value="">Select Category</option>
+                {CATEGORIES.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+              <Input name="tags" value={form.tags?.join(', ') || ''} onChange={handleTagsChange} placeholder="Tags (comma separated)" />
+              <Input name="scheduledAt" type="datetime-local" value={form.scheduledAt} onChange={handleChange} placeholder="Schedule Publish" />
+              <label className="flex items-center gap-2">
+                <input type="checkbox" name="published" checked={form.published} onChange={handleChange} /> Published
+              </label>
+              <label className="flex items-center gap-2">
+                <input type="checkbox" name="featured" checked={form.featured} onChange={handleChange} /> Featured
+              </label>
+            </div>
+            <textarea name="content" value={form.content} onChange={handleChange} placeholder="Content" rows={8} className="w-full border rounded p-2" required />
+            <div className="text-muted-foreground text-xs">Reading time: {form.readingTime ? `${form.readingTime} min` : 'auto-calculated'}</div>
             <DialogFooter>
               <Button type="submit" disabled={loading}>{editingBlog ? 'Update' : 'Create'}</Button>
               <Button type="button" variant="outline" onClick={handleCloseDialog}>Cancel</Button>

@@ -179,7 +179,7 @@ export const verifyEmail = async (req, res, next) => {
     const user = await User.findOne({ 
       where: { 
         verificationToken: token, 
-        verificationTokenExpires: { [db.Sequelize.Op.gt]: Date.now() } 
+        verificationTokenExpires: { [Op.gt]: Date.now() } 
       } 
     });
     if (!user) {

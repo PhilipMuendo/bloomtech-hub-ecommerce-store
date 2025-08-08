@@ -45,6 +45,7 @@ const Quotes = () => {
   const [filterStart, setFilterStart] = useState('');
   const [filterEnd, setFilterEnd] = useState('');
   const [filterDay, setFilterDay] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'status' | 'name'>('newest');
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [response, setResponse] = useState('');
@@ -158,19 +159,24 @@ const Quotes = () => {
     return 0;
   });
 
-  // Then filter by date
+  // Then filter by status
   let filteredQuotes = sortedQuotes;
+  if (statusFilter !== 'all') {
+    filteredQuotes = filteredQuotes.filter(q => q.status === statusFilter);
+  }
+  
+  // Then filter by date
   if (dateFilterType === 'range' && filterStart && filterEnd) {
     const start = new Date(filterStart).setHours(0,0,0,0);
     const end = new Date(filterEnd).setHours(23,59,59,999);
-    filteredQuotes = sortedQuotes.filter(q => {
+    filteredQuotes = filteredQuotes.filter(q => {
       const created = new Date(q.createdAt).getTime();
       return created >= start && created <= end;
     });
   } else if (dateFilterType === 'day' && filterDay) {
     const dayStart = new Date(filterDay).setHours(0,0,0,0);
     const dayEnd = new Date(filterDay).setHours(23,59,59,999);
-    filteredQuotes = sortedQuotes.filter(q => {
+    filteredQuotes = filteredQuotes.filter(q => {
       const created = new Date(q.createdAt).getTime();
       return created >= dayStart && created <= dayEnd;
     });
@@ -198,6 +204,21 @@ const Quotes = () => {
               <option value="newest">Newest First</option>
               <option value="status">Status</option>
               <option value="name">Name</option>
+            </select>
+          </div>
+          <div className="flex gap-2 items-center">
+            <label htmlFor="statusFilter" className="text-sm font-medium">Filter by status:</label>
+            <select
+              id="statusFilter"
+              className="border rounded px-2 py-1 text-sm"
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="responded">Responded</option>
+              <option value="closed">Closed</option>
+              <option value="declined">Declined</option>
             </select>
           </div>
           <div className="flex gap-2 items-center">

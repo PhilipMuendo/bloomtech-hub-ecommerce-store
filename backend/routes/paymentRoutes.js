@@ -12,7 +12,7 @@ import {
   getAllPesapalTransactions
 } from '../controllers/pesapalController.js';
 import requireAuth from '../middleware/requireAuth.js';
-import { requireAdmin } from '../middleware/roleAuth.js';
+import { requireAdmin, requireSuperAdmin } from '../middleware/roleAuth.js';
 
 const router = express.Router();
 
@@ -29,9 +29,9 @@ router.get('/transaction/:transactionId', requireAuth, getTransactionStatus);
 router.post('/pesapal', requireAuth, initiatePesapalPayment);
 router.post('/pesapal/callback', handlePesapalCallback);
 router.get('/pesapal/status/:orderId', requireAuth, checkPesapalPaymentStatus);
-router.get('/pesapal/transactions', requireAuth, requireAdmin, getAllPesapalTransactions);
+router.get('/pesapal/transactions', requireAuth, requireSuperAdmin, getAllPesapalTransactions);
 
-// Get all transactions (admin only)
-router.get('/transactions', requireAuth, requireAdmin, getAllTransactions);
+// Get all transactions (superadmin only)
+router.get('/transactions', requireAuth, requireSuperAdmin, getAllTransactions);
 
 export default router;

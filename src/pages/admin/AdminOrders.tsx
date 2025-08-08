@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Eye, Package } from 'lucide-react';
+import { Search, Eye, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Order {
@@ -116,6 +116,61 @@ const AdminOrders = () => {
   const handlePrevPage = () => setPage((p) => Math.max(1, p - 1));
   const handleNextPage = () => setPage((p) => Math.min(totalPages, p + 1));
 
+  const handleExportOrders = async (exportFiltered: boolean = false) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      params.set('export', 'true');
+      
+      // If exporting filtered orders, include current filters
+      if (exportFiltered) {
+        if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
+        if (dateFrom) params.set('fromDate', dateFrom);
+        if (dateTo) params.set('toDate', dateTo);
+        if (searchTerm) params.set('search', searchTerm);
+      }
+      
+      let token = localStorage.getItem('jwt');
+      if (!token) {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        token = user.token;
+      }
+      
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      
+      const res = await fetch(`/api/orders/export?${params.toString()}`, { headers });
+      
+      if (!res.ok) throw new Error('Failed to export orders');
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = exportFiltered ? 'filtered-orders.csv' : 'all-orders.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: 'Export Successful',
+        description: `Orders exported successfully as ${exportFiltered ? 'filtered-orders.csv' : 'all-orders.csv'}`,
+      });
+    } catch (err: any) {
+      const errorMsg = err.message || 'Failed to export orders';
+      setError(errorMsg);
+      toast({
+        title: 'Export Error',
+        description: errorMsg,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const formatStatusDisplay = (status: string): string => {
     switch (status) {
       case 'pending': return 'Pending';
@@ -138,67 +193,20 @@ const AdminOrders = () => {
     }
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    try {
-      let token = localStorage.getItem('jwt');
-      if (!token) {
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        token = user.token;
-      }
-      
-      const res = await fetch(`/api/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.text();
-        let errorMessage = `HTTP ${res.status}`;
-        try {
-          const errorJson = JSON.parse(errorData);
-          errorMessage = errorJson.error || errorJson.message || errorData;
-        } catch {
-          errorMessage = errorData;
-        }
-        throw new Error(`Failed to update order status: ${errorMessage}`);
-      }
-      
-      toast({
-        title: "Order Updated",
-        description: `Order ${orderId} status changed to ${formatStatusDisplay(newStatus)}`,
-        duration: 2000,
-      });
-      
-      // Update the order's status in local state immediately
-      setOrders(prevOrders => prevOrders.map(order =>
-        order.id === orderId ? { ...order, status: newStatus as 'pending' | 'processing' | 'delivered' | 'cancelled' } : order
-      ));
-    } catch (err: any) {
-      toast({
-        title: 'Error',
-        description: err.message || 'Failed to update order status',
-        variant: 'destructive',
-        duration: 3000,
-      });
-    }
-  };
+
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Orders</h1>
-        <p className="text-muted-foreground">Manage customer orders</p>
+        <p className="text-muted-foreground">View customer orders (read-only)</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Order Management</CardTitle>
+          <CardTitle>Order Overview</CardTitle>
           <CardDescription>
-            {filteredOrders.length} of {orders.length} orders
+            {filteredOrders.length} of {orders.length} orders (read-only view)
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -245,10 +253,32 @@ const AdminOrders = () => {
                 className="border rounded px-2 py-1 text-sm"
               />
             </div>
-            {(dateFrom || dateTo) && (
-              <Button variant="outline" size="sm" onClick={() => { setDateFrom(''); setDateTo(''); }}>Clear</Button>
-            )}
-          </div>
+                         {(dateFrom || dateTo) && (
+               <Button variant="outline" size="sm" onClick={() => { setDateFrom(''); setDateTo(''); }}>Clear</Button>
+             )}
+             <div className="flex gap-2">
+               <Button
+                 onClick={() => handleExportOrders(false)}
+                 variant="outline"
+                 size="sm"
+                 disabled={loading}
+                 className="flex items-center gap-2"
+               >
+                 <Download className="h-4 w-4" />
+                 Export All
+               </Button>
+               <Button
+                 onClick={() => handleExportOrders(true)}
+                 variant="outline"
+                 size="sm"
+                 disabled={loading}
+                 className="flex items-center gap-2"
+               >
+                 <Download className="h-4 w-4" />
+                 Export Filtered
+               </Button>
+             </div>
+           </div>
 
           <div className="w-full overflow-x-auto">
             <Table className="min-w-[700px]">
@@ -289,38 +319,6 @@ const AdminOrders = () => {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {order.status === 'cancelled' || order.status === 'delivered' ? (
-                                                  <div className="flex items-center px-3 py-1 rounded-md bg-gray-100 text-gray-700 text-sm min-w-[120px]">
-                            <Package className="h-4 w-4 mr-2" />
-                            {formatStatusDisplay(order.status)}
-                          </div>
-                      ) : (
-                        <Select 
-                          onValueChange={(value) => updateOrderStatus(order.id, value)}
-                        >
-                          <SelectTrigger className="w-[40px] h-8">
-                            <div className="flex items-center justify-center w-full">
-                              <Package className="h-4 w-4" />
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {/* Always show all possible statuses */}
-                            <SelectItem value="pending" disabled={order.status === 'pending'}>
-                              {order.status === 'pending' ? '✓ Pending (Current)' : 'Pending'}
-                            </SelectItem>
-                            
-                            <SelectItem value="processing" disabled={order.status === 'processing'}>
-                              {order.status === 'processing' ? '✓ Processing (Current)' : 'Processing'}
-                            </SelectItem>
-                            <SelectItem value="delivered" disabled={order.status === 'delivered'}>
-                              {order.status === 'delivered' ? '✓ Delivered (Current)' : 'Delivered'}
-                            </SelectItem>
-                            <SelectItem value="cancelled" disabled={order.status === 'cancelled'}>
-                              {order.status === 'cancelled' ? '✓ Cancelled (Current)' : 'Cancelled'}
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
                     </div>
                   </TableCell>
                 </TableRow>

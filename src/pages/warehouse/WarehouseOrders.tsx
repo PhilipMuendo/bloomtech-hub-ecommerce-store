@@ -23,6 +23,7 @@ interface Order {
     price: number;
   }>;
   shippingAddress?: string;
+  deliveredAt?: string;
 }
 
 const WarehouseOrders = () => {
@@ -68,6 +69,7 @@ const WarehouseOrders = () => {
             price: item.price || item.Product?.price || 0,
           })) || [],
           shippingAddress: o.shippingAddress,
+          deliveredAt: o.deliveredAt,
         }));
         
         setOrders(normalized);
@@ -149,9 +151,11 @@ const WarehouseOrders = () => {
       
       if (!res.ok) throw new Error('Failed to update order status');
       
+      const updatedOrder = await res.json();
+      
       setOrders(prev => prev.map(order => 
         order.id === orderId 
-          ? { ...order, status: 'delivered' as const }
+          ? { ...order, status: 'delivered' as const, deliveredAt: updatedOrder.deliveredAt }
           : order
       ));
       
@@ -421,6 +425,7 @@ const WarehouseOrders = () => {
                         )}
                       </div>
                     </TableHead>
+                    <TableHead>Delivery Date</TableHead>
                     <TableHead 
                       className="cursor-pointer hover:bg-gray-50"
                       onClick={() => handleSort('total')}
@@ -458,6 +463,20 @@ const WarehouseOrders = () => {
                         <Badge className={getStatusColor(order.status)}>
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' ')}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {order.status === 'delivered' && order.deliveredAt ? (
+                          <div className="text-sm">
+                            <div className="font-medium text-green-600">
+                              {new Date(order.deliveredAt).toLocaleDateString()}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {new Date(order.deliveredAt).toLocaleTimeString()}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         KES {order.total?.toLocaleString() || '0'}
@@ -618,6 +637,17 @@ const WarehouseOrders = () => {
                         </Badge>
                         <span className="text-sm text-gray-500">Order Status</span>
                       </div>
+                      {selectedOrder.status === 'delivered' && selectedOrder.deliveredAt && (
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-green-600" />
+                          <div>
+                            <p className="font-medium text-green-600">
+                              Delivered on {new Date(selectedOrder.deliveredAt).toLocaleDateString()}
+                            </p>
+                            <p className="text-sm text-gray-500">Delivery Date</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold">KES {selectedOrder.total?.toLocaleString() || '0'}</p>

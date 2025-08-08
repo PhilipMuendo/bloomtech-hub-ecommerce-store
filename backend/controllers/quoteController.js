@@ -454,10 +454,12 @@ export const createOrderFromQuote = async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
     const paymentUrl = `${frontendUrl}/checkout/${result.trackingNumber}`;
     
-    // Create order items list for email
+    // Create order items list for email - use the quote items since they have product info
     const orderItemsList = quote.QuoteItems.map(item => 
       `• ${item.Product?.name || 'Product'} x ${item.quantity}`
     ).join('\n');
+    
+    console.log('Email order items list:', orderItemsList);
     
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProductCard from '@/components/ProductCard';
 import { Search } from 'lucide-react';
-import { categories, categoryDisplayMap } from '@/data/categories';
+import { categories, categoryDisplayMap, fetchSubcategories, Subcategory } from '@/data/categories';
 import { useToast } from '@/hooks/use-toast';
 
 const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || 'all');
+  const [subcategoryFilter, setSubcategoryFilter] = useState(searchParams.get('subcategory') || 'all');
   const [priceRange, setPriceRange] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [products, setProducts] = useState<any[]>([]); // Changed from Product[] to any[] to avoid conflict
@@ -21,7 +22,38 @@ const Shop = () => {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [loadingSubcategories, setLoadingSubcategories] = useState(false);
   const { toast } = useToast();
+
+  // Fetch subcategories when category changes
+  useEffect(() => {
+    const loadSubcategories = async () => {
+      if (categoryFilter && categoryFilter !== 'all') {
+        setLoadingSubcategories(true);
+        try {
+          const response = await fetch(`/api/subcategories?category=${categoryFilter}`);
+          if (response.ok) {
+            const data = await response.json();
+            const categorySubcategories = data.data || [];
+            setSubcategories(categorySubcategories);
+          } else {
+            setSubcategories([]);
+          }
+        } catch (error) {
+          console.error('Error fetching subcategories:', error);
+          setSubcategories([]);
+        } finally {
+          setLoadingSubcategories(false);
+        }
+      } else {
+        setSubcategories([]);
+        setSubcategoryFilter('all');
+      }
+    };
+
+    loadSubcategories();
+  }, [categoryFilter]);
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -33,6 +65,7 @@ const Shop = () => {
         params.set('page', String(page));
         params.set('limit', '12');
         if (categoryFilter && categoryFilter !== 'all') params.set('category', categoryFilter);
+        if (subcategoryFilter && subcategoryFilter !== 'all') params.set('subcategory', subcategoryFilter);
         if (sortBy) {
           if (sortBy === 'price-low') params.set('sort', 'price');
           else if (sortBy === 'price-high') params.set('sort', '-price');
@@ -69,7 +102,7 @@ const Shop = () => {
     };
     fetchProducts();
     // eslint-disable-next-line
-  }, [page, categoryFilter, sortBy]);
+  }, [page, categoryFilter, subcategoryFilter, sortBy]);
 
   useEffect(() => {
     let result = [...products];
@@ -83,6 +116,10 @@ const Shop = () => {
     // Apply category filter
     if (categoryFilter && categoryFilter !== 'all') {
       result = result.filter(product => product.category === categoryFilter);
+    }
+    // Apply subcategory filter
+    if (subcategoryFilter && subcategoryFilter !== 'all') {
+      result = result.filter(product => product.subcategory === subcategoryFilter);
     }
     // Apply price range filter
     if (priceRange !== 'all') {
@@ -114,7 +151,7 @@ const Shop = () => {
       }
     });
     setFilteredProducts(result);
-  }, [products, searchQuery, categoryFilter, priceRange, sortBy]);
+  }, [products, searchQuery, categoryFilter, subcategoryFilter, priceRange, sortBy]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,11 +166,24 @@ const Shop = () => {
 
   const handleCategoryChange = (category: string) => {
     setCategoryFilter(category);
+    setSubcategoryFilter('all'); // Reset subcategory when category changes
     const params = new URLSearchParams(searchParams);
     if (category && category !== 'all') {
       params.set('category', category);
     } else {
       params.delete('category');
+    }
+    params.delete('subcategory'); // Remove subcategory from URL when category changes
+    setSearchParams(params);
+  };
+
+  const handleSubcategoryChange = (subcategory: string) => {
+    setSubcategoryFilter(subcategory);
+    const params = new URLSearchParams(searchParams);
+    if (subcategory && subcategory !== 'all') {
+      params.set('subcategory', subcategory);
+    } else {
+      params.delete('subcategory');
     }
     setSearchParams(params);
   };
@@ -152,7 +202,7 @@ const Shop = () => {
       </div>
       {/* Filters */}
       <div className="bg-white p-3 sm:p-6 rounded-lg shadow-sm border mb-6 sm:mb-8 max-w-full">
-        <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-4 max-w-full">
+        <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-5 max-w-full">
           {/* Search */}
           <form onSubmit={handleSearch} className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
@@ -173,6 +223,18 @@ const Shop = () => {
               <SelectItem value="all">All Categories</SelectItem>
               {categories.map(cat => (
                 <SelectItem key={cat.value} value={cat.value}>{cat.display}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {/* Subcategory Filter */}
+          <Select value={subcategoryFilter} onValueChange={handleSubcategoryChange} disabled={loadingSubcategories || categoryFilter === 'all'}>
+            <SelectTrigger className="text-base sm:text-lg">
+              <SelectValue placeholder={loadingSubcategories ? "Loading..." : "All Subcategories"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Subcategories</SelectItem>
+              {subcategories.map(subcat => (
+                <SelectItem key={subcat.id} value={subcat.name}>{subcat.displayName}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -237,6 +299,7 @@ const Shop = () => {
             onClick={() => {
               setSearchQuery('');
               setCategoryFilter('all');
+              setSubcategoryFilter('all');
               setPage(1);
               setPriceRange('all');
               setSortBy('name');

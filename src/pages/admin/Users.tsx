@@ -24,6 +24,7 @@ interface User {
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,20 +76,22 @@ const Users = () => {
       user.email?.toLowerCase().includes(searchLower) ||
       user.id?.toString().toLowerCase().includes(searchLower);
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     
     // Debug logging
-    if (searchTerm && (matchesSearch || matchesStatus)) {
+    if (searchTerm && (matchesSearch || matchesStatus || matchesRole)) {
       console.log('Search match:', {
         searchTerm,
         userName: user.name,
         userEmail: user.email,
         userId: user.id,
         matchesSearch,
-        matchesStatus
+        matchesStatus,
+        matchesRole
       });
     }
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesRole;
   });
 
   const getStatusColor = (status: string) => {
@@ -239,7 +242,9 @@ const Users = () => {
           <CardHeader>
             <CardTitle>User Management</CardTitle>
             <CardDescription>
-              {searchTerm ? `${filteredUsers.length} of ${users.length} users matching "${searchTerm}"` : `${filteredUsers.length} of ${users.length} users`}
+              {searchTerm || statusFilter !== 'all' || roleFilter !== 'all' 
+                ? `${filteredUsers.length} of ${users.length} users matching filters` 
+                : `${filteredUsers.length} of ${users.length} users`}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -273,6 +278,31 @@ const Users = () => {
                   <SelectItem value="suspended">Suspended</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="user">User</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="superadmin">Super Admin</SelectItem>
+                  <SelectItem value="warehouse">Warehouse</SelectItem>
+                </SelectContent>
+              </Select>
+              {(searchTerm || statusFilter !== 'all' || roleFilter !== 'all') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setRoleFilter('all');
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              )}
             </div>
             <div className="overflow-x-auto max-w-full">
               <Table className="min-w-[600px] w-full">
@@ -291,7 +321,9 @@ const Users = () => {
                   {filteredUsers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        {searchTerm ? `No users found matching "${searchTerm}"` : 'No users found.'}
+                        {searchTerm || statusFilter !== 'all' || roleFilter !== 'all' 
+                          ? 'No users found matching the current filters.' 
+                          : 'No users found.'}
                       </TableCell>
                     </TableRow>
                   ) : (

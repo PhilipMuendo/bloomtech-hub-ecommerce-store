@@ -74,7 +74,7 @@ export const getProductReviews = async (req, res) => {
 // PUT /api/reviews/:id/approve (admin)
 export const approveReview = async (req, res) => {
   try {
-    const review = await Review.findByPk(req.params.id);
+    const review = await Review.findByPk(req.parsedId || req.params.id);
     if (!review) {
       return res.status(404).json({ error: 'Review not found' });
     }
@@ -89,7 +89,7 @@ export const approveReview = async (req, res) => {
 // PUT /api/reviews/:id/reject (admin)
 export const rejectReview = async (req, res) => {
   try {
-    const review = await Review.findByPk(req.params.id);
+    const review = await Review.findByPk(req.parsedId || req.params.id);
     if (!review) {
       return res.status(404).json({ error: 'Review not found' });
     }
@@ -104,13 +104,28 @@ export const rejectReview = async (req, res) => {
 // PUT /api/reviews/:id/helpful
 export const markHelpful = async (req, res) => {
   try {
-    const review = await Review.findByPk(req.params.id);
+    const review = await Review.findByPk(req.parsedId || req.params.id);
     if (!review) {
       return res.status(404).json({ error: 'Review not found' });
     }
     
     await review.update({ helpful: review.helpful + 1 });
     res.json({ message: 'Marked as helpful' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// DELETE /api/reviews/:id (admin)
+export const deleteReview = async (req, res) => {
+  try {
+    const review = await Review.findByPk(req.parsedId || req.params.id);
+    if (!review) {
+      return res.status(404).json({ error: 'Review not found' });
+    }
+    
+    await review.destroy();
+    res.json({ message: 'Review deleted successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

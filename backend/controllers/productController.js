@@ -41,8 +41,19 @@ const fixImageUrl = (imageUrl, req) => {
 export const getAllProducts = async (req, res, next) => {
   try {
     // Pagination, filtering, and sorting
-    const { page = 1, limit = 20, category, sort = 'name' } = req.query;
-    const where = category ? { category } : {};
+    const { page = 1, limit = 20, category, subcategory, sort = 'name' } = req.query;
+    const where = {};
+    
+    // Add category filter
+    if (category) {
+      where.category = category;
+    }
+    
+    // Add subcategory filter
+    if (subcategory) {
+      where.subcategory = subcategory;
+    }
+    
     const offset = (parseInt(page) - 1) * parseInt(limit);
     const order = [];
     if (sort.startsWith('-')) {
@@ -239,10 +250,21 @@ export const searchProducts = async (req, res, next) => {
 export const exportProducts = async (req, res, next) => {
   try {
     const products = await Product.findAll({
-      attributes: ['id', 'name', 'description', 'price', 'category', 'stock', 'featured', 'createdAt']
+      attributes: ['id', 'name', 'description', 'price', 'category', 'subcategory', 'stock', 'featured', 'createdAt', 'updatedAt']
     });
     
-    const fields = ['id', 'name', 'description', 'price', 'category', 'stock', 'featured', 'createdAt'];
+    const fields = [
+      'id', 
+      'name', 
+      'description', 
+      'price', 
+      'category', 
+      'subcategory', 
+      'stock', 
+      'featured', 
+      'createdAt', 
+      'updatedAt'
+    ];
     const json2csvParser = new Json2csvParser({ fields });
     const csv = json2csvParser.parse(products);
     

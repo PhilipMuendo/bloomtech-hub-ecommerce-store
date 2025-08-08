@@ -196,10 +196,13 @@ const Products = () => {
         description: formData.description,
         price: Number(formData.price),
         category: formData.category,
+        subcategory: formData.subcategory,
         stock: Number(formData.stock),
         imageUrl: formData.imageUrl,
         featured: !!formData.featured,
       };
+      
+      console.log('🔧 Updating product with payload:', updatePayload);
       const res = await fetch(`/api/products/${editingProduct.id}`, {
         method: 'PUT',
         headers: {
@@ -222,6 +225,47 @@ const Products = () => {
       // Refresh low stock notification
       const lowStock = await fetchLowStockProducts(currentUser?.token);
       window.dispatchEvent(new CustomEvent('lowStockUpdated', { detail: lowStock }));
+    } catch (err: any) {
+      setError(err.message);
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportProducts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/products/export', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${currentUser?.token}`
+        }
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to export products');
+      }
+      
+      // Get the CSV data
+      const csvData = await res.text();
+      
+      // Create a blob and download it
+      const blob = new Blob([csvData], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'products.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({ 
+        title: 'Export Successful', 
+        description: 'Products have been exported to CSV file.' 
+      });
     } catch (err: any) {
       setError(err.message);
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -568,15 +612,13 @@ const Products = () => {
             <Plus className="mr-2 h-4 w-4" />
             Add Product
           </Button>
-          <Button
-            onClick={() => {
-              window.open('/api/products/export/csv', '_blank');
-            }}
-            variant="outline"
-            className="text-base sm:text-lg px-4 py-2"
-          >
-            Export Products (CSV)
-          </Button>
+                     <Button
+             onClick={handleExportProducts}
+             variant="outline"
+             className="text-base sm:text-lg px-4 py-2"
+           >
+             Export Products (CSV)
+           </Button>
         </div>
       </div>
 

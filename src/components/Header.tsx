@@ -96,10 +96,20 @@ const UserMenu = () => {
   return <UserDropdown />;
 };
 
-const NotificationDropdown = ({ totalNotifications, quoteNotifications, orderNotifications }: {
+const NotificationDropdown = ({ 
+  totalNotifications, 
+  quoteNotifications, 
+  orderNotifications,
+  setQuoteNotifications,
+  setOrderNotifications,
+  setTotalNotifications
+}: {
   totalNotifications: number;
   quoteNotifications: number;
   orderNotifications: number;
+  setQuoteNotifications: (count: number) => void;
+  setOrderNotifications: (count: number) => void;
+  setTotalNotifications: (count: number | ((prev: number) => number)) => void;
 }) => {
   const [orderDetails, setOrderDetails] = useState<any[]>([]);
   const [quoteDetails, setQuoteDetails] = useState<any[]>([]);
@@ -159,32 +169,29 @@ const NotificationDropdown = ({ totalNotifications, quoteNotifications, orderNot
   const handleNotificationClick = async (type: 'quotes' | 'orders') => {
     try {
       // Mark notifications as seen
+      let markSeenResponse = null;
       if (type === 'quotes' && quoteNotifications > 0) {
         const endpoint = (user.role === 'admin' || user.role === 'superadmin') 
           ? '/api/quotes/mark-admin-seen' 
           : '/api/quotes/mark-seen';
-        
-        await fetch(endpoint, {
+        markSeenResponse = await fetch(endpoint, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${user.token}`,
           },
         });
+        const data = await markSeenResponse.json();
       }
-      
-      // Mark orders as viewed for regular users
       if (type === 'orders' && orderNotifications > 0 && (user.role !== 'admin' && user.role !== 'superadmin')) {
-        // Get the current unviewed orders and mark them as viewed
         const orderRes = await fetch('/api/orders/user/notifications', {
           headers: { Authorization: `Bearer ${user.token}` },
         });
-        
         if (orderRes.ok) {
           const orderData = await orderRes.json();
           if (orderData.length > 0) {
             const orderIds = orderData.map((order: any) => order.id);
-            await fetch('/api/orders/user/mark-viewed', {
+            markSeenResponse = await fetch('/api/orders/user/mark-viewed', {
               method: 'PATCH',
               headers: {
                 'Content-Type': 'application/json',
@@ -192,14 +199,15 @@ const NotificationDropdown = ({ totalNotifications, quoteNotifications, orderNot
               },
               body: JSON.stringify({ orderIds })
             });
+            const data = await markSeenResponse.json();
           }
         }
       }
-      
-      // Invalidate queries to refresh notifications
-      queryClient.invalidateQueries({ queryKey: ['notifications', user.id, user.role] });
-      queryClient.invalidateQueries({ queryKey: ['quotes'] });
-      
+
+      // Force refetch notifications immediately
+      await queryClient.invalidateQueries({ queryKey: ['notifications', user.id, user.role] });
+      const refetchResult = await queryClient.refetchQueries({ queryKey: ['notifications', user.id, user.role] });
+
       // Navigate to the appropriate page
       navigate(type === 'quotes' ? '/my-quotes' : '/orders');
     } catch (error) {
@@ -235,7 +243,9 @@ const NotificationDropdown = ({ totalNotifications, quoteNotifications, orderNot
               {quoteNotifications > 0 && (
                 <div 
                   className="flex items-center justify-between p-2 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
-                  onClick={() => handleNotificationClick('quotes')}
+                  onClick={() => {
+                    handleNotificationClick('quotes');
+                  }}
                 >
                   <div className="flex items-center gap-2">
                     <MailCheck className="w-4 h-4 text-blue-600" />
@@ -248,7 +258,9 @@ const NotificationDropdown = ({ totalNotifications, quoteNotifications, orderNot
               {orderNotifications > 0 && (
                 <div 
                   className="flex items-center justify-between p-2 bg-green-50 rounded-lg cursor-pointer hover:bg-green-100 transition-colors"
-                  onClick={() => handleNotificationClick('orders')}
+                  onClick={() => {
+                    handleNotificationClick('orders');
+                  }}
                 >
                   <div className="flex items-center gap-2">
                     <ShoppingCart className="w-4 h-4 text-green-600" />
@@ -321,7 +333,9 @@ const NotificationDropdown = ({ totalNotifications, quoteNotifications, orderNot
                 variant="outline" 
                 size="sm" 
                 className="flex-1"
-                onClick={() => handleNotificationClick('quotes')}
+                onClick={() => {
+                  handleNotificationClick('quotes');
+                }}
               >
                 View Quotes
               </Button>
@@ -329,7 +343,9 @@ const NotificationDropdown = ({ totalNotifications, quoteNotifications, orderNot
                 variant="outline" 
                 size="sm" 
                 className="flex-1"
-                onClick={() => handleNotificationClick('orders')}
+                onClick={() => {
+                  handleNotificationClick('orders');
+                }}
               >
                 View Orders
               </Button>
@@ -356,6 +372,7 @@ const Header = () => {
   const { cartItems } = useCart();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   // Add state for notifications
   const [quoteNotifications, setQuoteNotifications] = useState(0);
   const [orderNotifications, setOrderNotifications] = useState(0);
@@ -415,8 +432,9 @@ const Header = () => {
     queryKey: ['notifications', user?.id, user?.role],
     queryFn: fetchNotifications,
     enabled: !!user,
-    refetchInterval: 15000, // Refetch every 15 seconds
+    refetchInterval: 10000, // Refetch every 10 seconds (reduced from 15)
     refetchIntervalInBackground: true,
+    staleTime: 5000, // Consider data stale after 5 seconds
   });
 
   // Update notification counts when data changes
@@ -439,6 +457,12 @@ const Header = () => {
       }
     }
   }, [notificationData, totalNotifications, toast]);
+
+  // Manual refresh function for immediate updates
+  const refreshNotifications = () => {
+    queryClient.invalidateQueries({ queryKey: ['notifications', user?.id, user?.role] });
+    queryClient.refetchQueries({ queryKey: ['notifications', user?.id, user?.role] });
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -487,300 +511,309 @@ const Header = () => {
   const SEARCH_API = '/api/products/search?q=';
 
   return (
-    <header className="bg-white shadow-lg sticky top-0 z-50">
-      <div className="container mx-auto px-4">
-        {/* Top bar */}
-        <div className="flex items-center justify-between py-4">
-          {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2">
-            <motion.div 
-              className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center"
-              initial={isHomePage ? { scale: 0 } : { scale: 1 }}
-              animate={isHomePage ? { scale: 1 } : { scale: 1 }}
-              transition={isHomePage ? { 
-                type: "spring", 
-                stiffness: 260, 
-                damping: 20,
-                duration: 0.8 
-              } : { duration: 0 }}
-            >
-              <span className="text-white font-bold text-lg">BT</span>
-            </motion.div>
-            <motion.div
-              initial={isHomePage ? { opacity: 0, x: -20 } : { opacity: 1, x: 0 }}
-              animate={isHomePage ? { opacity: 1, x: 0 } : { opacity: 1, x: 0 }}
-              transition={isHomePage ? { 
-                delay: 0.3, 
-                duration: 0.6,
-                ease: "easeOut"
-              } : { duration: 0 }}
-            >
-              <h1 className="text-2xl font-bold text-primary">BLOOMTECH</h1>
-              <p className="text-sm text-accent -mt-1">Hub</p>
-            </motion.div>
-          </Link>
-
-          {/* Search Bar (Desktop) */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-8" role="search" autoComplete="off">
-            <div className="relative w-full">
-              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                type="text"
-                aria-label="Search for products"
-                placeholder="Search for ICT equipment, electrical materials..."
-                value={searchQuery}
-                onChange={async (e) => {
-                  setSearchQuery(e.target.value);
-                  setSearchError(null);
-                  if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-                  debounceTimeout.current = setTimeout(async () => {
-                    if (e.target.value.trim().length > 1) {
-                      setLoading(true); // Show loading
-                      try {
-                        const res = await fetch(`${SEARCH_API}${encodeURIComponent(e.target.value.trim())}`);
-                        if (res.ok) {
-                          const data = await res.json();
-                          setSuggestions(data.map((p: any) => ({ id: p.id, name: p.name })));
-                          setSearchError(data.length === 0 ? 'No products found.' : null);
-                        } else {
-                          setSuggestions([]);
-                          setSearchError('No products found or server error.');
-                        }
-                      } catch (err) {
-                        setSuggestions([]);
-                        setSearchError('Network error or server unavailable.');
-                      }
-                      setLoading(false); // Hide loading
-                    } else {
-                      setSuggestions([]);
-                      setSearchError(null);
-                    }
-                  }, 350);
-                }}
-                className="pl-10 pr-10 py-2 w-full border-2 focus:border-primary"
-                onKeyDown={handleKeyDown}
-              />
-              {/* Clear button */}
-              {searchQuery && (
-                <button
-                  type="button"
-                  aria-label="Clear search"
-                  className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  onClick={() => { setSearchQuery(''); setSuggestions([]); }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 20 20"><path d="M6 6l8 8M6 14L14 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                </button>
-              )}
-              <Button
-                type="submit"
-                aria-label="Search"
-                size="sm"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-accent hover:bg-accent/90"
-                disabled={loading}
+    <>
+      <header className="bg-white shadow-lg sticky top-0 z-50">
+        <div className="container mx-auto px-4">
+          {/* Top bar */}
+          <div className="flex items-center justify-between py-4">
+            {/* Logo */}
+            <Link to="/" className="flex items-center space-x-2">
+              <motion.div 
+                className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center"
+                initial={isHomePage ? { scale: 0 } : { scale: 1 }}
+                animate={isHomePage ? { scale: 1 } : { scale: 1 }}
+                transition={isHomePage ? { 
+                  type: "spring", 
+                  stiffness: 260, 
+                  damping: 20,
+                  duration: 0.8 
+                } : { duration: 0 }}
               >
-                {loading ? (
-                  <span className="flex items-center"><svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>Searching...</span>
-                ) : 'Search'}
-              </Button>
-              {/* Suggestions dropdown */}
-              {(suggestions.length > 0 || searchError) && (
-                <div className="absolute left-0 top-full mt-1 w-full bg-white border rounded shadow z-10">
-                  {loading && (
-                    <div className="px-4 py-2 text-sm text-gray-500 flex items-center">
-                      <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>
-                      Loading...
-                    </div>
-                  )}
-                  {searchError && !loading && (
-                    <div className="px-4 py-2 text-sm text-red-500">
-                      {searchError}
-                    </div>
-                  )}
-                  {suggestions.map((s, i) => (
-                    <div
-                      key={s.id}
-                      className={`px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm ${highlightedIndex === i ? 'bg-gray-100' : ''}`}
-                      onClick={() => {
-                        setSearchQuery('');
+                <span className="text-white font-bold text-lg">BT</span>
+              </motion.div>
+              <motion.div
+                initial={isHomePage ? { opacity: 0, x: -20 } : { opacity: 1, x: 0 }}
+                animate={isHomePage ? { opacity: 1, x: 0 } : { opacity: 1, x: 0 }}
+                transition={isHomePage ? { 
+                  delay: 0.3, 
+                  duration: 0.6,
+                  ease: "easeOut"
+                } : { duration: 0 }}
+              >
+                <h1 className="text-2xl font-bold text-primary">BLOOMTECH</h1>
+                <p className="text-sm text-accent -mt-1">Hub</p>
+              </motion.div>
+            </Link>
+
+            {/* Search Bar (Desktop) */}
+            <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-8" role="search" autoComplete="off">
+              <div className="relative w-full">
+                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                <Input
+                  type="text"
+                  aria-label="Search for products"
+                  placeholder="Search for ICT equipment, electrical materials..."
+                  value={searchQuery}
+                  onChange={async (e) => {
+                    setSearchQuery(e.target.value);
+                    setSearchError(null);
+                    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+                    debounceTimeout.current = setTimeout(async () => {
+                      if (e.target.value.trim().length > 1) {
+                        setLoading(true); // Show loading
+                        try {
+                          const res = await fetch(`${SEARCH_API}${encodeURIComponent(e.target.value.trim())}`);
+                          if (res.ok) {
+                            const data = await res.json();
+                            setSuggestions(data.map((p: any) => ({ id: p.id, name: p.name })));
+                            setSearchError(data.length === 0 ? 'No products found.' : null);
+                          } else {
+                            setSuggestions([]);
+                            setSearchError('No products found or server error.');
+                          }
+                        } catch (err) {
+                          setSuggestions([]);
+                          setSearchError('Network error or server unavailable.');
+                        }
+                        setLoading(false); // Hide loading
+                      } else {
                         setSuggestions([]);
                         setSearchError(null);
-                        setHighlightedIndex(-1);
-                        navigate(`/product/${s.id}`);
-                      }}
-                      onMouseEnter={() => setHighlightedIndex(i)}
-                    >
-                      {s.name}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </form>
-
-          {/* User Menu */}
-          <div className="flex items-center gap-4">
-            {user && (
-              <NotificationDropdown totalNotifications={totalNotifications} quoteNotifications={quoteNotifications} orderNotifications={orderNotifications} />
-            )}
-          <UserMenu />
-          {/* Cart */}
-          {user && (
-            <Link to="/cart" className="relative">
-              <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                <ShoppingCart className="w-4 h-4" />
-                <span className="hidden sm:inline">Cart</span>
-              </Button>
-              {distinctProducts > 0 && (
-                <span className="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {distinctProducts}
-                </span>
-              )}
-            </Link>
-          )}
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="border-t py-4">
-          <div className="flex items-center justify-between">
-            <div className="hidden md:flex items-center space-x-8">
-              <Link to="/" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
-                Home
-              </Link>
-              <Link to="/shop" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
-                Shop
-              </Link>
-              <Link to="/blog" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
-                Blog
-              </Link>
-              <Link to="/about" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
-                About Us
-              </Link>
-              <Link to="/contact" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
-                Contact
-              </Link>
-              <Link to="/faqs" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
-                FAQs
-              </Link>
-            </div>
-
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden flex flex-col space-y-1"
-            >
-              <div className="w-6 h-0.5 bg-foreground"></div>
-              <div className="w-6 h-0.5 bg-foreground"></div>
-              <div className="w-6 h-0.5 bg-foreground"></div>
-            </button>
-          </div>
-
-          {/* Mobile menu */}
-          {isMenuOpen && (
-            <div className="md:hidden mt-4 py-4 border-t">
-              <div className="flex flex-col space-y-4">
-                <form onSubmit={handleSearch} className="flex mb-4 relative" role="search" autoComplete="off">
-                  <Input
-                    type="text"
-                    aria-label="Search for products"
-                    placeholder="Search for ICT equipment, electrical materials..."
-                    value={searchQuery}
-                    onChange={async (e) => {
-                      setSearchQuery(e.target.value);
-                      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-                      debounceTimeout.current = setTimeout(async () => {
-                        if (e.target.value.trim().length > 1) {
-                          try {
-                            const res = await fetch(`${SEARCH_API}${encodeURIComponent(e.target.value.trim())}`);
-                            if (res.ok) {
-                              const data = await res.json();
-                              setSuggestions(data.map((p: any) => ({ id: p.id, name: p.name })));
-                            } else {
-                              setSuggestions([]);
-                            }
-                          } catch {
-                            setSuggestions([]);
-                          }
-                        } else {
+                      }
+                    }, 350);
+                  }}
+                  className="pl-10 pr-10 py-2 w-full border-2 focus:border-primary"
+                  onKeyDown={handleKeyDown}
+                />
+                {/* Clear button */}
+                {searchQuery && (
+                  <button
+                    type="button"
+                    aria-label="Clear search"
+                    className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    onClick={() => { setSearchQuery(''); setSuggestions([]); }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 20 20"><path d="M6 6l8 8M6 14L14 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  </button>
+                )}
+                <Button
+                  type="submit"
+                  aria-label="Search"
+                  size="sm"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-accent hover:bg-accent/90"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center"><svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>Searching...</span>
+                  ) : 'Search'}
+                </Button>
+                {/* Suggestions dropdown */}
+                {(suggestions.length > 0 || searchError) && (
+                  <div className="absolute left-0 top-full mt-1 w-full bg-white border rounded shadow z-10">
+                    {loading && (
+                      <div className="px-4 py-2 text-sm text-gray-500 flex items-center">
+                        <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>
+                        Loading...
+                      </div>
+                    )}
+                    {searchError && !loading && (
+                      <div className="px-4 py-2 text-sm text-red-500">
+                        {searchError}
+                      </div>
+                    )}
+                    {suggestions.map((s, i) => (
+                      <div
+                        key={s.id}
+                        className={`px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm ${highlightedIndex === i ? 'bg-gray-100' : ''}`}
+                        onClick={() => {
+                          setSearchQuery('');
                           setSuggestions([]);
-                        }
-                      }, 350);
-                    }}
-                    className="flex-1 mr-2 pr-10"
-                    onKeyDown={handleKeyDown}
-                  />
-                  {/* Clear button */}
-                  {searchQuery && (
-                    <button
-                      type="button"
-                      aria-label="Clear search"
-                      className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      onClick={() => { setSearchQuery(''); setSuggestions([]); }}
-                    >
-                      <svg width="18" height="18" viewBox="0 0 20 20"><path d="M6 6l8 8M6 14L14 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                    </button>
-                  )}
-                  <Button type="submit" aria-label="Search" size="sm" disabled={loading}>
-                    {loading ? (
-                      <span className="flex items-center"><svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>Searching...</span>
-                    ) : 'Search'}
-                  </Button>
-                  {/* Suggestions dropdown */}
-                  {(suggestions.length > 0 || searchError) && (
-                    <div className="absolute left-0 top-full mt-1 w-full bg-white border rounded shadow z-10">
-                      {loading && (
-                        <div className="px-4 py-2 text-sm text-gray-500 flex items-center">
-                          <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>
-                          Loading...
-                        </div>
-                      )}
-                      {searchError && !loading && (
-                        <div className="px-4 py-2 text-sm text-red-500">
-                          {searchError}
-                        </div>
-                      )}
-                      {suggestions.map((s, i) => (
-                        <div
-                          key={s.id}
-                          className={`px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm ${highlightedIndex === i ? 'bg-gray-100' : ''}`}
-                          onClick={() => {
-                            setSearchQuery('');
-                            setSuggestions([]);
-                            setHighlightedIndex(-1);
-                            navigate(`/product/${s.id}`);
-                          }}
-                          onMouseEnter={() => setHighlightedIndex(i)}
-                        >
-                          {s.name}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </form>
-                <Link to="/" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                          setSearchError(null);
+                          setHighlightedIndex(-1);
+                          navigate(`/product/${s.id}`);
+                        }}
+                        onMouseEnter={() => setHighlightedIndex(i)}
+                      >
+                        {s.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </form>
+
+            {/* User Menu */}
+            <div className="flex items-center gap-4">
+              {user && (
+                <NotificationDropdown 
+                  totalNotifications={totalNotifications} 
+                  quoteNotifications={quoteNotifications} 
+                  orderNotifications={orderNotifications}
+                  setQuoteNotifications={setQuoteNotifications}
+                  setOrderNotifications={setOrderNotifications}
+                  setTotalNotifications={setTotalNotifications}
+                />
+              )}
+            <UserMenu />
+            {/* Cart */}
+            {user && (
+              <Link to="/cart" className="relative">
+                <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                  <ShoppingCart className="w-4 h-4" />
+                  <span className="hidden sm:inline">Cart</span>
+                </Button>
+                {distinctProducts > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {distinctProducts}
+                  </span>
+                )}
+              </Link>
+            )}
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="border-t py-4">
+            <div className="flex items-center justify-between">
+              <div className="hidden md:flex items-center space-x-8">
+                <Link to="/" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                   Home
                 </Link>
-                <Link to="/shop" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                <Link to="/shop" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                   Shop
                 </Link>
-                <Link to="/blog" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                <Link to="/blog" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                   Blog
                 </Link>
-                <Link to="/about" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                <Link to="/about" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                   About Us
                 </Link>
-                <Link to="/contact" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                <Link to="/contact" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                   Contact
                 </Link>
-                <Link to="/faqs" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                <Link to="/faqs" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                   FAQs
                 </Link>
               </div>
+
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="md:hidden flex flex-col space-y-1"
+              >
+                <div className="w-6 h-0.5 bg-foreground"></div>
+                <div className="w-6 h-0.5 bg-foreground"></div>
+                <div className="w-6 h-0.5 bg-foreground"></div>
+              </button>
             </div>
-          )}
-        </nav>
-      </div>
-    </header>
+
+            {/* Mobile menu */}
+            {isMenuOpen && (
+              <div className="md:hidden mt-4 py-4 border-t">
+                <div className="flex flex-col space-y-4">
+                  <form onSubmit={handleSearch} className="flex mb-4 relative" role="search" autoComplete="off">
+                    <Input
+                      type="text"
+                      aria-label="Search for products"
+                      placeholder="Search for ICT equipment, electrical materials..."
+                      value={searchQuery}
+                      onChange={async (e) => {
+                        setSearchQuery(e.target.value);
+                        if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+                        debounceTimeout.current = setTimeout(async () => {
+                          if (e.target.value.trim().length > 1) {
+                            try {
+                              const res = await fetch(`${SEARCH_API}${encodeURIComponent(e.target.value.trim())}`);
+                              if (res.ok) {
+                                const data = await res.json();
+                                setSuggestions(data.map((p: any) => ({ id: p.id, name: p.name })));
+                              } else {
+                                setSuggestions([]);
+                              }
+                            } catch {
+                              setSuggestions([]);
+                            }
+                          } else {
+                            setSuggestions([]);
+                          }
+                        }, 350);
+                      }}
+                      className="flex-1 mr-2 pr-10"
+                      onKeyDown={handleKeyDown}
+                    />
+                    {/* Clear button */}
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        aria-label="Clear search"
+                        className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        onClick={() => { setSearchQuery(''); setSuggestions([]); }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 20 20"><path d="M6 6l8 8M6 14L14 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                      </button>
+                    )}
+                    <Button type="submit" aria-label="Search" size="sm" disabled={loading}>
+                      {loading ? (
+                        <span className="flex items-center"><svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>Searching...</span>
+                      ) : 'Search'}
+                    </Button>
+                    {/* Suggestions dropdown */}
+                    {(suggestions.length > 0 || searchError) && (
+                      <div className="absolute left-0 top-full mt-1 w-full bg-white border rounded shadow z-10">
+                        {loading && (
+                          <div className="px-4 py-2 text-sm text-gray-500 flex items-center">
+                            <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>
+                            Loading...
+                          </div>
+                        )}
+                        {searchError && !loading && (
+                          <div className="px-4 py-2 text-sm text-red-500">
+                            {searchError}
+                          </div>
+                        )}
+                        {suggestions.map((s, i) => (
+                          <div
+                            key={s.id}
+                            className={`px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm ${highlightedIndex === i ? 'bg-gray-100' : ''}`}
+                            onClick={() => {
+                              setSearchQuery('');
+                              setSuggestions([]);
+                              setHighlightedIndex(-1);
+                              navigate(`/product/${s.id}`);
+                            }}
+                            onMouseEnter={() => setHighlightedIndex(i)}
+                          >
+                            {s.name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </form>
+                  <Link to="/" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                    Home
+                  </Link>
+                  <Link to="/shop" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                    Shop
+                  </Link>
+                  <Link to="/blog" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                    Blog
+                  </Link>
+                  <Link to="/about" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                    About Us
+                  </Link>
+                  <Link to="/contact" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                    Contact
+                  </Link>
+                  <Link to="/faqs" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
+                    FAQs
+                  </Link>
+                </div>
+              </div>
+            )}
+          </nav>
+        </div>
+      </header>
+    </>
   );
 };
 

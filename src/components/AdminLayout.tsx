@@ -115,10 +115,10 @@ const AdminLayout = () => {
     { path: '/admin/reviews', icon: MessageSquare, label: 'Reviews' },
     { path: '/admin/newsletter', icon: Mail, label: 'Newsletter' },
     { path: '/admin/blogs', icon: BookOpen, label: 'Blogs' },
-    { path: '/admin/mpesa-transactions', icon: CreditCard, label: 'M-Pesa Transactions' },
-    { path: '/admin/pesapal-transactions', icon: Globe, label: 'Pesapal Transactions' },
     // Superadmin only items
     ...(user?.role === 'superadmin' ? [
+      { path: '/admin/mpesa-transactions', icon: CreditCard, label: 'M-Pesa Transactions' },
+      { path: '/admin/pesapal-transactions', icon: Globe, label: 'Pesapal Transactions' },
       { path: '/admin/audit-logs', icon: Activity, label: 'Audit Logs' }
     ] : []),
   ];

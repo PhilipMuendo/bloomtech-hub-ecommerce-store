@@ -1,6 +1,7 @@
 import db, { sequelize } from '../sequelize_models/index.js';
 import { Op } from 'sequelize';
 import AuditService from '../services/auditService.js';
+import { Parser } from 'json2csv';
 
 const { Order, Product, User, OrderItem } = db;
 
@@ -531,6 +532,97 @@ export const getOrderByTrackingNumber = async (req, res, next) => {
     res.json(transformedOrder);
   } catch (err) {
     console.error('Error in getOrderByTrackingNumber:', err);
+    next(err);
+  }
+};
+
+// Export orders as CSV
+export const exportOrders = async (req, res, next) => {
+  try {
+    const { status, fromDate, toDate, search } = req.query;
+    const where = {};
+    
+    // Apply filters
+    if (status && status !== 'all') {
+      where.status = status;
+    }
+    
+    if (fromDate || toDate) {
+      where.createdAt = {};
+      if (fromDate) {
+        where.createdAt[Op.gte] = new Date(fromDate);
+      }
+      if (toDate) {
+        where.createdAt[Op.lte] = new Date(toDate + 'T23:59:59.999Z');
+      }
+    }
+    
+    // Get all orders with filters applied
+    const orders = await Order.findAll({
+      where,
+      include: [
+        { model: User, attributes: ['name', 'email', 'phone'] },
+        { 
+          model: OrderItem, 
+          include: [{ model: Product, attributes: ['name', 'price'] }]
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    
+    // Filter by search term if provided
+    let filteredOrders = orders;
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredOrders = orders.filter(order => {
+        const orderData = order.toJSON();
+        return (
+          orderData.id.toString().toLowerCase().includes(searchLower) ||
+          (orderData.User?.name || '').toLowerCase().includes(searchLower) ||
+          (orderData.User?.email || '').toLowerCase().includes(searchLower)
+        );
+      });
+    }
+    
+    // Transform data for CSV export
+    const csvData = filteredOrders.map(order => {
+      const orderData = order.toJSON();
+      const items = orderData.OrderItems || [];
+      const itemNames = items.map(item => item.Product?.name || 'N/A').join('; ');
+      const itemQuantities = items.map(item => item.quantity).join('; ');
+      const itemPrices = items.map(item => item.Product?.price || 0).join('; ');
+      
+      return {
+        'Order ID': orderData.id,
+        'Customer Name': orderData.User?.name || 'N/A',
+        'Customer Email': orderData.User?.email || 'N/A',
+        'Customer Phone': orderData.User?.phone || 'N/A',
+        'Order Date': new Date(orderData.createdAt).toLocaleDateString(),
+        'Status': orderData.status,
+        'Total Amount': orderData.total,
+        'Items': itemNames,
+        'Quantities': itemQuantities,
+        'Item Prices': itemPrices,
+        'Shipping Address': orderData.shippingAddress || 'N/A',
+        'Delivered At': orderData.deliveredAt ? new Date(orderData.deliveredAt).toLocaleDateString() : 'N/A'
+      };
+    });
+    
+    // Generate CSV
+    const fields = [
+      'Order ID', 'Customer Name', 'Customer Email', 'Customer Phone', 
+      'Order Date', 'Status', 'Total Amount', 'Items', 'Quantities', 
+      'Item Prices', 'Shipping Address', 'Delivered At'
+    ];
+    
+    const json2csvParser = new Parser({ fields });
+    const csv = json2csvParser.parse(csvData);
+    
+    res.header('Content-Type', 'text/csv');
+    res.attachment('orders.csv');
+    res.send(csv);
+  } catch (err) {
+    console.error('Error in exportOrders:', err);
     next(err);
   }
 }; 

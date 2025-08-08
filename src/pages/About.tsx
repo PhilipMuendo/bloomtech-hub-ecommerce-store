@@ -45,7 +45,7 @@ const About = () => {
                 src="https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800"
                 alt="Technology workspace"
                 className="w-full max-w-md h-72 object-cover rounded-2xl shadow-2xl border-4 border-accent/30"
-              />
+              />c
             </div>
             <div className="space-y-6">
               <Card className="bg-primary/5 shadow-md">

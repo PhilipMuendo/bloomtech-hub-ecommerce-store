@@ -37,12 +37,33 @@ interface Transaction {
 }
 
 const PesapalTransactions = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  // Check if user is superadmin
+  if (!user || user.role !== 'superadmin') {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <Globe className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+              <p className="text-gray-600 mb-4">
+                You don't have permission to view Pesapal transactions. 
+                Only superadmin users can access this page.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const { user } = useAuth();
-  const { toast } = useToast();
 
   const fetchTransactions = async () => {
     try {
