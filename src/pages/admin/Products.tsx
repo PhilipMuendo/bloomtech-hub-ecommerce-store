@@ -91,6 +91,10 @@ const Products = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [pageSize] = useState(50); // Show 50 products per page
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -105,14 +109,17 @@ const Products = () => {
   });
 
   // Fetch products from backend
-  const fetchProducts = async () => {
+  const fetchProducts = async (page = currentPage) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/products');
+      const res = await fetch(`/api/products?page=${page}&limit=${pageSize}`);
       if (!res.ok) throw new Error('Failed to fetch products');
       const data = await res.json();
-      setProducts(Array.isArray(data) ? data : data.products);
+      setProducts(data.products || []);
+      setTotalProducts(data.total || 0);
+      setTotalPages(data.totalPages || 1);
+      setCurrentPage(data.page || 1);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -121,7 +128,7 @@ const Products = () => {
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts(1);
     // eslint-disable-next-line
   }, []);
 
@@ -129,7 +136,7 @@ const Products = () => {
   useEffect(() => {
     const handleSubcategoriesUpdated = (event: CustomEvent) => {
       // Refresh products list to ensure any category/subcategory changes are reflected
-      fetchProducts();
+      fetchProducts(1);
     };
 
     window.addEventListener('subcategoriesUpdated', handleSubcategoriesUpdated as EventListener);
@@ -186,7 +193,7 @@ const Products = () => {
           duration: 8000
         });
       setIsAddDialogOpen(false);
-      fetchProducts();
+      fetchProducts(1);
     } catch (err: any) {
       setError(err.message);
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -235,7 +242,7 @@ const Products = () => {
         newParams.delete('edit');
         return newParams;
       });
-      fetchProducts();
+      fetchProducts(1);
       // Refresh low stock notification
       const lowStock = await fetchLowStockProducts(currentUser?.token);
       window.dispatchEvent(new CustomEvent('lowStockUpdated', { detail: lowStock }));
@@ -300,7 +307,7 @@ const Products = () => {
       });
       if (!res.ok) throw new Error('Failed to delete product');
       toast({ title: 'Product Deleted', description: 'Product has been removed from the catalog.', variant: 'destructive' });
-      fetchProducts();
+      fetchProducts(1);
     } catch (err: any) {
       setError(err.message);
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -429,7 +436,7 @@ const Products = () => {
         // Only reset subcategory when category changes if it's not an edit operation
         // or if the current subcategory doesn't belong to the new category
         if (!isEdit || !product?.subcategory) {
-          setValue('subcategory', '');
+        setValue('subcategory', '');
         }
       }
     }, [selectedCategory, setValue]);
@@ -678,7 +685,7 @@ const Products = () => {
         <CardHeader>
           <CardTitle>Product Catalog</CardTitle>
           <CardDescription>
-            {filteredProducts.length} of {products.length} products
+            {filteredProducts.length} of {totalProducts} products
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -782,6 +789,36 @@ const Products = () => {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalProducts)} of {totalProducts} products
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchProducts(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="text-sm">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchProducts(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

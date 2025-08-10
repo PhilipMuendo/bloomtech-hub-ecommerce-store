@@ -507,7 +507,7 @@ export const markUserOrdersAsViewed = async (req, res, next) => {
     console.error('Error in markUserOrdersAsViewed:', err);
     next(err);
   }
-}; 
+};
 
 // Get order details by tracking number (for quote-based orders)
 export const getOrderByTrackingNumber = async (req, res, next) => {

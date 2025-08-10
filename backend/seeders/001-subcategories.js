@@ -92,7 +92,12 @@ module.exports = {
       { name: 'industrial-panels', category: 'electrical', displayName: 'Industrial Panels', description: 'Heavy-duty industrial electrical panels', isActive: true, createdAt: new Date(), updatedAt: new Date() },
       { name: 'auto-transfer-systems', category: 'electrical', displayName: 'Auto Transfer Systems', description: 'ATS panels for backup power systems', isActive: true, createdAt: new Date(), updatedAt: new Date() },
       { name: 'busbar-systems', category: 'electrical', displayName: 'Busbar Systems', description: 'Busbar chambers and distribution systems', isActive: true, createdAt: new Date(), updatedAt: new Date() },
-      { name: 'electrical-accessories', category: 'electrical', displayName: 'Electrical Accessories', description: 'Installation accessories and materials', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      { name: 'electrical-accessories', category: 'electrical', displayName: 'Installation accessories and materials', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+
+      // Additional Electrical Accessories - Residential
+      { name: 'electrical-switches', category: 'electrical', displayName: 'Electrical Switches', description: 'Residential electrical switches and controls', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      { name: 'power-outlets', category: 'electrical', displayName: 'Power Outlets', description: 'Electrical outlets and sockets', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      { name: 'residential-accessories', category: 'electrical', displayName: 'Residential Electrical Accessories', description: 'Home electrical installation accessories', isActive: true, createdAt: new Date(), updatedAt: new Date() },
 
       // Power Solutions - Solar Panels
       { name: 'monocrystalline-panels', category: 'power', displayName: 'Monocrystalline Panels', description: 'High-efficiency monocrystalline solar panels', isActive: true, createdAt: new Date(), updatedAt: new Date() },

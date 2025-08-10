@@ -395,3 +395,393 @@ const Reviews = () => {
 };
 
 export default Reviews;
+
+                className="pl-8"
+
+              />
+
+            </div>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+
+              <SelectTrigger className="w-[140px]">
+
+                <SelectValue placeholder="Status" />
+
+              </SelectTrigger>
+
+              <SelectContent>
+
+                <SelectItem value="all">All Status</SelectItem>
+
+                <SelectItem value="pending">Pending</SelectItem>
+
+                <SelectItem value="approved">Approved</SelectItem>
+
+                <SelectItem value="rejected">Rejected</SelectItem>
+
+              </SelectContent>
+
+            </Select>
+
+            <Select value={ratingFilter} onValueChange={setRatingFilter}>
+
+              <SelectTrigger className="w-[120px]">
+
+                <SelectValue placeholder="Rating" />
+
+              </SelectTrigger>
+
+              <SelectContent>
+
+                <SelectItem value="all">All Ratings</SelectItem>
+
+                <SelectItem value="5">5 Stars</SelectItem>
+
+                <SelectItem value="4">4 Stars</SelectItem>
+
+                <SelectItem value="3">3 Stars</SelectItem>
+
+                <SelectItem value="2">2 Stars</SelectItem>
+
+                <SelectItem value="1">1 Star</SelectItem>
+
+              </SelectContent>
+
+            </Select>
+
+          </div>
+
+
+
+          <div className="overflow-x-auto max-w-full">
+
+            <Table className="min-w-[700px] w-full">
+
+            <TableHeader>
+
+              <TableRow>
+
+                <TableHead>Product</TableHead>
+
+                <TableHead>Customer</TableHead>
+
+                <TableHead>Rating</TableHead>
+
+                <TableHead>Status</TableHead>
+
+                <TableHead>Date</TableHead>
+
+                <TableHead>Helpful</TableHead>
+
+                <TableHead>Actions</TableHead>
+
+              </TableRow>
+
+            </TableHeader>
+
+            <TableBody>
+
+              {filteredReviews.map((review) => (
+
+                <TableRow key={review.id}>
+
+                  <TableCell>
+
+                    <div>
+
+                      <div className="font-medium">{review.productName}</div>
+
+                      <div className="text-sm text-muted-foreground">
+
+                        {review.comment.substring(0, 50)}...
+
+                      </div>
+
+                    </div>
+
+                  </TableCell>
+
+                  <TableCell>
+
+                    <div>
+
+                      <div className="font-medium">{review.customerName}</div>
+
+                      <div className="text-sm text-muted-foreground">{review.customerEmail}</div>
+
+                    </div>
+
+                  </TableCell>
+
+                  <TableCell>
+
+                    <div className="flex items-center gap-1">
+
+                      {renderStars(review.rating)}
+
+                      <span className="ml-1 text-sm">{review.rating}</span>
+
+                    </div>
+
+                  </TableCell>
+
+                  <TableCell>
+
+                    <Badge variant={getStatusColor(review.status)}>
+
+                      {review.status.charAt(0).toUpperCase() + review.status.slice(1)}
+
+                    </Badge>
+
+                  </TableCell>
+
+                  <TableCell>{new Date(review.date).toLocaleDateString()}</TableCell>
+
+                  <TableCell>{review.helpful}</TableCell>
+
+                  <TableCell>
+
+                    <div className="flex gap-2">
+
+                      <Button
+
+                        variant="outline"
+
+                        size="sm"
+
+                        onClick={() => setSelectedReview(review)}
+
+                      >
+
+                        <Eye className="h-4 w-4" />
+
+                      </Button>
+
+                      {review.status === 'pending' && (
+
+                        <>
+
+                          <Button
+
+                            variant="outline"
+
+                            size="sm"
+
+                            onClick={() => updateReviewStatus(review.id, 'approved')}
+
+                          >
+
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+
+                          </Button>
+
+                          <Button
+
+                            variant="outline"
+
+                            size="sm"
+
+                            onClick={() => updateReviewStatus(review.id, 'rejected')}
+
+                          >
+
+                            <XCircle className="h-4 w-4 text-red-600" />
+
+                          </Button>
+
+                        </>
+
+                      )}
+
+                      <Button
+
+                        variant="outline"
+
+                        size="sm"
+
+                        onClick={() => deleteReview(review.id)}
+
+                      >
+
+                        <Trash2 className="h-4 w-4" />
+
+                      </Button>
+
+                    </div>
+
+                  </TableCell>
+
+                </TableRow>
+
+              ))}
+
+            </TableBody>
+
+          </Table>
+
+          </div>
+
+        </CardContent>
+
+      </Card>
+
+
+
+      {selectedReview && (
+
+        <Dialog open={!!selectedReview} onOpenChange={() => setSelectedReview(null)}>
+
+          <DialogContent className="max-w-2xl">
+
+            <DialogHeader>
+
+              <DialogTitle>Review Details</DialogTitle>
+
+              <DialogDescription>
+
+                Complete review information
+
+              </DialogDescription>
+
+            </DialogHeader>
+
+            <div className="space-y-4">
+
+              <div className="grid grid-cols-2 gap-4">
+
+                <div>
+
+                  <h4 className="font-semibold">Product Information</h4>
+
+                  <p><strong>Product:</strong> {selectedReview.productName}</p>
+
+                  <p><strong>Product ID:</strong> {selectedReview.productId}</p>
+
+                </div>
+
+                <div>
+
+                  <h4 className="font-semibold">Review Information</h4>
+
+                  <p><strong>Date:</strong> {new Date(selectedReview.date).toLocaleDateString()}</p>
+
+                  <p><strong>Status:</strong> <Badge variant={getStatusColor(selectedReview.status)}>
+
+                    {selectedReview.status.charAt(0).toUpperCase() + selectedReview.status.slice(1)}
+
+                  </Badge></p>
+
+                  <p><strong>Helpful votes:</strong> {selectedReview.helpful}</p>
+
+                </div>
+
+              </div>
+
+              
+
+              <div>
+
+                <h4 className="font-semibold">Customer Information</h4>
+
+                <p><strong>Name:</strong> {selectedReview.customerName}</p>
+
+                <p><strong>Email:</strong> {selectedReview.customerEmail}</p>
+
+              </div>
+
+              
+
+              <div>
+
+                <h4 className="font-semibold">Rating</h4>
+
+                <div className="flex items-center gap-2">
+
+                  {renderStars(selectedReview.rating)}
+
+                  <span className="text-lg font-medium">{selectedReview.rating}/5</span>
+
+                </div>
+
+              </div>
+
+              
+
+              <div>
+
+                <h4 className="font-semibold">Review Comment</h4>
+
+                <div className="bg-muted p-4 rounded-lg">
+
+                  <p>{selectedReview.comment}</p>
+
+                </div>
+
+              </div>
+
+              
+
+              {selectedReview.status === 'pending' && (
+
+                <div className="flex gap-2 pt-4">
+
+                  <Button
+
+                    onClick={() => {
+
+                      updateReviewStatus(selectedReview.id, 'approved');
+
+                      setSelectedReview(null);
+
+                    }}
+
+                  >
+
+                    <CheckCircle className="mr-2 h-4 w-4" />
+
+                    Approve Review
+
+                  </Button>
+
+                  <Button
+
+                    variant="destructive"
+
+                    onClick={() => {
+
+                      updateReviewStatus(selectedReview.id, 'rejected');
+
+                      setSelectedReview(null);
+
+                    }}
+
+                  >
+
+                    <XCircle className="mr-2 h-4 w-4" />
+
+                    Reject Review
+
+                  </Button>
+
+                </div>
+
+              )}
+
+            </div>
+
+          </DialogContent>
+
+        </Dialog>
+
+      )}
+
+    </div>
+
+  );
+
+};
+
+
+
+export default Reviews;
