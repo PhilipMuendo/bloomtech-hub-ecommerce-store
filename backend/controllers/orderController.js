@@ -220,6 +220,16 @@ export const createOrder = async (req, res, next) => {
     console.log('Final order:', result.toJSON());
     console.log('=== ORDER CREATION END ===');
     
+    // Dispatch real-time event for new order
+    if (req.app.locals.io) {
+      req.app.locals.io.emit('newOrderCreated', {
+        action: 'created',
+        entityType: 'order',
+        entityId: result.id,
+        data: result.toJSON()
+      });
+    }
+    
     res.status(201).json(result);
   } catch (err) {
     console.error('❌ Error in createOrder:', err);
@@ -335,6 +345,16 @@ export const updateOrderStatus = async (req, res, next) => {
         newValues: { trackingNumber },
         ipAddress: req.ip,
         userAgent: req.get('User-Agent')
+      });
+    }
+
+    // Dispatch real-time event for order status change
+    if (req.app.locals.io) {
+      req.app.locals.io.emit('orderStatusChanged', {
+        action: 'status_changed',
+        entityType: 'order',
+        entityId: currentOrder.id,
+        data: currentOrder.toJSON()
       });
     }
 

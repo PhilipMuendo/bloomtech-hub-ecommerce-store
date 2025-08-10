@@ -67,29 +67,43 @@ const PesapalTransactions = () => {
 
   const fetchTransactions = async () => {
     try {
+      if (!user || !user.token) {
+        throw new Error('User not authenticated');
+      }
+
+      console.log('Fetching Pesapal transactions...', { userRole: user.role });
+
       const response = await fetch('/api/payments/pesapal/transactions', {
         headers: {
-          'Authorization': `Bearer ${user?.token}`
+          'Authorization': `Bearer ${user.token}`,
+          'Content-Type': 'application/json'
         }
       });
 
+      console.log('Response status:', response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log('Response data:', data);
+        
         if (data.success) {
-          setTransactions(data.data);
+          setTransactions(data.data || []);
         } else {
           throw new Error(data.message || 'Failed to fetch transactions');
         }
       } else {
-        throw new Error('Failed to fetch transactions');
+        const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
+        console.error('API Error:', errorData);
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to fetch transactions`);
       }
     } catch (error) {
       console.error('Error fetching transactions:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch transactions",
+        description: error instanceof Error ? error.message : "Failed to fetch transactions",
         variant: "destructive"
       });
+      setTransactions([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -100,11 +114,14 @@ const PesapalTransactions = () => {
   }, []);
 
   const filteredTransactions = transactions.filter(transaction => {
-    const matchesSearch = 
-      transaction.phoneNumber.includes(searchTerm) ||
-      transaction.transactionId.includes(searchTerm) ||
-      transaction.checkoutRequestId.includes(searchTerm) ||
-      transaction.orderId.toString().includes(searchTerm);
+    if (!transaction) return false;
+    
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = searchTerm === '' || 
+      (transaction.phoneNumber && transaction.phoneNumber.toLowerCase().includes(searchLower)) ||
+      (transaction.transactionId && transaction.transactionId.toLowerCase().includes(searchLower)) ||
+      (transaction.checkoutRequestId && transaction.checkoutRequestId.toLowerCase().includes(searchLower)) ||
+      (transaction.orderId && transaction.orderId.toString().includes(searchTerm));
     
     const matchesStatus = statusFilter === 'all' || transaction.status === statusFilter;
     
@@ -119,6 +136,10 @@ const PesapalTransactions = () => {
         return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
       case 'failed':
         return <Badge className="bg-red-100 text-red-800">Failed</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-gray-100 text-gray-800">Cancelled</Badge>;
+      case 'unknown':
+        return <Badge className="bg-gray-100 text-gray-600">Unknown</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -140,14 +161,14 @@ const PesapalTransactions = () => {
     const csvContent = [
       ['ID', 'Order ID', 'Phone Number', 'Amount', 'Status', 'Transaction ID', 'Date', 'Result Description'],
       ...filteredTransactions.map(t => [
-        t.id,
-        t.orderId,
-        t.phoneNumber,
-        formatAmount(t.amount),
-        t.status,
-        t.transactionId,
-        formatDate(t.createdAt),
-        t.resultDesc || 'N/A'
+        t?.id || 'N/A',
+        t?.orderId || 'N/A',
+        t?.phoneNumber || 'N/A',
+        t?.amount ? formatAmount(t.amount) : 'N/A',
+        t?.status || 'N/A',
+        t?.transactionId || 'N/A',
+        t?.createdAt ? formatDate(t.createdAt) : 'N/A',
+        t?.resultDesc || 'N/A'
       ])
     ].map(row => row.join(',')).join('\n');
 
@@ -161,12 +182,16 @@ const PesapalTransactions = () => {
   };
 
   const getStats = () => {
+    if (!Array.isArray(transactions)) {
+      return { total: 0, completed: 0, pending: 0, failed: 0, totalAmount: 0 };
+    }
+    
     const total = transactions.length;
-    const completed = transactions.filter(t => t.status === 'completed').length;
-    const pending = transactions.filter(t => t.status === 'pending').length;
-    const failed = transactions.filter(t => t.status === 'failed').length;
+    const completed = transactions.filter(t => t && t.status === 'completed').length;
+    const pending = transactions.filter(t => t && t.status === 'pending').length;
+    const failed = transactions.filter(t => t && t.status === 'failed').length;
     const totalAmount = transactions
-      .filter(t => t.status === 'completed')
+      .filter(t => t && t.status === 'completed' && typeof t.amount === 'number')
       .reduce((sum, t) => sum + t.amount, 0);
 
     return { total, completed, pending, failed, totalAmount };
@@ -311,36 +336,36 @@ const PesapalTransactions = () => {
                 </thead>
                 <tbody>
                   {filteredTransactions.map((transaction) => (
-                    <tr key={transaction.id} className="border-b hover:bg-gray-50">
-                      <td className="py-3 px-4">{transaction.id}</td>
+                    <tr key={transaction.id || `transaction-${Math.random()}`} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4">{transaction.id || 'N/A'}</td>
                       <td className="py-3 px-4">
-                        <span className="font-medium">#{transaction.orderId}</span>
+                        <span className="font-medium">#{transaction.orderId || 'N/A'}</span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Phone className="h-4 w-4 text-muted-foreground" />
-                          {transaction.phoneNumber}
+                          {transaction.phoneNumber || 'N/A'}
                         </div>
                       </td>
                       <td className="py-3 px-4 font-medium">
-                        {formatAmount(transaction.amount)}
+                        {transaction.amount ? formatAmount(transaction.amount) : 'N/A'}
                       </td>
                       <td className="py-3 px-4">
-                        {getStatusBadge(transaction.status)}
+                        {getStatusBadge(transaction.status || 'unknown')}
                       </td>
                       <td className="py-3 px-4">
-                        <div className="max-w-xs truncate" title={transaction.transactionId}>
-                          {transaction.transactionId}
+                        <div className="max-w-xs truncate" title={transaction.transactionId || 'N/A'}>
+                          {transaction.transactionId || 'N/A'}
                         </div>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
-                          {formatDate(transaction.createdAt)}
+                          {transaction.createdAt ? formatDate(transaction.createdAt) : 'N/A'}
                         </div>
                       </td>
                       <td className="py-3 px-4">
-                        <div className="max-w-xs truncate" title={transaction.resultDesc}>
+                        <div className="max-w-xs truncate" title={transaction.resultDesc || 'N/A'}>
                           {transaction.resultDesc || 'N/A'}
                         </div>
                       </td>

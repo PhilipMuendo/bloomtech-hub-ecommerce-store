@@ -63,7 +63,7 @@ const productSchema = yup.object().shape({
   subcategory: yup.string()
     .min(2, 'Subcategory must be at least 2 characters')
     .required('Subcategory is required'),
-  imageUrl: yup.string().required('Image is required'),
+  imageUrl: yup.string(),
   description: yup.string()
     .required('Description is required')
     .min(10, 'Description must be at least 10 characters'),
@@ -123,6 +123,20 @@ const Products = () => {
   useEffect(() => {
     fetchProducts();
     // eslint-disable-next-line
+  }, []);
+
+  // Listen for subcategory updates globally (for when forms are not open)
+  useEffect(() => {
+    const handleSubcategoriesUpdated = (event: CustomEvent) => {
+      // Refresh products list to ensure any category/subcategory changes are reflected
+      fetchProducts();
+    };
+
+    window.addEventListener('subcategoriesUpdated', handleSubcategoriesUpdated as EventListener);
+    
+    return () => {
+      window.removeEventListener('subcategoriesUpdated', handleSubcategoriesUpdated as EventListener);
+    };
   }, []);
 
   // Auto-open edit dialog if ?edit=productId is present
@@ -327,7 +341,7 @@ const Products = () => {
       name: product.name,
       price: product.price,
       category: product.category,
-      subcategory: product.subcategory || 'none',
+      subcategory: product.subcategory || '',
       imageUrl: product.imageUrl,
       description: product.description,
       stock: product.stock,
@@ -336,7 +350,7 @@ const Products = () => {
       name: '',
       price: 0,
       category: 'ict', // Set a default category
-      subcategory: 'none',
+      subcategory: '',
       imageUrl: '',
       description: '',
       stock: 1,
@@ -384,12 +398,6 @@ const Products = () => {
     }
 
     const onSubmit = async (data: any) => {
-      
-      // Convert "none" back to empty string for subcategory
-      if (data.subcategory === 'none') {
-        data.subcategory = '';
-      }
-      
       await onSave(data);
     };
 
@@ -418,10 +426,43 @@ const Products = () => {
 
       if (selectedCategory) {
         fetchSubcategories();
-        // Reset subcategory when category changes
-        setValue('subcategory', '');
+        // Only reset subcategory when category changes if it's not an edit operation
+        // or if the current subcategory doesn't belong to the new category
+        if (!isEdit || !product?.subcategory) {
+          setValue('subcategory', '');
+        }
       }
     }, [selectedCategory, setValue]);
+
+    // Listen for subcategory updates from other components
+    React.useEffect(() => {
+      const handleSubcategoriesUpdated = async (event: CustomEvent) => {
+        const { action, subcategory, category, subcategoryId } = event.detail;
+        
+        // If the updated subcategory belongs to the current category, refresh the list
+        if (selectedCategory && (
+          (action === 'created' && subcategory.category === selectedCategory) ||
+          (action === 'updated' && subcategory.category === selectedCategory) ||
+          (action === 'deleted' && selectedCategory) // Refresh if any subcategory was deleted
+        )) {
+          try {
+            const response = await fetch(`/api/subcategories/category/${selectedCategory}`);
+            if (response.ok) {
+              const data = await response.json();
+              setAvailableSubcategories(data.data || []);
+            }
+          } catch (error) {
+            console.error('Error refreshing subcategories:', error);
+          }
+        }
+      };
+
+      window.addEventListener('subcategoriesUpdated', handleSubcategoriesUpdated as EventListener);
+      
+      return () => {
+        window.removeEventListener('subcategoriesUpdated', handleSubcategoriesUpdated as EventListener);
+      };
+    }, [selectedCategory]);
 
     // Live preview data
     const previewData = watch();
@@ -536,7 +577,18 @@ const Products = () => {
           </div>
           {imageValue === 'uploading' && <p className="text-blue-500 text-xs mt-1">Uploading image...</p>}
           {imageValue && imageValue !== 'uploading' && (
-            <img src={getImageUrl(imageValue)} alt="Preview" className="w-32 h-32 object-cover rounded-lg mt-2 mx-auto" />
+            <div className="mt-2 flex flex-col items-center">
+              <img src={getImageUrl(imageValue)} alt="Preview" className="w-32 h-32 object-cover rounded-lg mb-2" />
+              <Button 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={() => setValue('imageUrl', '')}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                Remove Image
+              </Button>
+            </div>
           )}
           {errors.imageUrl && <p className="text-red-500 text-xs mt-1">{errors.imageUrl.message}</p>}
         </div>

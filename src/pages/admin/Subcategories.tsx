@@ -104,6 +104,16 @@ const Subcategories = () => {
       const newSubcategory = await res.json();
       setSubcategories(prev => [newSubcategory.data, ...prev]);
       setIsAddDialogOpen(false);
+      
+      // Dispatch custom event to notify other components about subcategory changes
+      window.dispatchEvent(new CustomEvent('subcategoriesUpdated', { 
+        detail: { 
+          action: 'created', 
+          subcategory: newSubcategory.data,
+          category: formData.category 
+        } 
+      }));
+      
       toast({
         title: 'Success',
         description: 'Subcategory created successfully',
@@ -157,6 +167,16 @@ const Subcategories = () => {
         prev.map(sub => sub.id === editingSubcategory.id ? updatedSubcategory.data : sub)
       );
       setEditingSubcategory(null);
+      
+      // Dispatch custom event to notify other components about subcategory changes
+      window.dispatchEvent(new CustomEvent('subcategoriesUpdated', { 
+        detail: { 
+          action: 'updated', 
+          subcategory: updatedSubcategory.data,
+          category: formData.category 
+        } 
+      }));
+      
       toast({
         title: 'Success',
         description: 'Subcategory updated successfully',
@@ -194,6 +214,15 @@ const Subcategories = () => {
       }
 
       setSubcategories(prev => prev.filter(sub => sub.id !== subcategoryId));
+      
+      // Dispatch custom event to notify other components about subcategory changes
+      window.dispatchEvent(new CustomEvent('subcategoriesUpdated', { 
+        detail: { 
+          action: 'deleted', 
+          subcategoryId: subcategoryId 
+        } 
+      }));
+      
       toast({
         title: 'Success',
         description: 'Subcategory deleted successfully',

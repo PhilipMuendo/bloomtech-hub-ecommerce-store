@@ -57,10 +57,7 @@ export default (sequelize) => {
     },
     imageUrl: {
       type: DataTypes.STRING,
-      allowNull: false,
-      validate: {
-        notEmpty: true
-      }
+      allowNull: true
     },
     featured: {
       type: DataTypes.BOOLEAN,

@@ -86,6 +86,14 @@ module.exports = {
       { name: 'miniature-circuit-breakers', category: 'electrical', displayName: 'Miniature Circuit Breakers', description: 'MCB circuit protection devices', isActive: true, createdAt: new Date(), updatedAt: new Date() },
       { name: 'industrial-circuit-breakers', category: 'electrical', displayName: 'Industrial Circuit Breakers', description: 'Heavy-duty industrial circuit breakers', isActive: true, createdAt: new Date(), updatedAt: new Date() },
 
+      // Electrical Materials - Industrial Components
+      { name: 'moulded-case-breakers', category: 'electrical', displayName: 'Moulded Case Circuit Breakers', description: 'High-capacity MCCBs for industrial applications', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      { name: 'distribution-boards', category: 'electrical', displayName: 'Distribution Boards', description: 'Electrical distribution boards and panels', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      { name: 'industrial-panels', category: 'electrical', displayName: 'Industrial Panels', description: 'Heavy-duty industrial electrical panels', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      { name: 'auto-transfer-systems', category: 'electrical', displayName: 'Auto Transfer Systems', description: 'ATS panels for backup power systems', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      { name: 'busbar-systems', category: 'electrical', displayName: 'Busbar Systems', description: 'Busbar chambers and distribution systems', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      { name: 'electrical-accessories', category: 'electrical', displayName: 'Electrical Accessories', description: 'Installation accessories and materials', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+
       // Power Solutions - Solar Panels
       { name: 'monocrystalline-panels', category: 'power', displayName: 'Monocrystalline Panels', description: 'High-efficiency monocrystalline solar panels', isActive: true, createdAt: new Date(), updatedAt: new Date() },
       { name: 'polycrystalline-panels', category: 'power', displayName: 'Polycrystalline Panels', description: 'Cost-effective polycrystalline solar panels', isActive: true, createdAt: new Date(), updatedAt: new Date() },

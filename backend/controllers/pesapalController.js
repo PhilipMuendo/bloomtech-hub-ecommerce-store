@@ -377,28 +377,33 @@ export const getAllPesapalTransactions = async (req, res) => {
       });
     }
     
-    const transactions = await Transaction.findAll({
-      where: {
-        transactionId: {
-          [db.Sequelize.Op.like]: 'PESAPAL_%'
-        }
-      },
+    // Get all transactions and filter Pesapal ones (those with transactionId starting with PESAPAL_)
+    const allTransactions = await Transaction.findAll({
       include: [
-        { model: Order, attributes: ['id', 'total', 'status'] }
+        { 
+          model: Order, 
+          attributes: ['id', 'total', 'status'],
+          required: false 
+        }
       ],
       order: [['createdAt', 'DESC']]
     });
     
+    // Filter for Pesapal transactions
+    const pesapalTransactions = allTransactions.filter(transaction => 
+      transaction.transactionId && transaction.transactionId.startsWith('PESAPAL_')
+    );
+    
     res.json({
       success: true,
-      data: transactions
+      data: pesapalTransactions
     });
   } catch (error) {
     console.error('Get all Pesapal transactions error:', error);
     res.status(500).json({ 
       success: false,
       error: 'Failed to get transactions',
-      message: 'Internal server error' 
+      message: error.message || 'Internal server error' 
     });
   }
 };

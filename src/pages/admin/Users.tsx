@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Search, Eye, Shield, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useAutoRefreshList, REAL_TIME_EVENTS } from '@/utils/realTimeUpdates';
 
 interface User {
   id: string;
@@ -32,10 +33,12 @@ const Users = () => {
   const { toast } = useToast();
   const { user: currentUser, isSuperAdmin } = useAuth();
 
-  useEffect(() => {
-    fetchUsers();
-    // eslint-disable-next-line
-  }, []);
+  // Auto-refresh users list when users are updated
+  useAutoRefreshList(
+    fetchUsers,
+    [REAL_TIME_EVENTS.USERS_UPDATED, REAL_TIME_EVENTS.USER_STATUS_CHANGED],
+    []
+  );
 
   const fetchUsers = async () => {
     setLoading(true);

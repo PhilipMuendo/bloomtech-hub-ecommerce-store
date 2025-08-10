@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
+import { useRealTimeUpdates, REAL_TIME_EVENTS } from '@/utils/realTimeUpdates';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -37,10 +38,16 @@ const Wishlist: React.FC = () => {
     data: wishlist,
     isLoading,
     isError,
+    refetch
   } = useQuery({
     queryKey: ['wishlist'],
     queryFn: () => fetchWishlist(token!),
     enabled: !!token,
+  });
+
+  // Auto-refresh wishlist when wishlist is updated
+  useRealTimeUpdates([REAL_TIME_EVENTS.WISHLIST_UPDATED], () => {
+    refetch();
   });
 
   const removeMutation = useMutation({

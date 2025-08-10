@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Search, Eye, Star, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useAutoRefreshList, REAL_TIME_EVENTS } from '@/utils/realTimeUpdates';
 
 interface Review {
   id: string;
@@ -34,27 +35,31 @@ const Reviews = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  useEffect(() => {
-    const fetchReviews = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch('/api/reviews', {
-          headers: {
-            'Authorization': user?.token ? `Bearer ${user.token}` : ''
-          }
-        });
-        if (!res.ok) throw new Error('Failed to fetch reviews');
-        const data = await res.json();
-        setReviews(data);
-      } catch (err: any) {
-        setError(err.message || 'Failed to fetch reviews');
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (user?.token) fetchReviews();
-  }, [user]);
+  const fetchReviews = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/reviews', {
+        headers: {
+          'Authorization': user?.token ? `Bearer ${user.token}` : ''
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch reviews');
+      const data = await res.json();
+      setReviews(data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch reviews');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Auto-refresh reviews list when reviews are updated
+  useAutoRefreshList(
+    fetchReviews,
+    [REAL_TIME_EVENTS.REVIEWS_UPDATED],
+    [user]
+  );
 
   if (loading) {
     return <div className="text-center py-12">Loading reviews...</div>;

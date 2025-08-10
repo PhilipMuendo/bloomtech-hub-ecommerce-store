@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Search, Eye, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useAutoRefreshList, REAL_TIME_EVENTS } from '@/utils/realTimeUpdates';
 
 interface Order {
   id: string;
@@ -38,66 +39,69 @@ const AdminOrders = () => {
   const [dateTo, setDateTo] = useState<string>('');
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const params = new URLSearchParams();
-        params.set('page', String(page));
-        params.set('limit', '12');
-        if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
-        if (dateFrom) params.set('fromDate', dateFrom);
-        if (dateTo) params.set('toDate', dateTo);
-        // Look for token in both 'jwt' and 'user' keys
-        let token = localStorage.getItem('jwt');
-        if (!token) {
-          const user = JSON.parse(localStorage.getItem('user') || '{}');
-          token = user.token;
+  const fetchOrders = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams();
+      params.set('page', String(page));
+      params.set('limit', '12');
+      if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
+      if (dateFrom) params.set('fromDate', dateFrom);
+      if (dateTo) params.set('toDate', dateTo);
+      // Look for token in both 'jwt' and 'user' keys
+      let token = localStorage.getItem('jwt');
+      if (!token) {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        token = user.token;
         }
-        const headers: Record<string, string> = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-        const res = await fetch(`/api/orders?${params.toString()}`, { headers });
-        if (!res.ok) throw new Error('Failed to fetch orders');
-        const data = await res.json();
-        // Normalize order data for display
-        const normalized = data.orders.map((o: any) => ({
-          id: o.id,
-          customerName: o.User?.name || o.customerName || 'N/A',
-          customerEmail: o.User?.email || o.customerEmail || 'N/A',
-          customerPhone: o.User?.phone || 'N/A',
-          date: o.createdAt,
-                      status: o.status as 'pending' | 'processing' | 'delivered' | 'cancelled',
-          total: o.total,
-          items: o.OrderItems?.map((item: any) => ({
-            productName: item.Product?.name || 'N/A',
-            quantity: item.quantity,
-            price: item.Product?.price || 0,
-          })) || [],
-          shippingAddress: o.shippingAddress,
-        }));
-        setOrders(normalized);
-        setTotalPages(data.totalPages || 1);
-      } catch (err: any) {
-        let errorMsg = 'An unknown error occurred';
-        if (err && err.response && err.response.error) {
-          errorMsg = err.response.error;
-        } else if (err && err.message) {
-          errorMsg = err.message;
-        }
-        setError(errorMsg);
-        toast({
-          title: 'Error',
-          description: errorMsg,
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const res = await fetch(`/api/orders?${params.toString()}`, { headers });
+      if (!res.ok) throw new Error('Failed to fetch orders');
+      const data = await res.json();
+      // Normalize order data for display
+      const normalized = data.orders.map((o: any) => ({
+        id: o.id,
+        customerName: o.User?.name || o.customerName || 'N/A',
+        customerEmail: o.User?.email || o.customerEmail || 'N/A',
+        customerPhone: o.User?.phone || 'N/A',
+        date: o.createdAt,
+        status: o.status as 'pending' | 'processing' | 'delivered' | 'cancelled',
+        total: o.total,
+        items: o.OrderItems?.map((item: any) => ({
+          productName: item.Product?.name || 'N/A',
+          quantity: item.quantity,
+          price: item.Product?.price || 0,
+        })) || [],
+        shippingAddress: o.shippingAddress,
+      }));
+      setOrders(normalized);
+      setTotalPages(data.totalPages || 1);
+    } catch (err: any) {
+      let errorMsg = 'An unknown error occurred';
+      if (err && err.response && err.response.error) {
+        errorMsg = err.response.error;
+      } else if (err && err.message) {
+        errorMsg = err.message;
       }
-    };
-    fetchOrders();
-    // eslint-disable-next-line
-  }, [page, statusFilter, dateFrom, dateTo]);
+      setError(errorMsg);
+      toast({
+        title: 'Error',
+        description: errorMsg,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Auto-refresh orders list when orders are updated
+  useAutoRefreshList(
+    fetchOrders,
+    [REAL_TIME_EVENTS.ORDERS_UPDATED, REAL_TIME_EVENTS.ORDER_STATUS_CHANGED, REAL_TIME_EVENTS.NEW_ORDER_CREATED],
+    [page, statusFilter, dateFrom, dateTo]
+  );
 
   // Filter orders by date range
   const filteredOrders = orders.filter(order => {

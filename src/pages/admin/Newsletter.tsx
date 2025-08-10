@@ -11,6 +11,7 @@ import { Mail, Send, Users, TrendingUp, Search, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/context/AuthContext';
+import { useAutoRefreshList, REAL_TIME_EVENTS } from '@/utils/realTimeUpdates';
 
 interface Subscriber {
   id: string;
@@ -89,8 +90,6 @@ const Newsletter = () => {
       setSubscribersLoading(false);
     }
   };
-  useEffect(() => { fetchSubscribers(); /* eslint-disable-line */ }, []);
-
   // Fetch campaigns from backend
   const fetchCampaigns = async () => {
     setCampaignsLoading(true);
@@ -108,7 +107,19 @@ const Newsletter = () => {
       setCampaignsLoading(false);
     }
   };
-  useEffect(() => { fetchCampaigns(); /* eslint-disable-line */ }, []);
+
+  // Auto-refresh subscribers and campaigns lists
+  useAutoRefreshList(
+    fetchSubscribers,
+    [REAL_TIME_EVENTS.NEWSLETTER_UPDATED],
+    []
+  );
+
+  useAutoRefreshList(
+    fetchCampaigns,
+    [REAL_TIME_EVENTS.NEWSLETTER_UPDATED],
+    []
+  );
 
   const activeSubscribers = subscribersState; // All subscribers are active in this model
   const filteredSubscribers = subscribersState.filter(subscriber =>

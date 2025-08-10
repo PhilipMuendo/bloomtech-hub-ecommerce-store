@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { useAutoRefreshList, REAL_TIME_EVENTS } from '@/utils/realTimeUpdates';
 import { Search, Download, RefreshCw } from 'lucide-react';
 
 interface Transaction {
@@ -58,9 +59,12 @@ const Transactions = () => {
     }
   };
 
-  useEffect(() => {
-    fetchTransactions();
-  }, []);
+  // Auto-refresh transactions list when transactions are updated
+  useAutoRefreshList(
+    fetchTransactions,
+    [REAL_TIME_EVENTS.TRANSACTIONS_UPDATED, REAL_TIME_EVENTS.PAYMENTS_UPDATED],
+    []
+  );
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-KE', {

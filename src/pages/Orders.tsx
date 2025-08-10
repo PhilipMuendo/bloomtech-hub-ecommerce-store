@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useAutoRefreshList, REAL_TIME_EVENTS } from '@/utils/realTimeUpdates';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -57,39 +58,43 @@ const Orders = () => {
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const token = user?.token || (typeof window !== 'undefined' && localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).token);
-        const res = await fetch('/api/orders', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (!res.ok) throw new Error('Failed to fetch orders');
-        const data = await res.json();
-        const normalized = data.orders.map((o: any) => ({
-          id: o.id,
-          date: o.createdAt,
-          status: o.status,
-          total: o.total,
-          items: o.items?.map((item: any) => ({
-            productName: item.productName || item.productId || 'N/A',
-            quantity: item.quantity,
-            price: item.price,
-          })) || [],
-          shippingAddress: o.shippingAddress || 'N/A',
-          trackingNumber: o.trackingNumber || 'N/A',
-        }));
-        setOrders(normalized);
-      } catch (err: any) {
-        setError(err.message || 'Error loading orders');
-      } finally {
-        setLoading(false);
-      }
-    };
-    if (user) fetchOrders();
-  }, [user]);
+  const fetchOrders = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = user?.token || (typeof window !== 'undefined' && localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).token);
+      const res = await fetch('/api/orders', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error('Failed to fetch orders');
+      const data = await res.json();
+      const normalized = data.orders.map((o: any) => ({
+        id: o.id,
+        date: o.createdAt,
+        status: o.status,
+        total: o.total,
+        items: o.items?.map((item: any) => ({
+          productName: item.productName || item.productId || 'N/A',
+          quantity: item.quantity,
+          price: item.price,
+        })) || [],
+        shippingAddress: o.shippingAddress || 'N/A',
+        trackingNumber: o.trackingNumber || 'N/A',
+      }));
+      setOrders(normalized);
+    } catch (err: any) {
+      setError(err.message || 'Error loading orders');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Auto-refresh orders list when order status changes
+  useAutoRefreshList(
+    fetchOrders,
+    [REAL_TIME_EVENTS.ORDER_STATUS_CHANGED],
+    [user]
+  );
 
   // Filter orders by date range
   const filteredOrders = orders.filter(order => {

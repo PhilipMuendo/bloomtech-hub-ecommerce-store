@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import * as yup from 'yup';
+import { useAutoRefreshList, REAL_TIME_EVENTS } from '@/utils/realTimeUpdates';
 
 const CATEGORIES = [
   'Technology', 'Business', 'Tutorial', 'News', 'Product', 'Industry', 'Tips'
@@ -89,7 +90,12 @@ const AdminBlogs = () => {
     }
   };
 
-  useEffect(() => { fetchBlogs(); }, []);
+  // Auto-refresh blogs list when blogs are updated
+  useAutoRefreshList(
+    fetchBlogs,
+    [REAL_TIME_EVENTS.BLOGS_UPDATED],
+    []
+  );
 
   const handleOpenDialog = (blog?: Blog) => {
     if (blog) {

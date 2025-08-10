@@ -4,6 +4,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { useAutoRefreshList, REAL_TIME_EVENTS } from '@/utils/realTimeUpdates';
 
 const LowStockProducts: React.FC = () => {
   const [products, setProducts] = useState<any[]>([]);
@@ -12,25 +13,29 @@ const LowStockProducts: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    async function fetchLowStock() {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch('/api/products/low-stock', {
-          headers: { Authorization: `Bearer ${user?.token}` }
-        });
-        if (!res.ok) throw new Error('Failed to fetch low stock products');
-        const data = await res.json();
-        setProducts(data);
-      } catch (err: any) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
+  const fetchLowStock = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/products/low-stock', {
+        headers: { Authorization: `Bearer ${user?.token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch low stock products');
+      const data = await res.json();
+      setProducts(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-    if (user) fetchLowStock();
-  }, [user]);
+  };
+
+  // Auto-refresh low stock list when products are updated
+  useAutoRefreshList(
+    fetchLowStock,
+    [REAL_TIME_EVENTS.PRODUCTS_UPDATED, REAL_TIME_EVENTS.LOW_STOCK_UPDATED],
+    [user]
+  );
 
   return (
     <div className="space-y-6">
