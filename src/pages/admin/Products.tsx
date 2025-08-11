@@ -116,6 +116,7 @@ const Products = () => {
       const res = await fetch(`/api/products?page=${page}&limit=${pageSize}`);
       if (!res.ok) throw new Error('Failed to fetch products');
       const data = await res.json();
+      console.log('🔍 API Response:', data);
       setProducts(data.products || []);
       setTotalProducts(data.total || 0);
       setTotalPages(data.totalPages || 1);
@@ -164,6 +165,12 @@ const Products = () => {
     const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  // Debug logging
+  console.log('🔍 Products state:', products.length);
+  console.log('🔍 Filtered products:', filteredProducts.length);
+  console.log('🔍 Search term:', searchTerm);
+  console.log('🔍 Selected category:', selectedCategory);
 
   // Extract unique categories from products
   const uniqueCategories = Array.from(new Set(products.map(p => p.category)));
@@ -714,19 +721,51 @@ const Products = () => {
 
           {/* Table wrapper for horizontal scroll on mobile */}
           <div className="overflow-x-auto max-w-full">
-            <Table className="min-w-[700px] w-full">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Featured</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.map((product) => (
+            {loading ? (
+              <div className="py-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading products...</p>
+              </div>
+            ) : error ? (
+              <div className="py-8 text-center">
+                <p className="text-red-500 mb-4">{error}</p>
+                <Button onClick={() => fetchProducts(1)} variant="outline">
+                  Retry
+                </Button>
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="py-8 text-center">
+                <p className="text-muted-foreground mb-4">
+                  {searchTerm || selectedCategory !== 'all' 
+                    ? 'No products match your search criteria.' 
+                    : 'No products found.'}
+                </p>
+                {(searchTerm || selectedCategory !== 'all') && (
+                  <Button 
+                    onClick={() => {
+                      setSearchTerm('');
+                      setSelectedCategory('all');
+                    }} 
+                    variant="outline"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Table className="min-w-[700px] w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Stock</TableHead>
+                    <TableHead>Featured</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProducts.map((product) => (
                   <TableRow key={product.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
@@ -788,6 +827,7 @@ const Products = () => {
                 ))}
               </TableBody>
             </Table>
+            )}
           </div>
 
           {/* Pagination */}

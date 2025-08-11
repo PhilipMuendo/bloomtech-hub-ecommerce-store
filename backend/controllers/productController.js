@@ -40,27 +40,37 @@ const fixImageUrl = (imageUrl, req) => {
 // GET /api/products
 export const getAllProducts = async (req, res, next) => {
   try {
-    // Pagination, filtering, and sorting
+    // Pagination, filtering, and sorting with input validation
     const { page = 1, limit = 20, category, subcategory, sort = 'name' } = req.query;
+    
+    // Validate and sanitize inputs
+    const validatedPage = Math.max(1, parseInt(page) || 1);
+    const validatedLimit = Math.min(100, Math.max(1, parseInt(limit) || 20));
+    
+    // Validate category
+    const validCategories = ['ict', 'electrical', 'security', 'power'];
+    const validatedCategory = validCategories.includes(category) ? category : null;
+    
+    // Validate sort field
+    const validSortFields = ['name', 'price', 'createdAt', 'updatedAt'];
+    const sortField = sort.startsWith('-') ? sort.substring(1) : sort;
+    const validatedSort = validSortFields.includes(sortField) ? sortField : 'name';
+    const sortDirection = sort.startsWith('-') ? 'DESC' : 'ASC';
+    
     const where = {};
     
     // Add category filter
-    if (category) {
-      where.category = category;
+    if (validatedCategory) {
+      where.category = validatedCategory;
     }
     
-    // Add subcategory filter
-    if (subcategory) {
+    // Add subcategory filter (with validation)
+    if (subcategory && typeof subcategory === 'string' && subcategory.length <= 50) {
       where.subcategory = subcategory;
     }
     
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    const order = [];
-    if (sort.startsWith('-')) {
-      order.push([sort.substring(1), 'DESC']);
-    } else {
-      order.push([sort, 'ASC']);
-    }
+    const offset = (validatedPage - 1) * validatedLimit;
+    const order = [[validatedSort, sortDirection]];
     
     const { count, rows: products } = await Product.findAndCountAll({
       where,
@@ -79,9 +89,9 @@ export const getAllProducts = async (req, res, next) => {
     res.json({
       products: productsWithFixedUrls,
       total: count,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      totalPages: Math.ceil(count / limit)
+      page: validatedPage,
+      limit: validatedLimit,
+      totalPages: Math.ceil(count / validatedLimit)
     });
   } catch (err) {
     next(err);

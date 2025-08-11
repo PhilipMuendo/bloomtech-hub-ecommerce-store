@@ -6,6 +6,17 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
+import hpp from 'hpp';
+import {
+  securityHeaders,
+  xssProtection,
+  sqlInjectionProtection,
+  noSqlInjectionProtection,
+  requestSizeLimit,
+  apiRateLimiter,
+  corsOptions
+} from './middleware/security.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import cartRoutes from './routes/cartRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
@@ -35,24 +46,24 @@ const app = express();
 // Trust proxy for ngrok
 app.set('trust proxy', true);
 
-// Middleware
-app.use(cors({
-  origin: [
-    'http://localhost:8081', // Vite dev server
-    'http://localhost:3000', // React default
-    'http://127.0.0.1:8081',
-    'http://127.0.0.1:3000',
-    'https://*.ngrok.io', // Allow all ngrok URLs for testing
-    'https://*.ngrok-free.app' // Allow ngrok free app URLs
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-// Handle preflight requests
-app.options('*', cors());
-app.use(express.json());
-app.use(morgan('dev'));
+// Security middleware (order matters!)
+app.use(securityHeaders); // Security headers first
+app.use(cors(corsOptions)); // CORS configuration
+app.use(hpp()); // HTTP Parameter Pollution protection
+app.use(express.json({ limit: '10mb' })); // Limit JSON payload size
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Limit URL-encoded payload size
+
+// Security protection middleware
+app.use(xssProtection); // XSS protection
+app.use(sqlInjectionProtection); // SQL injection protection
+app.use(noSqlInjectionProtection); // NoSQL injection protection
+app.use(requestSizeLimit); // Request size limiting
+
+// Rate limiting
+app.use('/api/', apiRateLimiter); // Global API rate limiting
+
+// Logging
+app.use(morgan('combined')); // Enhanced logging
 app.use('/public', express.static(path.join(__dirname, 'public')));
 console.log('Static files served from:', path.join(__dirname, '../public'));
 const staticDir = path.join(__dirname, '../public/lovable-uploads');
@@ -85,38 +96,11 @@ app.use('/api/quotes', quoteRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/subcategories', subcategoryRoutes);
 
+// 404 handler (should be before error handler)
+app.use(notFoundHandler);
+
 // Global error handler (should be after all routes)
-app.use((err, req, res, next) => {
-  console.error('=== GLOBAL ERROR HANDLER ===');
-  console.error('Error:', err);
-  console.error('Error name:', err.name);
-  console.error('Error message:', err.message);
-  console.error('Error stack:', err.stack);
-  console.error('Request URL:', req.url);
-  console.error('Request method:', req.method);
-  console.error('Request body:', req.body);
-  console.error('User:', req.user ? { id: req.user.id, email: req.user.email } : 'No user');
-  console.error('=== END ERROR HANDLER ===');
-  
-  const status = err.status || 500;
-  const message = err.message || 'Internal server error';
-  
-  // Don't send stack traces in production
-  const errorResponse = {
-    error: message,
-    status: status
-  };
-  
-  // Add more details in development
-  if (process.env.NODE_ENV !== 'production') {
-    errorResponse.details = {
-      name: err.name,
-      stack: err.stack
-    };
-  }
-  
-  res.status(status).json(errorResponse);
-});
+app.use(errorHandler);
 
 // Database connection
 const PORT = process.env.PORT || 5000;

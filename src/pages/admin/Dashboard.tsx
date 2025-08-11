@@ -14,7 +14,7 @@ import {
   CheckSquare
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar, ResponsiveContainer } from 'recharts';
-import { products } from '@/data/products';
+// Removed static products import - now using database data via API
 import AnimatedCounter from '@/components/AnimatedCounter';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';

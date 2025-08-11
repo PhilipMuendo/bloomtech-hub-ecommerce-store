@@ -10,21 +10,20 @@ import {
   getFeaturedProducts,
   searchProducts
 } from '../controllers/productController.js';
-import requireAuth from '../middleware/requireAuth.js';
-import { requireAdmin } from '../middleware/roleAuth.js';
-// import authMiddleware from '../middleware/authMiddleware.js';
+import { verifyToken, requireRole } from '../middleware/enhancedAuth.js';
+import { validateProductInput } from '../middleware/security.js';
 
 const router = express.Router();
 
 router.get('/', getAllProducts);
 // Instant search for frontend
 router.get('/search', searchProducts);
-router.get('/low-stock', requireAuth, requireAdmin, getLowStockProducts);
-router.get('/export', requireAuth, requireAdmin, exportProducts);
+router.get('/low-stock', verifyToken, requireRole(['admin', 'superadmin']), getLowStockProducts);
+router.get('/export', verifyToken, requireRole(['admin', 'superadmin']), exportProducts);
 router.get('/featured', getFeaturedProducts);
 router.get('/:id', getProductById);
-router.post('/', requireAuth, requireAdmin, createProduct);
-router.put('/:id', requireAuth, requireAdmin, updateProduct);
-router.delete('/:id', requireAuth, requireAdmin, deleteProduct);
+router.post('/', verifyToken, requireRole(['admin', 'superadmin']), validateProductInput, createProduct);
+router.put('/:id', verifyToken, requireRole(['admin', 'superadmin']), validateProductInput, updateProduct);
+router.delete('/:id', verifyToken, requireRole(['admin', 'superadmin']), deleteProduct);
 
 export default router; 

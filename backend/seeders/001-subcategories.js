@@ -49,6 +49,7 @@ module.exports = {
       { name: 'network-security-devices', category: 'ict', displayName: 'Network Security Devices', description: 'Firewalls and network security equipment', isActive: true, createdAt: new Date(), updatedAt: new Date() },
       { name: 'modems', category: 'ict', displayName: 'Modems', description: 'Internet modems and gateways', isActive: true, createdAt: new Date(), updatedAt: new Date() },
       { name: 'network-storage', category: 'ict', displayName: 'Network Storage', description: 'NAS and network storage solutions', isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      { name: 'ip-phones-voip', category: 'ict', displayName: 'IP Phones & VoIP', description: 'IP phones, VoIP systems and telephony equipment', isActive: true, createdAt: new Date(), updatedAt: new Date() },
 
       // ICT Equipment - UPS and Batteries
       { name: 'online-ups', category: 'ict', displayName: 'Online UPS', description: 'Online uninterruptible power supplies', isActive: true, createdAt: new Date(), updatedAt: new Date() },

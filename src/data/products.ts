@@ -251,6 +251,265 @@ export const products: Product[] = [
     inStock: true
   },
 
+  // LAN Equipment (Networking Devices)
+  {
+    id: '35',
+    name: 'TP-Link 24-Port Gigabit Switch',
+    price: 25000,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'switches',
+    description: 'Unmanaged switch for small to mid-size networks. Provides reliable Gigabit connectivity for up to 24 devices.',
+    specifications: [
+      '24 Gigabit Ethernet ports',
+      'Unmanaged operation',
+      'Plug and play setup',
+      'Auto-negotiation support',
+      'LED status indicators'
+    ],
+    inStock: true
+  },
+  {
+    id: '36',
+    name: 'Ubiquiti EdgeRouter X',
+    price: 18000,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'routers',
+    description: 'Advanced router with routing/firewall/VPN features. Professional-grade networking solution for businesses.',
+    specifications: [
+      '5 Gigabit Ethernet ports',
+      'Advanced routing capabilities',
+      'Built-in firewall protection',
+      'VPN server/client support',
+      'Web-based management interface'
+    ],
+    inStock: true
+  },
+  {
+    id: '37',
+    name: 'Mikrotik hEX Router',
+    price: 12000,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'routers',
+    description: 'Gigabit router for small office/home office (SOHO) use. Reliable performance with advanced features.',
+    specifications: [
+      '5 Gigabit Ethernet ports',
+      'SOHO optimized design',
+      'RouterOS operating system',
+      'Advanced firewall features',
+      'VPN support included'
+    ],
+    inStock: true
+  },
+  {
+    id: '38',
+    name: 'Cisco 8-Port Managed PoE Switch',
+    price: 35000,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'switches',
+    description: 'Ideal for powering IP phones and cameras. Managed switch with Power over Ethernet capabilities.',
+    specifications: [
+      '8 Gigabit PoE ports',
+      'Managed operation',
+      'Power over Ethernet support',
+      'VLAN configuration',
+      'SNMP monitoring'
+    ],
+    inStock: true
+  },
+  {
+    id: '39',
+    name: 'Cat6 Ethernet Cable (305m Box)',
+    price: 45000,
+    image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=500',
+    category: 'ict',
+    subcategory: 'network-cables',
+    description: 'High-speed cabling for LAN and CCTV. 305-meter box of Cat6 cable for professional installations.',
+    specifications: [
+      'Cat6 specification',
+      '305 meter box length',
+      'Solid copper conductors',
+      'RJ45 compatible',
+      'Supports up to 10Gbps'
+    ],
+    inStock: true
+  },
+  {
+    id: '40',
+    name: '12U Wall Mount Network Cabinet',
+    price: 28000,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'network-storage',
+    description: 'For secure network equipment mounting. Wall-mounted cabinet with proper ventilation and security.',
+    specifications: [
+      '12U rack space',
+      'Wall mount design',
+      'Lockable front door',
+      'Ventilation fans included',
+      'Cable management features'
+    ],
+    inStock: true
+  },
+  {
+    id: '41',
+    name: 'TP-Link Ceiling Mount Access Point',
+    price: 8500,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'wireless-access-points',
+    description: 'Wireless AP with PoE support. Ceiling-mounted access point for seamless WiFi coverage.',
+    specifications: [
+      '802.11ac WiFi standard',
+      'Ceiling mount design',
+      'Power over Ethernet support',
+      'Dual-band operation',
+      'Easy installation'
+    ],
+    inStock: true
+  },
+  {
+    id: '42',
+    name: 'Patch Panel 24 Port Cat6',
+    price: 3500,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'network-cables',
+    description: 'For organized cabling in network racks. 24-port Cat6 patch panel for professional cable management.',
+    specifications: [
+      '24 Cat6 ports',
+      'Rack mount design',
+      'Color-coded ports',
+      'Cable management bar',
+      'Professional installation ready'
+    ],
+    inStock: true
+  },
+
+  // IP Phones & VoIP
+  {
+    id: '43',
+    name: 'Yealink T31P IP Phone',
+    price: 8500,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'ip-phones-voip',
+    description: 'Entry-level SIP phone with 2 lines & PoE. Reliable VoIP phone for small business use.',
+    specifications: [
+      '2 SIP lines support',
+      'Power over Ethernet',
+      'HD voice quality',
+      'Easy configuration',
+      'LCD display'
+    ],
+    inStock: true
+  },
+  {
+    id: '44',
+    name: 'Grandstream GXP1625 IP Phone',
+    price: 7500,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'ip-phones-voip',
+    description: 'Dual-line VoIP phone with HD audio. Professional IP phone with advanced features.',
+    specifications: [
+      '2 SIP lines',
+      'HD audio quality',
+      'Backlit LCD display',
+      'PoE support',
+      'Multiple codec support'
+    ],
+    inStock: true
+  },
+  {
+    id: '45',
+    name: 'Cisco IP Phone 7821',
+    price: 15000,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'ip-phones-voip',
+    description: 'Professional-grade IP phone with 2 lines. Enterprise-level VoIP phone with advanced features.',
+    specifications: [
+      '2 SIP lines',
+      'Professional audio quality',
+      'Large LCD display',
+      'PoE powered',
+      'Cisco compatibility'
+    ],
+    inStock: true
+  },
+  {
+    id: '46',
+    name: 'Yeastar S20 PBX',
+    price: 45000,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'ip-phones-voip',
+    description: 'IP PBX system supporting up to 20 users. Complete VoIP phone system for small businesses.',
+    specifications: [
+      '20 user capacity',
+      'Web-based management',
+      'Auto-attendant features',
+      'Call recording',
+      'Mobile app support'
+    ],
+    inStock: true
+  },
+  {
+    id: '47',
+    name: 'Grandstream HT812 ATA',
+    price: 3500,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'ip-phones-voip',
+    description: 'Analog to VoIP adapter for 2 phones. Convert traditional phones to VoIP operation.',
+    specifications: [
+      '2 FXS ports',
+      'SIP protocol support',
+      'Easy configuration',
+      'PoE powered',
+      'Compatible with most analog phones'
+    ],
+    inStock: true
+  },
+  {
+    id: '48',
+    name: 'VoIP Headset with Mic',
+    price: 2500,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'ip-phones-voip',
+    description: 'Noise-canceling headset for call centers. Professional headset for VoIP communications.',
+    specifications: [
+      'Noise-canceling microphone',
+      'USB connectivity',
+      'Adjustable headband',
+      'Mute button',
+      'Call center optimized'
+    ],
+    inStock: true
+  },
+  {
+    id: '49',
+    name: 'SIP Trunk (Monthly Subscription)',
+    price: 5000,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'ict',
+    subcategory: 'ip-phones-voip',
+    description: 'VoIP service for outbound/inbound calls. Monthly subscription for SIP trunking services.',
+    specifications: [
+      'Unlimited local calls',
+      'International calling rates',
+      'DID number included',
+      '24/7 support',
+      'Monthly billing'
+    ],
+    inStock: true
+  },
+
   // Electrical Materials
   {
     id: '6',
@@ -511,6 +770,144 @@ export const products: Product[] = [
       'Mobile app integration',
       'Motion detection',
       'Night vision capability'
+    ],
+    inStock: true
+  },
+
+  // CCTV & Security Systems
+  {
+    id: '50',
+    name: 'Hikvision 2MP Dome IP Camera',
+    price: 12000,
+    image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500',
+    category: 'security',
+    subcategory: 'dome-cameras',
+    description: 'Indoor HD camera with night vision. 2MP dome camera for professional surveillance applications.',
+    specifications: [
+      '2MP HD resolution',
+      'Night vision up to 20m',
+      'Dome design for vandal resistance',
+      'IP67 weatherproof rating',
+      'Motion detection alerts'
+    ],
+    inStock: true
+  },
+  {
+    id: '51',
+    name: 'Dahua 4MP Bullet IP Camera',
+    price: 15000,
+    image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500',
+    category: 'security',
+    subcategory: 'bullet-cameras',
+    description: 'Outdoor weatherproof camera with IR. 4MP bullet camera for outdoor surveillance with infrared night vision.',
+    specifications: [
+      '4MP HD resolution',
+      'Outdoor weatherproof design',
+      'IR night vision up to 30m',
+      'IP67 protection rating',
+      'Wide viewing angle'
+    ],
+    inStock: true
+  },
+  {
+    id: '52',
+    name: '8-Channel NVR with 2TB HDD',
+    price: 25000,
+    image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500',
+    category: 'security',
+    subcategory: 'network-storage',
+    description: 'Network recorder with storage for CCTV feeds. 8-channel NVR with 2TB hard drive for video recording.',
+    specifications: [
+      '8-channel recording',
+      '2TB HDD included',
+      'HDMI output',
+      'Mobile app access',
+      'Motion detection recording'
+    ],
+    inStock: true
+  },
+  {
+    id: '53',
+    name: 'Hikvision 8CH DVR for Analog',
+    price: 18000,
+    image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500',
+    category: 'security',
+    subcategory: 'analog-cameras',
+    description: 'DVR for analog CCTV systems. 8-channel digital video recorder for analog camera systems.',
+    specifications: [
+      '8-channel analog input',
+      'HDMI and VGA output',
+      '1TB HDD included',
+      'Mobile app support',
+      'Easy setup and configuration'
+    ],
+    inStock: true
+  },
+  {
+    id: '54',
+    name: '4CH CCTV Kit (4 Cameras + DVR + HDD)',
+    price: 35000,
+    image: 'https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500',
+    category: 'security',
+    subcategory: 'dome-cameras',
+    description: 'Complete surveillance starter kit. Includes 4 cameras, DVR, and hard drive for complete CCTV system.',
+    specifications: [
+      '4 HD cameras included',
+      '4-channel DVR',
+      '1TB HDD included',
+      'Complete installation kit',
+      'Mobile app monitoring'
+    ],
+    inStock: true
+  },
+  {
+    id: '55',
+    name: 'POE Switch for CCTV (8 Port)',
+    price: 12000,
+    image: 'https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500',
+    category: 'security',
+    subcategory: 'network-security-devices',
+    description: 'Power cameras via Ethernet (PoE support). 8-port PoE switch for powering IP cameras over network cables.',
+    specifications: [
+      '8 PoE ports',
+      'Gigabit Ethernet',
+      'Power over Ethernet support',
+      'Auto-negotiation',
+      'LED status indicators'
+    ],
+    inStock: true
+  },
+  {
+    id: '56',
+    name: 'Biometric Access Control Device',
+    price: 22000,
+    image: 'https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=500',
+    category: 'security',
+    subcategory: 'fingerprint-scanners',
+    description: 'Fingerprint + RFID access terminal. Advanced biometric access control with fingerprint and RFID card support.',
+    specifications: [
+      'Fingerprint recognition',
+      'RFID card support',
+      'LCD display',
+      'Audit trail logging',
+      'Up to 1000 user capacity'
+    ],
+    inStock: true
+  },
+  {
+    id: '57',
+    name: 'Door Intercom System',
+    price: 8500,
+    image: 'https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=500',
+    category: 'security',
+    subcategory: 'control-panels',
+    description: 'Audio/Video door entry system. Complete intercom system for building access control.',
+    specifications: [
+      'Audio and video communication',
+      'Door release control',
+      'Multiple tenant support',
+      'Weatherproof outdoor unit',
+      'Easy installation'
     ],
     inStock: true
   },

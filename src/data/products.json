@@ -127,15 +127,150 @@
   },
   {
     "id": "64e4b2c8e1b2a3f4c5d6e7ff",
+    "name": "TP-Link 24-Port Gigabit Switch",
+    "description": "Unmanaged switch for small to mid-size networks. Provides reliable Gigabit connectivity for up to 24 devices.",
+    "price": 25000,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e800",
+    "name": "Ubiquiti EdgeRouter X",
+    "description": "Advanced router with routing/firewall/VPN features. Professional-grade networking solution for businesses.",
+    "price": 18000,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e801",
+    "name": "Mikrotik hEX Router",
+    "description": "Gigabit router for small office/home office (SOHO) use. Reliable performance with advanced features.",
+    "price": 12000,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e802",
+    "name": "Cisco 8-Port Managed PoE Switch",
+    "description": "Ideal for powering IP phones and cameras. Managed switch with Power over Ethernet capabilities.",
+    "price": 35000,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e803",
+    "name": "Cat6 Ethernet Cable (305m Box)",
+    "description": "High-speed cabling for LAN and CCTV. 305-meter box of Cat6 cable for professional installations.",
+    "price": 45000,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e804",
+    "name": "12U Wall Mount Network Cabinet",
+    "description": "For secure network equipment mounting. Wall-mounted cabinet with proper ventilation and security.",
+    "price": 28000,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e805",
+    "name": "TP-Link Ceiling Mount Access Point",
+    "description": "Wireless AP with PoE support. Ceiling-mounted access point for seamless WiFi coverage.",
+    "price": 8500,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e806",
+    "name": "Patch Panel 24 Port Cat6",
+    "description": "For organized cabling in network racks. 24-port Cat6 patch panel for professional cable management.",
+    "price": 3500,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e807",
+    "name": "Yealink T31P IP Phone",
+    "description": "Entry-level SIP phone with 2 lines & PoE. Reliable VoIP phone for small business use.",
+    "price": 8500,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e808",
+    "name": "Grandstream GXP1625 IP Phone",
+    "description": "Dual-line VoIP phone with HD audio. Professional IP phone with advanced features.",
+    "price": 7500,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e809",
+    "name": "Cisco IP Phone 7821",
+    "description": "Professional-grade IP phone with 2 lines. Enterprise-level VoIP phone with advanced features.",
+    "price": 15000,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e80a",
+    "name": "Yeastar S20 PBX",
+    "description": "IP PBX system supporting up to 20 users. Complete VoIP phone system for small businesses.",
+    "price": 45000,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e80b",
+    "name": "Grandstream HT812 ATA",
+    "description": "Analog to VoIP adapter for 2 phones. Convert traditional phones to VoIP operation.",
+    "price": 3500,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e80c",
+    "name": "VoIP Headset with Mic",
+    "description": "Noise-canceling headset for call centers. Professional headset for VoIP communications.",
+    "price": 2500,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e80d",
+    "name": "SIP Trunk (Monthly Subscription)",
+    "description": "VoIP service for outbound/inbound calls. Monthly subscription for SIP trunking services.",
+    "price": 5000,
+    "category": "ict",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e80e",
     "name": "Circuit Breaker 32A MCB",
     "description": "Single pole miniature circuit breaker, 32 Amp rating. Essential for electrical panel protection and safety.",
     "price": 1200,
     "category": "electrical",
     "stock": 1,
-    "imageUrl": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500"
+    "imageUrl": "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e800",
+    "id": "64e4b2c8e1b2a3f4c5d6e80f",
     "name": "4-Way Extension Cable (5m)",
     "description": "Heavy-duty 4-way extension cable with surge protection. 5-meter length with individual switches for each socket.",
     "price": 2200,
@@ -144,7 +279,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1588702547923-7ac93beecd5f?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e801",
+    "id": "64e4b2c8e1b2a3f4c5d6e810",
     "name": "Wall Socket (Double)",
     "description": "Modern double wall socket with child safety shutters. Suitable for residential and commercial installations.",
     "price": 800,
@@ -153,7 +288,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1588702547923-7ac93beecd5f?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e802",
+    "id": "64e4b2c8e1b2a3f4c5d6e811",
     "name": "Light Switch (2-Gang)",
     "description": "2-gang light switch with modern design. Durable construction suitable for residential and office use.",
     "price": 650,
@@ -162,7 +297,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e803",
+    "id": "64e4b2c8e1b2a3f4c5d6e812",
     "name": "Electrical Wire Strippers",
     "description": "Professional wire stripping tool for various cable sizes. Essential tool for electrical installations and repairs.",
     "price": 1800,
@@ -171,7 +306,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e804",
+    "id": "64e4b2c8e1b2a3f4c5d6e813",
     "name": "Schneider 10A Circuit Breaker (MCB)",
     "description": "Compact breaker for residential use. Schneider Electric quality with reliable protection.",
     "price": 650,
@@ -180,7 +315,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e805",
+    "id": "64e4b2c8e1b2a3f4c5d6e814",
     "name": "4-Way Power Extension Cable",
     "description": "3-meter cable with surge protection. Four outlets with individual switches for safe power distribution.",
     "price": 1200,
@@ -189,7 +324,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1619641805634-4a9b6c943e7c?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e806",
+    "id": "64e4b2c8e1b2a3f4c5d6e815",
     "name": "Double Wall Socket with USB Port",
     "description": "2 AC outlets + 2 USB charging ports. Modern wall socket perfect for homes and offices.",
     "price": 950,
@@ -198,7 +333,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1588702547923-7ac93beecd5f?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e807",
+    "id": "64e4b2c8e1b2a3f4c5d6e816",
     "name": "LED Floodlight 50W",
     "description": "Weatherproof outdoor lighting. High-efficiency LED floodlight for security and area lighting.",
     "price": 2000,
@@ -207,7 +342,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1509395176047-4a66953fd231?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e808",
+    "id": "64e4b2c8e1b2a3f4c5d6e817",
     "name": "Conduit PVC Pipe (25mm)",
     "description": "For secure cable installation. High-quality PVC conduit pipe sold per meter.",
     "price": 200,
@@ -216,7 +351,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1464983953574-0892a716854b?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e809",
+    "id": "64e4b2c8e1b2a3f4c5d6e818",
     "name": "Voltage Tester Screwdriver",
     "description": "Detects AC voltage safely. Essential tool for electrical work and troubleshooting.",
     "price": 250,
@@ -225,7 +360,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e80a",
+    "id": "64e4b2c8e1b2a3f4c5d6e819",
     "name": "Rechargeable Emergency Light",
     "description": "Dual-tube lamp with auto-on during blackout. Rechargeable emergency lighting solution.",
     "price": 2800,
@@ -234,7 +369,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e80b",
+    "id": "64e4b2c8e1b2a3f4c5d6e81a",
     "name": "CCTV Security Camera (4MP)",
     "description": "4MP IP security camera with night vision and motion detection. Weatherproof design for indoor/outdoor use.",
     "price": 8500,
@@ -243,7 +378,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e80c",
+    "id": "64e4b2c8e1b2a3f4c5d6e81b",
     "name": "Door Access Control System",
     "description": "Electronic door lock with keypad and card reader access. Ideal for office and residential security.",
     "price": 15000,
@@ -252,7 +387,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e80d",
+    "id": "64e4b2c8e1b2a3f4c5d6e81c",
     "name": "Wireless Alarm System Kit",
     "description": "Complete wireless security alarm system with sensors and control panel. Easy DIY installation.",
     "price": 12000,
@@ -261,7 +396,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1558002038-1055907df827?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e80e",
+    "id": "64e4b2c8e1b2a3f4c5d6e81d",
     "name": "Intercom Video Doorbell",
     "description": "Smart video doorbell with two-way audio and mobile notifications. See who's at your door remotely.",
     "price": 6500,
@@ -270,7 +405,79 @@
     "imageUrl": "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e80f",
+    "id": "64e4b2c8e1b2a3f4c5d6e81e",
+    "name": "Hikvision 2MP Dome IP Camera",
+    "description": "Indoor HD camera with night vision. 2MP dome camera for professional surveillance applications.",
+    "price": 12000,
+    "category": "security",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e81f",
+    "name": "Dahua 4MP Bullet IP Camera",
+    "description": "Outdoor weatherproof camera with IR. 4MP bullet camera for outdoor surveillance with infrared night vision.",
+    "price": 15000,
+    "category": "security",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e820",
+    "name": "8-Channel NVR with 2TB HDD",
+    "description": "Network recorder with storage for CCTV feeds. 8-channel NVR with 2TB hard drive for video recording.",
+    "price": 25000,
+    "category": "security",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e821",
+    "name": "Hikvision 8CH DVR for Analog",
+    "description": "DVR for analog CCTV systems. 8-channel digital video recorder for analog camera systems.",
+    "price": 18000,
+    "category": "security",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e822",
+    "name": "4CH CCTV Kit (4 Cameras + DVR + HDD)",
+    "description": "Complete surveillance starter kit. Includes 4 cameras, DVR, and hard drive for complete CCTV system.",
+    "price": 35000,
+    "category": "security",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e823",
+    "name": "POE Switch for CCTV (8 Port)",
+    "description": "Power cameras via Ethernet (PoE support). 8-port PoE switch for powering IP cameras over network cables.",
+    "price": 12000,
+    "category": "security",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1606904825846-647eb07f5be2?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e824",
+    "name": "Biometric Access Control Device",
+    "description": "Fingerprint + RFID access terminal. Advanced biometric access control with fingerprint and RFID card support.",
+    "price": 22000,
+    "category": "security",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1586953208448-b95a79798f07?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e825",
+    "name": "Door Intercom System",
+    "description": "Audio/Video door entry system. Complete intercom system for building access control.",
+    "price": 8500,
+    "category": "security",
+    "stock": 1,
+    "imageUrl": "https://images.unsplash.com/photo-1566576912321-d58ddd7a6088?w=500"
+  },
+  {
+    "id": "64e4b2c8e1b2a3f4c5d6e826",
     "name": "UPS 1000VA Backup Power",
     "description": "Uninterruptible Power Supply with 1000VA capacity. Protects computers and electronics during power outages.",
     "price": 18000,
@@ -279,7 +486,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e810",
+    "id": "64e4b2c8e1b2a3f4c5d6e827",
     "name": "Solar Power Inverter 1500W",
     "description": "Pure sine wave solar inverter for converting DC to AC power. Perfect for solar power systems.",
     "price": 25000,
@@ -288,7 +495,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1464983953574-0892a716854b?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e811",
+    "id": "64e4b2c8e1b2a3f4c5d6e828",
     "name": "Portable Generator 2500W",
     "description": "Portable petrol generator for backup power. Reliable power source for homes and construction sites.",
     "price": 45000,
@@ -297,7 +504,7 @@
     "imageUrl": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=500"
   },
   {
-    "id": "64e4b2c8e1b2a3f4c5d6e812",
+    "id": "64e4b2c8e1b2a3f4c5d6e829",
     "name": "Battery Charger 12V/24V",
     "description": "Intelligent battery charger for 12V and 24V lead-acid batteries. Automatic charging with safety features.",
     "price": 3200,
