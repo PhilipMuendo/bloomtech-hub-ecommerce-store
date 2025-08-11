@@ -116,6 +116,10 @@ export const createRateLimiter = (windowMs = 15 * 60 * 1000, max = 100) => {
     },
     standardHeaders: true,
     legacyHeaders: false,
+    skipSuccessfulRequests: false,
+    skipFailedRequests: false,
+    // Allow trust proxy for development
+    trustProxy: process.env.NODE_ENV === 'development'
   });
 };
 
@@ -129,6 +133,10 @@ export const authRateLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: false,
+  // Allow trust proxy for development
+  trustProxy: process.env.NODE_ENV === 'development'
 });
 
 export const apiRateLimiter = rateLimit({
@@ -140,6 +148,10 @@ export const apiRateLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  skipSuccessfulRequests: false,
+  skipFailedRequests: false,
+  // Allow trust proxy for development
+  trustProxy: process.env.NODE_ENV === 'development'
 });
 
 // Input validation middleware

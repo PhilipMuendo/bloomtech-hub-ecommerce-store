@@ -239,8 +239,13 @@ const Products = () => {
         },
         body: JSON.stringify(updatePayload)
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || 'Failed to update product');
+      }
+      
       const data = await res.json();
-      if (!res.ok) throw new Error('Failed to update product');
       toast({ title: 'Product Updated', description: `${formData.name} has been updated.` });
       setEditingProduct(null);
       // Remove ?edit=... from URL to prevent dialog from reopening
