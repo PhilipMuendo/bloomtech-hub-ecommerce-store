@@ -14,7 +14,8 @@ import {
   noSqlInjectionProtection,
   requestSizeLimit,
   apiRateLimiter,
-  corsOptions
+  corsOptions,
+  devCorsOptions
 } from './middleware/security.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import cartRoutes from './routes/cartRoutes.js';
@@ -43,12 +44,15 @@ console.log('Database:', process.env.DB_NAME || 'bloomtech_db');
 
 const app = express();
 
-// Trust proxy for ngrok
-app.set('trust proxy', true);
+// Trust proxy for ngrok and development
+app.set('trust proxy', 1);
 
 // Security middleware (order matters!)
 app.use(securityHeaders); // Security headers first
-app.use(cors(corsOptions)); // CORS configuration
+
+// Use development CORS for ngrok testing
+const corsConfig = process.env.NODE_ENV === 'development' ? devCorsOptions : corsOptions;
+app.use(cors(corsConfig)); // CORS configuration
 app.use(hpp()); // HTTP Parameter Pollution protection
 app.use(express.json({ limit: '10mb' })); // Limit JSON payload size
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Limit URL-encoded payload size

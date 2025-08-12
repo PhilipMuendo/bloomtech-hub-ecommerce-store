@@ -301,27 +301,36 @@ export const corsOptions = {
       'http://localhost:8081',
       'http://localhost:3000',
       'http://127.0.0.1:8081',
-      'http://127.0.0.1:3000',
-      'https://*.ngrok.io',
-      'https://*.ngrok-free.app'
+      'http://127.0.0.1:3000'
     ];
     
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    const isAllowed = allowedOrigins.some(allowedOrigin => {
-      if (allowedOrigin.includes('*')) {
-        return origin.includes(allowedOrigin.replace('*', ''));
-      }
-      return origin === allowedOrigin;
-    });
+    // Allow all ngrok URLs for development
+    if (origin.includes('ngrok.io') || origin.includes('ngrok-free.app')) {
+      return callback(null, true);
+    }
+    
+    const isAllowed = allowedOrigins.includes(origin);
     
     if (isAllowed) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400 // 24 hours
+};
+
+// Development CORS options (more permissive for testing)
+export const devCorsOptions = {
+  origin: true, // Allow all origins in development
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],

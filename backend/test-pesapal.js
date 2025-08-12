@@ -24,22 +24,30 @@ const generateOAuthSignature = (url, method, params) => {
 // Test Pesapal configuration
 const testPesapalConfig = () => {
   console.log('🔧 Testing Pesapal Configuration...');
-  
+   
   const requiredVars = [
     'PESAPAL_CONSUMER_KEY',
     'PESAPAL_CONSUMER_SECRET',
     'PESAPAL_CALLBACK_URL'
   ];
   
+  console.log('📋 Checking environment variables...');
+  console.log('PESAPAL_CONSUMER_KEY:', process.env.PESAPAL_CONSUMER_KEY ? '✅ Set' : '❌ Missing');
+  console.log('PESAPAL_CONSUMER_SECRET:', process.env.PESAPAL_CONSUMER_SECRET ? '✅ Set' : '❌ Missing');
+  console.log('PESAPAL_CALLBACK_URL:', process.env.PESAPAL_CALLBACK_URL ? '✅ Set' : '❌ Missing');
+  console.log('PESAPAL_API_ENDPOINT:', process.env.PESAPAL_API_ENDPOINT ? '✅ Set' : '❌ Missing');
+  console.log('NODE_ENV:', process.env.NODE_ENV || 'Not set');
+  
   const missingVars = requiredVars.filter(v => !process.env[v]);
   
   if (missingVars.length > 0) {
     console.log('❌ Missing environment variables:', missingVars.join(', '));
+    console.log('💡 Make sure your .env file is in the backend directory and contains these variables');
     return false;
   }
   
   console.log('✅ All required environment variables are set');
-  console.log('📡 API Endpoint:', isProduction ? 'https://www.pesapal.com' : 'https://demo.pesapal.com');
+  console.log('📡 API Endpoint:', PESAPAL_API_ENDPOINT || 'https://cybqa.pesapal.com/pesapalv3/api');
   console.log('🔄 Callback URL:', PESAPAL_CALLBACK_URL);
   
   return true;
@@ -100,10 +108,10 @@ const testPesapalPayment = async (orderId = 1, amount = 100) => {
         xmlns="http://www.pesapal.com" />
     `.trim();
 
-    // Pesapal API endpoint for payment request
+    // Pesapal API endpoint for payment request (v3)
     const url = isProduction
       ? 'https://www.pesapal.com/API/PostPesapalDirectOrderV4'
-      : 'https://demo.pesapal.com/API/PostPesapalDirectOrderV4';
+      : `${PESAPAL_API_ENDPOINT}/PostPesapalDirectOrderV4`;
 
     // OAuth parameters
     const oauthParams = {
@@ -149,7 +157,7 @@ const testPesapalStatusQuery = async (merchantReference = '1', trackingId = 'tes
   console.log('\n📊 Testing Pesapal Status Query...');
   
   try {
-    const statusUrl = `${PESAPAL_API_ENDPOINT || 'https://demo.pesapal.com'}/QueryPaymentStatus` + 
+    const statusUrl = `${PESAPAL_API_ENDPOINT || 'https://cybqa.pesapal.com/pesapalv3/api'}/QueryPaymentStatus` + 
       `?pesapal_merchant_reference=${merchantReference}&pesapal_transaction_tracking_id=${trackingId}`;
 
     // OAuth parameters for status query

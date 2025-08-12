@@ -1,10 +1,8 @@
-import axios from 'axios';
 import crypto from 'crypto';
-import db from '../sequelize_models/index.js';
+import axios from 'axios';
+import { User, Order, Transaction } from '../sequelize_models/index.js';
 
-const { Order, Product, Transaction } = db;
-
-// Load environment variables
+// Environment variables
 const {
   PESAPAL_CONSUMER_KEY,
   PESAPAL_CONSUMER_SECRET,
@@ -15,395 +13,454 @@ const {
 
 const isProduction = NODE_ENV === 'production';
 
-// Helper to generate OAuth signature for Pesapal
-const generateOAuthSignature = (url, method, params) => {
-  const baseString = method.toUpperCase() + '&' + encodeURIComponent(url) + '&' + encodeURIComponent(params);
-  const signingKey = encodeURIComponent(PESAPAL_CONSUMER_SECRET) + '&';
-  return crypto.createHmac('sha1', signingKey).update(baseString).digest('base64');
+// Pesapal v3 API Configuration
+const PESAPAL_CONFIG = {
+  sandbox: {
+    baseUrl: 'https://cybqa.pesapal.com/pesapalv3/api',
+    authUrl: 'https://cybqa.pesapal.com/pesapalv3/api/Auth/RequestToken',
+    submitOrderUrl: 'https://cybqa.pesapal.com/pesapalv3/api/Transactions/SubmitOrderRequest',
+    ipnUrl: 'https://cybqa.pesapal.com/pesapalv3/api/URLSetup/RegisterIPN'
+  },
+  production: {
+    baseUrl: 'https://pay.pesapal.com/v3/api',
+    authUrl: 'https://pay.pesapal.com/v3/api/Auth/RequestToken',
+    submitOrderUrl: 'https://pay.pesapal.com/v3/api/Transactions/SubmitOrderRequest',
+    ipnUrl: 'https://pay.pesapal.com/v3/api/URLSetup/RegisterIPN'
+  }
 };
 
-export const initiatePesapalPayment = async (req, res, next) => {
+// Get current configuration
+const getConfig = () => isProduction ? PESAPAL_CONFIG.production : PESAPAL_CONFIG.sandbox;
+
+// Bearer token cache
+let bearerToken = null;
+let tokenExpiry = null;
+
+/**
+ * Get Bearer token for Pesapal v3 API
+ */
+const getBearerToken = async () => {
   try {
-    // Validate required environment variables
-    const requiredEnvVars = [
-      'PESAPAL_CONSUMER_KEY',
-      'PESAPAL_CONSUMER_SECRET',
-      'PESAPAL_CALLBACK_URL'
-    ];
-    const missingVars = requiredEnvVars.filter(v => !process.env[v]);
-    if (missingVars.length > 0) {
-      return res.status(500).json({ 
-        success: false,
-        error: 'Configuration Error',
-        message: `Missing environment variables: ${missingVars.join(', ')}` 
-      });
+    // Check if we have a valid cached token
+    if (bearerToken && tokenExpiry && new Date() < tokenExpiry) {
+      console.log('✅ Using cached Bearer token');
+      return bearerToken;
     }
 
-    const { orderId } = req.body;
-    if (!orderId) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Missing required fields',
-        message: 'Order ID is required' 
-      });
-    }
-
-    // Fetch order and validate using Sequelize
-    const order = await Order.findByPk(orderId, {
-      include: [
-        {
-          model: db.OrderItem,
-          include: [{ model: Product }]
-        }
-      ]
-    });
+    console.log('🔄 Getting new Bearer token...');
     
+    const config = getConfig();
+    const authData = {
+      consumer_key: PESAPAL_CONSUMER_KEY,
+      consumer_secret: PESAPAL_CONSUMER_SECRET
+    };
+
+    const response = await axios.post(config.authUrl, authData, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
+
+    if (response.data.status === '200' && response.data.token) {
+      bearerToken = response.data.token;
+      // Set expiry to 4 minutes (giving 1 minute buffer)
+      tokenExpiry = new Date(Date.now() + 4 * 60 * 1000);
+      
+      console.log('✅ Bearer token obtained successfully');
+      console.log('⏰ Token expires:', response.data.expiryDate);
+      
+      return bearerToken;
+    } else {
+      throw new Error(`Authentication failed: ${response.data.message || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('❌ Error getting Bearer token:', error.message);
+    throw new Error(`Authentication failed: ${error.message}`);
+  }
+};
+
+/**
+ * Register IPN URL (one-time setup)
+ */
+const registerIPN = async () => {
+  try {
+    console.log('🔄 Registering IPN URL...');
+    
+    const config = getConfig();
+    const token = await getBearerToken();
+    
+    const ipnData = {
+      url: PESAPAL_CALLBACK_URL,
+      ipn_notification_type: "GET"
+    };
+
+    const response = await axios.post(config.ipnUrl, ipnData, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      timeout: 10000
+    });
+
+    console.log('✅ IPN URL registered successfully');
+    return response.data;
+  } catch (error) {
+    console.error('❌ Error registering IPN:', error.message);
+    // Don't throw error as IPN might already be registered
+    return null;
+  }
+};
+
+/**
+ * Submit order request to Pesapal v3
+ */
+export const initiatePesapalPayment = async (req, res) => {
+  try {
+    console.log('🚀 Initiating Pesapal v3 payment...');
+    
+    const { orderId, amount, phoneNumber, email, firstName, lastName } = req.body;
+
+    // Validate required fields
+    if (!orderId || !amount || !phoneNumber || !email) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        message: 'orderId, amount, phoneNumber, and email are required'
+      });
+    }
+
+    // Validate user authentication
+    if (!req.user) {
+      return res.status(401).json({
+        error: 'Authentication required',
+        message: 'User must be logged in to make payments'
+      });
+    }
+
+    // Find the order
+    const order = await Order.findByPk(orderId);
     if (!order) {
       return res.status(404).json({ 
-        success: false,
         error: 'Order not found',
         message: 'The specified order does not exist' 
       });
     }
     
-    // Check if order belongs to user
-    if (order.userId !== req.user.id) {
+    // Verify order belongs to user
+    if (order.userId !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ 
-        success: false,
         error: 'Access denied',
         message: 'You can only pay for your own orders' 
       });
     }
     
-    if (order.status !== 'awaiting_payment' && order.status !== 'pending') {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Invalid order status',
-        message: 'Order is not in a payable state' 
-      });
-    }
-
-    // Check if there's already a pending transaction for this order
-    const existingTransaction = await Transaction.findOne({
-      where: { 
-        orderId: order.id,
-        status: 'pending'
-      }
-    });
+    // Get Bearer token
+    const token = await getBearerToken();
     
-    if (existingTransaction) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Payment already initiated',
-        message: 'A payment request is already pending for this order' 
-      });
-    }
+    // Register IPN URL (one-time setup)
+    await registerIPN();
 
-    // Stock verification before payment initiation
-    for (const item of order.OrderItems) {
-      if (!item.Product) continue;
-      if (item.Product.stock < item.quantity) {
-        return res.status(400).json({ 
-          success: false,
-          error: 'Insufficient stock',
-          message: `Insufficient stock for product ${item.Product.name}` 
-        });
+    // Prepare order data for Pesapal v3
+    const orderData = {
+      id: orderId.toString(),
+      currency: "KES",
+      amount: parseFloat(amount).toFixed(2),
+      description: `Payment for Order #${orderId}`,
+      callback_url: PESAPAL_CALLBACK_URL,
+      notification_id: "", // Will be filled by Pesapal
+      billing_address: {
+        email_address: email,
+        phone_number: phoneNumber,
+        country_code: "KE",
+        first_name: firstName || req.user.firstName,
+        last_name: lastName || req.user.lastName
       }
-    }
-
-    // Prepare payment request payload
-    const amount = parseFloat(order.total).toFixed(2);
-    const description = `Payment for Order ${order.id}`;
-    const type = 'MERCHANT';
-    const reference = order.id.toString();
-    const firstName = req.body.firstName || req.user?.name?.split(' ')[0] || 'Customer';
-    const lastName = req.body.lastName || req.user?.name?.split(' ').slice(1).join(' ') || '';
-    const email = req.body.email || req.user?.email || 'customer@example.com';
-    const phoneNumber = req.body.phoneNumber || '';
-
-    // Construct XML payload as per Pesapal API
-    const xmlPayload = `
-      <PesapalDirectOrderInfo 
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-        xmlns:xsd="http://www.w3.org/2001/XMLSchema" 
-        Amount="${amount}" 
-        Description="${description}" 
-        Type="${type}" 
-        Reference="${reference}" 
-        FirstName="${firstName}" 
-        LastName="${lastName}" 
-        Email="${email}" 
-        PhoneNumber="${phoneNumber}" 
-        Currency="KES" 
-        xmlns="http://www.pesapal.com" />
-    `.trim();
-
-    // Pesapal API endpoint for payment request
-    const url = isProduction
-      ? 'https://www.pesapal.com/API/PostPesapalDirectOrderV4'
-      : 'https://demo.pesapal.com/API/PostPesapalDirectOrderV4';
-
-    // OAuth parameters
-    const oauthParams = {
-      oauth_consumer_key: PESAPAL_CONSUMER_KEY,
-      oauth_nonce: crypto.randomBytes(16).toString('hex'),
-      oauth_signature_method: 'HMAC-SHA1',
-      oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
-      oauth_version: '1.0',
-      oauth_callback: PESAPAL_CALLBACK_URL,
-      pesapal_request_data: xmlPayload
     };
 
-    // Construct base string for signature
-    const baseStringParams = Object.keys(oauthParams)
-      .sort()
-      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(oauthParams[key])}`)
-      .join('&');
+    console.log('📦 Order data prepared:', orderData);
 
-    // Generate OAuth signature
-    const oauthSignature = generateOAuthSignature(url, 'GET', baseStringParams);
-    oauthParams.oauth_signature = oauthSignature;
+    // Submit order to Pesapal v3
+    const config = getConfig();
+    const response = await axios.post(config.submitOrderUrl, orderData, {
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      timeout: 15000
+    });
 
-    // Construct request URL with query params
-    const requestUrl = url + '?' + Object.keys(oauthParams)
-      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(oauthParams[key])}`)
-      .join('&');
+    console.log('📡 Pesapal response:', response.data);
 
+    if (response.data.status === '200' && response.data.redirect_url) {
     // Create transaction record
-    const transaction = await Transaction.create({
-      orderId: order.id,
+      await Transaction.create({
+        orderId: orderId,
       userId: req.user.id,
-      phoneNumber: phoneNumber || 'N/A',
       amount: parseFloat(amount),
+        paymentMethod: 'pesapal',
       status: 'pending',
-      transactionId: `PESAPAL_${Date.now()}_${order.id}`,
-      checkoutRequestId: `PESAPAL_${Date.now()}_${order.id}`,
-      resultDesc: 'Payment initiated',
-      rawCallback: {
-        orderId: order.id,
-        amount: amount,
-        description: description,
-        reference: reference
-      }
-    });
+        transactionId: response.data.order_tracking_id || `PESAPAL_${Date.now()}`,
+        metadata: {
+          pesapalOrderId: response.data.order_tracking_id,
+          redirectUrl: response.data.redirect_url,
+          notificationId: response.data.notification_id
+        }
+      });
 
-    console.log('Pesapal payment initiated for order:', order.id, 'Transaction ID:', transaction.id);
+      // Update order status
+      await order.update({
+        status: 'payment_pending',
+        paymentMethod: 'pesapal'
+      });
 
-    // Respond with payment URL for frontend redirection or iframe
-    res.json({ 
+      console.log('✅ Payment initiated successfully');
+      
+      return res.status(200).json({
       success: true,
-      paymentUrl: requestUrl,
-      transactionId: transaction.id
-    });
+        message: 'Payment initiated successfully',
+        data: {
+          redirectUrl: response.data.redirect_url,
+          orderTrackingId: response.data.order_tracking_id,
+          orderId: orderId
+        }
+      });
+    } else {
+      throw new Error(`Pesapal API error: ${response.data.message || 'Unknown error'}`);
+    }
 
   } catch (error) {
-    console.error('Pesapal payment initiation error:', error);
-    res.status(500).json({ 
-      success: false,
+    console.error('❌ Error initiating Pesapal payment:', error.message);
+    
+    return res.status(500).json({
       error: 'Payment initiation failed',
-      message: 'Failed to initiate Pesapal payment' 
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
 
-// Handle Pesapal payment callback (webhook)
-export const handlePesapalCallback = async (req, res, next) => {
+/**
+ * Handle Pesapal v3 IPN notifications
+ */
+export const handlePesapalCallback = async (req, res) => {
   try {
-    console.log('Pesapal callback received:', req.query);
-    
-    // Pesapal sends query params with tracking_id and merchant_reference
-    const { pesapal_merchant_reference, pesapal_transaction_tracking_id } = req.query;
+    console.log('🔄 Received Pesapal IPN notification');
+    console.log('📋 IPN Data:', req.body);
+    console.log('🔗 Query params:', req.query);
 
+    const {
+      pesapal_notification_type,
+      pesapal_merchant_reference,
+      pesapal_transaction_tracking_id
+    } = req.body;
+
+    // Validate required fields
     if (!pesapal_merchant_reference || !pesapal_transaction_tracking_id) {
-      console.error('Missing required Pesapal callback parameters');
-      return res.status(400).send('Missing required parameters');
+      console.log('❌ Missing required IPN fields');
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
     // Find the transaction
     const transaction = await Transaction.findOne({
       where: { 
         orderId: pesapal_merchant_reference,
-        status: 'pending'
+        'metadata.pesapalOrderId': pesapal_transaction_tracking_id
       }
     });
 
     if (!transaction) {
-      console.error('Transaction not found for order:', pesapal_merchant_reference);
-      return res.status(404).send('Transaction not found');
+      console.log('❌ Transaction not found:', pesapal_merchant_reference);
+      return res.status(404).json({ error: 'Transaction not found' });
     }
 
-    // Verify payment status by querying Pesapal API
-    const statusUrl = `${PESAPAL_API_ENDPOINT || 'https://demo.pesapal.com'}/QueryPaymentStatus` + 
-      `?pesapal_merchant_reference=${pesapal_merchant_reference}&pesapal_transaction_tracking_id=${pesapal_transaction_tracking_id}`;
+    // Get payment status from Pesapal
+    const paymentStatus = await getPaymentStatus(pesapal_transaction_tracking_id);
+    
+    console.log('📊 Payment status:', paymentStatus);
 
-    // OAuth parameters for status query
-    const oauthParams = {
-      oauth_consumer_key: PESAPAL_CONSUMER_KEY,
-      oauth_nonce: crypto.randomBytes(16).toString('hex'),
-      oauth_signature_method: 'HMAC-SHA1',
-      oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
-      oauth_version: '1.0',
-    };
-
-    // Construct base string for signature
-    const baseStringParams = Object.keys(oauthParams)
-      .sort()
-      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(oauthParams[key])}`)
-      .join('&');
-
-    const oauthSignature = generateOAuthSignature(statusUrl, 'GET', baseStringParams);
-    oauthParams.oauth_signature = oauthSignature;
-
-    const queryString = Object.keys(oauthParams)
-      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(oauthParams[key])}`)
-      .join('&');
-
-    const fullStatusUrl = statusUrl + '&' + queryString;
-
-    console.log('Querying Pesapal for payment status...');
-
-    // Query Pesapal for payment status
-    const response = await axios.get(fullStatusUrl);
-    const paymentStatus = response.data;
-
-    console.log('Pesapal payment status:', paymentStatus);
-
-    // Update transaction based on payment status
-    if (paymentStatus === 'COMPLETED') {
+    // Update transaction status
       await transaction.update({
-        status: 'completed',
-        resultDesc: 'Payment completed successfully',
-        transactionDate: new Date(),
-        rawCallback: {
-          ...transaction.rawCallback,
-          pesapalStatus: paymentStatus,
-          pesapalTrackingId: pesapal_transaction_tracking_id,
-          callbackReceived: new Date().toISOString()
-        }
-      });
+      status: paymentStatus.status,
+      metadata: {
+        ...transaction.metadata,
+        lastUpdate: new Date().toISOString(),
+        paymentStatus: paymentStatus
+      }
+    });
 
-      // Update order status
-      await Order.update(
-        { status: 'paid' },
-        { where: { id: transaction.orderId } }
-      );
+    // Update order status based on payment status
+    const order = await Order.findByPk(transaction.orderId);
+    if (order) {
+      let orderStatus = 'payment_pending';
+      
+      switch (paymentStatus.status) {
+        case 'COMPLETED':
+          orderStatus = 'paid';
+          break;
+        case 'FAILED':
+          orderStatus = 'payment_failed';
+          break;
+        case 'PENDING':
+          orderStatus = 'payment_pending';
+          break;
+        default:
+          orderStatus = 'payment_pending';
+      }
 
-      console.log('Order updated to paid:', transaction.orderId);
-    } else if (paymentStatus === 'PENDING') {
-      await transaction.update({
-        status: 'pending',
-        resultDesc: 'Payment is pending',
-        rawCallback: {
-          ...transaction.rawCallback,
-          pesapalStatus: paymentStatus,
-          pesapalTrackingId: pesapal_transaction_tracking_id,
-          callbackReceived: new Date().toISOString()
-        }
-      });
-    } else if (paymentStatus === 'FAILED' || paymentStatus === 'CANCELLED') {
-      await transaction.update({
-        status: 'failed',
-        resultDesc: `Payment ${paymentStatus.toLowerCase()}`,
-        rawCallback: {
-          ...transaction.rawCallback,
-          pesapalStatus: paymentStatus,
-          pesapalTrackingId: pesapal_transaction_tracking_id,
-          callbackReceived: new Date().toISOString()
-        }
-      });
+      await order.update({ status: orderStatus });
+      console.log('✅ Order status updated to:', orderStatus);
     }
 
-    console.log('Pesapal callback processed successfully');
-    res.status(200).send('OK');
+    // Return success response to Pesapal
+    return res.status(200).json({
+      status: '200',
+      message: 'IPN processed successfully'
+    });
+
   } catch (error) {
-    console.error('Pesapal callback error:', error);
-    res.status(500).send('Internal server error');
+    console.error('❌ Error processing IPN:', error.message);
+    return res.status(500).json({
+      error: 'IPN processing failed',
+      message: error.message
+    });
   }
 };
 
-export const checkPesapalPaymentStatus = async (req, res, next) => {
+/**
+ * Get payment status from Pesapal v3 API
+ */
+const getPaymentStatus = async (transactionTrackingId) => {
+  try {
+    console.log('🔍 Getting payment status for:', transactionTrackingId);
+    
+    const token = await getBearerToken();
+    const config = getConfig();
+    
+    const statusUrl = `${config.baseUrl}/Transactions/GetTransactionStatus?orderTrackingId=${transactionTrackingId}`;
+    
+    const response = await axios.get(statusUrl, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      timeout: 10000
+    });
+
+    console.log('📊 Status response:', response.data);
+    
+    if (response.data.status === '200') {
+      return {
+        status: response.data.payment_status_description || 'PENDING',
+        message: response.data.message,
+        details: response.data
+      };
+    } else {
+      throw new Error(`Status check failed: ${response.data.message}`);
+    }
+  } catch (error) {
+    console.error('❌ Error getting payment status:', error.message);
+    return {
+      status: 'UNKNOWN',
+      message: error.message
+    };
+  }
+};
+
+/**
+ * Check payment status (for manual status checks)
+ */
+export const checkPaymentStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
     
+    if (!orderId) {
+      return res.status(400).json({
+        error: 'Order ID required',
+        message: 'Please provide an order ID'
+      });
+    }
+
+    // Find the transaction
     const transaction = await Transaction.findOne({
-      where: { orderId: orderId },
-      include: [{ model: Order, attributes: ['id', 'total', 'status'] }]
+      where: { orderId: orderId }
     });
     
     if (!transaction) {
       return res.status(404).json({ 
-        success: false,
         error: 'Transaction not found',
         message: 'No transaction found for this order' 
       });
     }
 
-    // Check if user has access to this transaction
-    if (transaction.userId !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'superadmin') {
-      return res.status(403).json({ 
-        success: false,
-        error: 'Access denied',
-        message: 'You can only check your own transactions' 
+    // Get status from Pesapal
+    const pesapalOrderId = transaction.metadata?.pesapalOrderId;
+    if (!pesapalOrderId) {
+      return res.status(400).json({
+        error: 'Invalid transaction',
+        message: 'Transaction does not have Pesapal order ID'
       });
     }
 
-    res.json({
+    const paymentStatus = await getPaymentStatus(pesapalOrderId);
+
+    return res.status(200).json({
       success: true,
       data: {
-        status: transaction.status,
-        resultDesc: transaction.resultDesc,
-        transactionDate: transaction.transactionDate,
-        amount: transaction.amount
+        orderId: orderId,
+        status: paymentStatus.status,
+        message: paymentStatus.message,
+        transaction: transaction
       }
     });
+
   } catch (error) {
-    console.error('Pesapal status check error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to check payment status',
-      message: 'Internal server error' 
+    console.error('❌ Error checking payment status:', error.message);
+    
+    return res.status(500).json({
+      error: 'Status check failed',
+      message: error.message
     });
   }
 };
 
-// Get all Pesapal transactions (admin)
-export const getAllPesapalTransactions = async (req, res) => {
+/**
+ * Get all Pesapal transactions (admin only)
+ */
+export const getPesapalTransactions = async (req, res) => {
   try {
-    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+    // Check admin permissions
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ 
-        success: false,
         error: 'Access denied',
-        message: 'Only admins can view all transactions' 
+        message: 'Admin access required'
       });
     }
     
-    // Get all transactions and filter Pesapal ones (those with transactionId starting with PESAPAL_)
-    const allTransactions = await Transaction.findAll({
+    const transactions = await Transaction.findAll({
+      where: { paymentMethod: 'pesapal' },
       include: [
         { 
           model: Order, 
-          attributes: ['id', 'total', 'status'],
-          required: false 
+          include: [{ model: User, attributes: ['id', 'firstName', 'lastName', 'email'] }]
         }
       ],
       order: [['createdAt', 'DESC']]
     });
     
-    // Filter for Pesapal transactions
-    const pesapalTransactions = allTransactions.filter(transaction => 
-      transaction.transactionId && transaction.transactionId.startsWith('PESAPAL_')
-    );
-    
-    res.json({
+    return res.status(200).json({
       success: true,
-      data: pesapalTransactions
+      data: transactions
     });
+
   } catch (error) {
-    console.error('Get all Pesapal transactions error:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to get transactions',
-      message: error.message || 'Internal server error' 
+    console.error('❌ Error fetching transactions:', error.message);
+    
+    return res.status(500).json({
+      error: 'Failed to fetch transactions',
+      message: error.message
     });
   }
 };
