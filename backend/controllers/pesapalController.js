@@ -100,14 +100,23 @@ async function registerIPN() {
 export const initiatePayment = async (req, res) => {
   try {
     console.log('🚀 Initiating Pesapal payment...');
+    console.log('📦 Request body:', JSON.stringify(req.body, null, 2));
     
     const { orderId, amount, phoneNumber, email, firstName, lastName, orderData } = req.body;
 
     // Validate required fields
-    if (!orderId || !amount || !phoneNumber || !email) {
+    if (!orderId || !amount || !email) {
       return res.status(400).json({
         error: 'Missing required fields',
-        message: 'orderId, amount, phoneNumber, and email are required'
+        message: 'orderId, amount, and email are required'
+      });
+    }
+
+    // Validate phone number specifically
+    if (!phoneNumber || phoneNumber.trim() === '') {
+      return res.status(400).json({
+        error: 'Phone number required',
+        message: 'Phone number is required for payment processing. Please enter a valid Kenyan phone number.'
       });
     }
 
@@ -120,7 +129,10 @@ export const initiatePayment = async (req, res) => {
     }
 
     // Validate order data
+    console.log('📦 Validating order data:', JSON.stringify(orderData, null, 2));
+    
     if (!orderData || !orderData.items || !Array.isArray(orderData.items) || orderData.items.length === 0) {
+      console.log('❌ Invalid order data structure');
       return res.status(400).json({
         error: 'Invalid order data',
         message: 'Order data with items is required'
@@ -128,7 +140,10 @@ export const initiatePayment = async (req, res) => {
     }
 
     // Check if this is a temporary order ID (payment-first flow)
-    const isTemporaryOrder = orderId.startsWith('TEMP_');
+    const orderIdString = String(orderId); // Ensure orderId is a string
+    const isTemporaryOrder = orderIdString.startsWith('TEMP_');
+    console.log('📦 Order type:', isTemporaryOrder ? 'Temporary' : 'Existing');
+    console.log('📦 Order ID (string):', orderIdString);
     
     if (isTemporaryOrder) {
       // For temporary orders, validate the order data but don't create order yet
@@ -162,7 +177,7 @@ export const initiatePayment = async (req, res) => {
       console.log('✅ Temporary order validation passed');
     } else {
       // For existing orders, find and validate the order
-      const order = await Order.findByPk(orderId);
+      const order = await Order.findByPk(orderIdString);
       if (!order) {
         return res.status(404).json({ 
           error: 'Order not found',
@@ -181,18 +196,29 @@ export const initiatePayment = async (req, res) => {
     
     console.log('📦 Preparing payment request...');
 
-    // Get Bearer token
-    const token = await getBearerToken();
-    
-    // Register IPN URL (one-time setup)
-    const notificationId = await registerIPN();
+    let token, notificationId;
+    try {
+      // Get Bearer token
+      token = await getBearerToken();
+      console.log('✅ Bearer token obtained');
+      
+      // Register IPN URL (one-time setup)
+      notificationId = await registerIPN();
+      console.log('✅ IPN registration completed');
+    } catch (error) {
+      console.error('❌ Error in payment preparation:', error.message);
+      return res.status(500).json({
+        error: 'Payment preparation failed',
+        message: 'Failed to initialize payment gateway. Please try again.'
+      });
+    }
 
     // Prepare order data for Pesapal v3
     const pesapalOrderData = {
-      id: orderId.toString(),
+      id: orderIdString,
       currency: "KES",
       amount: parseFloat(amount).toFixed(2),
-      description: `Payment for Order #${orderId}`,
+      description: `Payment for Order #${orderIdString}`,
       callback_url: PESAPAL_CALLBACK_URL,
       notification_id: notificationId || "",
       billing_address: {
@@ -227,43 +253,53 @@ export const initiatePayment = async (req, res) => {
     console.log('📡 Pesapal response:', response.data);
 
     if (response.data.status === '200' && response.data.redirect_url) {
-      // Create transaction record
-      await Transaction.create({
-        orderId: orderId,
-        userId: req.user.id,
-        phoneNumber: phoneNumber,
-        amount: parseFloat(amount),
-        paymentMethod: 'pesapal',
-        status: 'pending',
-        transactionId: response.data.order_tracking_id || `PESAPAL_${Date.now()}`,
-        metadata: {
-          pesapalOrderId: response.data.order_tracking_id,
-          redirectUrl: response.data.redirect_url,
-          notificationId: notificationId,
-          orderData: orderData, // Store the order data for later creation
-          isTemporaryOrder: isTemporaryOrder
-        }
-      });
+      try {
+        // Create transaction record
+        const transaction = await Transaction.create({
+          orderId: orderIdString,
+          userId: req.user.id,
+          phoneNumber: phoneNumber,
+          amount: parseFloat(amount),
+          paymentMethod: 'pesapal',
+          status: 'pending',
+          transactionId: response.data.order_tracking_id || `PESAPAL_${Date.now()}`,
+          metadata: {
+            pesapalOrderId: response.data.order_tracking_id,
+            redirectUrl: response.data.redirect_url,
+            notificationId: notificationId,
+            orderData: orderData, // Store the order data for later creation
+            isTemporaryOrder: isTemporaryOrder
+          }
+        });
 
-      // Only update order status if it's an existing order
-      if (!isTemporaryOrder) {
-        await order.update({
-          status: 'payment_pending',
-          paymentMethod: 'pesapal'
+        console.log('✅ Transaction record created:', transaction.id);
+
+        // Only update order status if it's an existing order
+        if (!isTemporaryOrder) {
+          await order.update({
+            status: 'payment_pending',
+            paymentMethod: 'pesapal'
+          });
+        }
+
+        console.log('✅ Payment initiated successfully');
+        
+        return res.status(200).json({
+          success: true,
+          message: 'Payment initiated successfully',
+          data: {
+            redirectUrl: response.data.redirect_url,
+            orderTrackingId: response.data.order_tracking_id,
+            orderId: orderIdString
+          }
+        });
+      } catch (dbError) {
+        console.error('❌ Database error:', dbError.message);
+        return res.status(500).json({
+          error: 'Database error',
+          message: 'Failed to create transaction record'
         });
       }
-
-      console.log('✅ Payment initiated successfully');
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Payment initiated successfully',
-        data: {
-          redirectUrl: response.data.redirect_url,
-          orderTrackingId: response.data.order_tracking_id,
-          orderId: orderId
-        }
-      });
     } else {
       throw new Error(`Payment initiation failed: ${response.data.message || 'Unknown error'}`);
     }

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, CheckCircle, XCircle, CreditCard } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, CreditCard, Phone } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 interface PesapalPaymentModalProps {
@@ -26,6 +28,7 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
   const [resultMessage, setResultMessage] = useState('');
   const { toast } = useToast();
   const { user } = useAuth();
+  const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
 
   const formatAmount = (amount: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -56,6 +59,28 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
   };
 
   const initiatePesapalPayment = async () => {
+    // Validate phone number
+    if (!phoneNumber.trim()) {
+      toast({
+        title: "Phone Number Required",
+        description: "Please enter a valid phone number to proceed with payment",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
+    const normalizedPhone = normalizePhoneNumber(phoneNumber.trim());
+    if (!normalizedPhone) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please enter a valid Kenyan phone number",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
+
     setIsProcessing(true);
     setPaymentStatus('pending');
     try {
@@ -68,7 +93,7 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
         body: JSON.stringify({ 
           orderId,
           amount,
-          phoneNumber: normalizePhoneNumber(user?.phone || ''),
+          phoneNumber: normalizedPhone,
           email: user?.email || 'customer@example.com',
           firstName: user?.name?.split(' ')[0] || 'Customer',
           lastName: user?.name?.split(' ').slice(1).join(' ') || 'User',
@@ -168,6 +193,7 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
     setPaymentUrl('');
     setResultMessage('');
     setIsProcessing(false);
+    setPhoneNumber(user?.phone || '');
   };
 
   useEffect(() => {
@@ -213,25 +239,45 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-6">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-primary">
-              {formatAmount(amount)}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Order ID: {orderId}
-            </p>
-          </div>
+                     <div className="text-center">
+             <p className="text-2xl font-bold text-primary">
+               {formatAmount(amount)}
+             </p>
+             <p className="text-sm text-muted-foreground">
+               Order ID: {orderId}
+             </p>
+           </div>
 
-          {paymentStatus === 'idle' && (
-            <Button
-              onClick={initiatePesapalPayment}
-              disabled={isProcessing}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-              size="lg"
-            >
-              {isProcessing ? 'Initiating Payment...' : 'Pay with Pesapal'}
-            </Button>
-          )}
+           {paymentStatus === 'idle' && (
+             <div className="space-y-4">
+               <div className="space-y-2">
+                 <Label htmlFor="phone" className="flex items-center gap-2">
+                   <Phone className="h-4 w-4" />
+                   Phone Number (Required for Payment)
+                 </Label>
+                 <Input
+                   id="phone"
+                   type="tel"
+                   placeholder="e.g., 0712345678 or +254712345678"
+                   value={phoneNumber}
+                   onChange={(e) => setPhoneNumber(e.target.value)}
+                   className="w-full"
+                 />
+                 <p className="text-xs text-muted-foreground">
+                   Enter your phone number to receive payment confirmation
+                 </p>
+               </div>
+               
+               <Button
+                 onClick={initiatePesapalPayment}
+                 disabled={isProcessing}
+                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                 size="lg"
+               >
+                 {isProcessing ? 'Initiating Payment...' : 'Pay with Pesapal'}
+               </Button>
+             </div>
+           )}
 
           {(paymentStatus === 'pending' || paymentStatus === 'completed' || paymentStatus === 'failed') && (
             <div className="text-center space-y-4">
