@@ -1,53 +1,38 @@
-import crypto from 'crypto';
 import axios from 'axios';
-import { User, Order, Transaction } from '../sequelize_models/index.js';
+import crypto from 'crypto';
+import db from '../sequelize_models/index.js';
+const { Order, Transaction, User } = db;
+import dotenv from 'dotenv';
 
-// Environment variables
+dotenv.config();
+
 const {
   PESAPAL_CONSUMER_KEY,
   PESAPAL_CONSUMER_SECRET,
   PESAPAL_CALLBACK_URL,
-  PESAPAL_API_ENDPOINT,
-  NODE_ENV
+  PESAPAL_API_ENDPOINT
 } = process.env;
 
-const isProduction = NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production';
 
-// Pesapal v3 API Configuration
-const PESAPAL_CONFIG = {
-  sandbox: {
-    baseUrl: 'https://cybqa.pesapal.com/pesapalv3/api',
-    authUrl: 'https://cybqa.pesapal.com/pesapalv3/api/Auth/RequestToken',
-    submitOrderUrl: 'https://cybqa.pesapal.com/pesapalv3/api/Transactions/SubmitOrderRequest',
-    ipnUrl: 'https://cybqa.pesapal.com/pesapalv3/api/URLSetup/RegisterIPN'
-  },
-  production: {
-    baseUrl: 'https://pay.pesapal.com/v3/api',
-    authUrl: 'https://pay.pesapal.com/v3/api/Auth/RequestToken',
-    submitOrderUrl: 'https://pay.pesapal.com/v3/api/Transactions/SubmitOrderRequest',
-    ipnUrl: 'https://pay.pesapal.com/v3/api/URLSetup/RegisterIPN'
-  }
-};
+// Get configuration based on environment
+function getConfig() {
+  const baseUrl = isProduction 
+    ? 'https://pay.pesapal.com/v3/api'
+    : 'https://cybqa.pesapal.com/pesapalv3/api';
+    
+  return {
+    authUrl: `${baseUrl}/Auth/RequestToken`,
+    submitOrderUrl: `${baseUrl}/Transactions/SubmitOrderRequest`,
+    getStatusUrl: `${baseUrl}/Transactions/GetTransactionStatus`,
+    registerIPNUrl: `${baseUrl}/URLSetup/RegisterIPN`
+  };
+}
 
-// Get current configuration
-const getConfig = () => isProduction ? PESAPAL_CONFIG.production : PESAPAL_CONFIG.sandbox;
-
-// Bearer token cache
-let bearerToken = null;
-let tokenExpiry = null;
-
-/**
- * Get Bearer token for Pesapal v3 API
- */
-const getBearerToken = async () => {
+// Get Bearer token for v3 API
+async function getBearerToken() {
   try {
-    // Check if we have a valid cached token
-    if (bearerToken && tokenExpiry && new Date() < tokenExpiry) {
-      console.log('✅ Using cached Bearer token');
-      return bearerToken;
-    }
-
-    console.log('🔄 Getting new Bearer token...');
+    console.log('🔑 Getting Bearer token...');
     
     const config = getConfig();
     const authData = {
@@ -64,39 +49,31 @@ const getBearerToken = async () => {
     });
 
     if (response.data.status === '200' && response.data.token) {
-      bearerToken = response.data.token;
-      // Set expiry to 4 minutes (giving 1 minute buffer)
-      tokenExpiry = new Date(Date.now() + 4 * 60 * 1000);
-      
       console.log('✅ Bearer token obtained successfully');
-      console.log('⏰ Token expires:', response.data.expiryDate);
-      
-      return bearerToken;
+      return response.data.token;
     } else {
       throw new Error(`Authentication failed: ${response.data.message || 'Unknown error'}`);
     }
   } catch (error) {
     console.error('❌ Error getting Bearer token:', error.message);
-    throw new Error(`Authentication failed: ${error.message}`);
+    throw error;
   }
-};
+}
 
-/**
- * Register IPN URL (one-time setup)
- */
-const registerIPN = async () => {
+// Register IPN URL (one-time setup)
+async function registerIPN() {
   try {
-    console.log('🔄 Registering IPN URL...');
+    console.log('🔔 Registering IPN URL...');
     
-    const config = getConfig();
     const token = await getBearerToken();
+    const config = getConfig();
     
     const ipnData = {
-      url: PESAPAL_CALLBACK_URL,
+      url: `${PESAPAL_CALLBACK_URL.replace('/callback', '/ipn')}`,
       ipn_notification_type: "GET"
     };
 
-    const response = await axios.post(config.ipnUrl, ipnData, {
+    const response = await axios.post(config.registerIPNUrl, ipnData, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -105,27 +82,29 @@ const registerIPN = async () => {
       timeout: 10000
     });
 
-    console.log('✅ IPN URL registered successfully');
-    return response.data;
+    if (response.data.status === '200') {
+      console.log('✅ IPN URL registered successfully');
+      return response.data.ipn_id;
+    } else {
+      console.log('⚠️ IPN registration failed, continuing without IPN');
+      return null;
+    }
   } catch (error) {
     console.error('❌ Error registering IPN:', error.message);
-    // Don't throw error as IPN might already be registered
     return null;
   }
-};
+}
 
-/**
- * Submit order request to Pesapal v3
- */
-export const initiatePesapalPayment = async (req, res) => {
+// Initiate Pesapal payment
+export const initiatePayment = async (req, res) => {
   try {
-    console.log('🚀 Initiating Pesapal v3 payment...');
+    console.log('🚀 Initiating Pesapal payment...');
     
     const { orderId, amount, phoneNumber, email, firstName, lastName } = req.body;
 
     // Validate required fields
     if (!orderId || !amount || !phoneNumber || !email) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Missing required fields',
         message: 'orderId, amount, phoneNumber, and email are required'
       });
@@ -156,11 +135,13 @@ export const initiatePesapalPayment = async (req, res) => {
       });
     }
     
+    console.log('📦 Preparing payment request...');
+
     // Get Bearer token
     const token = await getBearerToken();
     
     // Register IPN URL (one-time setup)
-    await registerIPN();
+    const notificationId = await registerIPN();
 
     // Prepare order data for Pesapal v3
     const orderData = {
@@ -169,13 +150,20 @@ export const initiatePesapalPayment = async (req, res) => {
       amount: parseFloat(amount).toFixed(2),
       description: `Payment for Order #${orderId}`,
       callback_url: PESAPAL_CALLBACK_URL,
-      notification_id: "", // Will be filled by Pesapal
+      notification_id: notificationId || "",
       billing_address: {
         email_address: email,
         phone_number: phoneNumber,
         country_code: "KE",
-        first_name: firstName || req.user.firstName,
-        last_name: lastName || req.user.lastName
+        first_name: firstName || req.user.firstName || "",
+        middle_name: "",
+        last_name: lastName || req.user.lastName || "",
+        line_1: "",
+        line_2: "",
+        city: "",
+        state: "",
+        postal_code: "",
+        zip_code: ""
       }
     };
 
@@ -195,18 +183,18 @@ export const initiatePesapalPayment = async (req, res) => {
     console.log('📡 Pesapal response:', response.data);
 
     if (response.data.status === '200' && response.data.redirect_url) {
-    // Create transaction record
+      // Create transaction record
       await Transaction.create({
         orderId: orderId,
-      userId: req.user.id,
-      amount: parseFloat(amount),
+        userId: req.user.id,
+        amount: parseFloat(amount),
         paymentMethod: 'pesapal',
-      status: 'pending',
+        status: 'pending',
         transactionId: response.data.order_tracking_id || `PESAPAL_${Date.now()}`,
         metadata: {
           pesapalOrderId: response.data.order_tracking_id,
           redirectUrl: response.data.redirect_url,
-          notificationId: response.data.notification_id
+          notificationId: notificationId
         }
       });
 
@@ -219,7 +207,7 @@ export const initiatePesapalPayment = async (req, res) => {
       console.log('✅ Payment initiated successfully');
       
       return res.status(200).json({
-      success: true,
+        success: true,
         message: 'Payment initiated successfully',
         data: {
           redirectUrl: response.data.redirect_url,
@@ -228,16 +216,14 @@ export const initiatePesapalPayment = async (req, res) => {
         }
       });
     } else {
-      throw new Error(`Pesapal API error: ${response.data.message || 'Unknown error'}`);
+      throw new Error(`Payment initiation failed: ${response.data.message || 'Unknown error'}`);
     }
-
   } catch (error) {
-    console.error('❌ Error initiating Pesapal payment:', error.message);
+    console.error('❌ Payment initiation error:', error.message);
     
     return res.status(500).json({
       error: 'Payment initiation failed',
-      message: error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      message: error.message || 'An error occurred while initiating payment'
     });
   }
 };
@@ -339,7 +325,7 @@ const getPaymentStatus = async (transactionTrackingId) => {
     const token = await getBearerToken();
     const config = getConfig();
     
-    const statusUrl = `${config.baseUrl}/Transactions/GetTransactionStatus?orderTrackingId=${transactionTrackingId}`;
+    const statusUrl = `${config.getStatusUrl}?orderTrackingId=${transactionTrackingId}`;
     
     const response = await axios.get(statusUrl, {
       headers: {

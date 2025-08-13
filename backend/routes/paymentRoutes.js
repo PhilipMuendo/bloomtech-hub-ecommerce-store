@@ -6,10 +6,10 @@ import {
   getAllTransactions
 } from '../controllers/paymentController.js';
 import { 
-  initiatePesapalPayment,
+  initiatePayment as initiatePesapalPayment,
   handlePesapalCallback,
-  checkPesapalPaymentStatus,
-  getAllPesapalTransactions
+  checkPaymentStatus as checkPesapalPaymentStatus,
+  getPesapalTransactions as getAllPesapalTransactions
 } from '../controllers/pesapalController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/roleAuth.js';
