@@ -37,9 +37,14 @@ export default (sequelize) => {
       type: DataTypes.STRING,
       allowNull: true,
       validate: {
-        is: {
-          args: /^(\+254|0)?[17]\d{8}$/,
-          msg: 'Please enter a valid Kenyan phone number.'
+        isValidPhone(value) {
+          if (value && value !== '254700000000') {
+            // Allow various Kenyan phone number formats
+            const phoneRegex = /^(\+254|254|0)?[17]\d{8}$/;
+            if (!phoneRegex.test(value)) {
+              throw new Error('Please enter a valid Kenyan phone number.');
+            }
+          }
         }
       }
     },

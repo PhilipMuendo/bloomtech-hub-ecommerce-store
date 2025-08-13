@@ -117,8 +117,7 @@ const AdminLayout = () => {
     { path: '/admin/blogs', icon: BookOpen, label: 'Blogs' },
     // Superadmin only items
     ...(user?.role === 'superadmin' ? [
-      { path: '/admin/mpesa-transactions', icon: CreditCard, label: 'M-Pesa Transactions' },
-      { path: '/admin/pesapal-transactions', icon: Globe, label: 'Pesapal Transactions' },
+      { path: '/admin/pesapal-transactions', icon: CreditCard, label: 'Transactions' },
       { path: '/admin/audit-logs', icon: Activity, label: 'Audit Logs' }
     ] : []),
   ];

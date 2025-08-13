@@ -2,6 +2,7 @@ import db, { sequelize } from '../sequelize_models/index.js';
 import { Op } from 'sequelize';
 import AuditService from '../services/auditService.js';
 import { Parser } from 'json2csv';
+import { notifyOrderStatusChange } from '../utils/warehouseNotifications.js';
 
 const { Order, Product, User, OrderItem } = db;
 
@@ -346,6 +347,20 @@ export const updateOrderStatus = async (req, res, next) => {
         ipAddress: req.ip,
         userAgent: req.get('User-Agent')
       });
+    }
+
+    // Send status change notification
+    if (status && status !== previousValues.status) {
+      // Get order with user details for notification
+      const orderWithUser = await Order.findOne({
+        where: { id: currentOrder.id },
+        include: [{ model: User, attributes: ['name', 'email', 'phone'] }]
+      });
+      
+      // Send notification asynchronously
+      setTimeout(() => {
+        notifyOrderStatusChange(orderWithUser, previousValues.status, status, req.user);
+      }, 1000);
     }
 
     // Dispatch real-time event for order status change

@@ -51,7 +51,7 @@ const AdminBlogs = lazy(() => import('./pages/admin/AdminBlogs'));
 const LowStockProducts = lazy(() => import('./pages/admin/LowStockProducts'));
 const Quotes = lazy(() => import("./pages/admin/Quotes"));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
-const MpesaTransactions = lazy(() => import("./pages/admin/MpesaTransactions"));
+
 const PesapalTransactions = lazy(() => import("./pages/admin/PesapalTransactions"));
 const WarehouseOrders = lazy(() => import("./pages/warehouse/WarehouseOrders"));
 
@@ -342,11 +342,7 @@ const AnimatedRoutes = () => {
               <AuditLogs />
             </Suspense>
           } />
-          <Route path="mpesa-transactions" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <MpesaTransactions />
-            </Suspense>
-          } />
+
           <Route path="pesapal-transactions" element={
             <Suspense fallback={<LoadingSpinner />}>
               <PesapalTransactions />

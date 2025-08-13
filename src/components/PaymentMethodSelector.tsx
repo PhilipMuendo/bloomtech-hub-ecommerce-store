@@ -33,20 +33,12 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
 }) => {
   const paymentMethods: PaymentMethod[] = [
     {
-      id: 'mpesa',
-      name: 'M-Pesa',
-      icon: <Smartphone className="w-5 h-5" />,
-      description: 'Pay with M-Pesa mobile money',
-      features: ['Instant payment', 'No additional fees', 'Secure mobile money'],
-      processingTime: 'Instant'
-    },
-    {
       id: 'pesapal',
       name: 'Pesapal',
       icon: <CreditCard className="w-5 h-5" />,
-      description: 'Pay with card or mobile money',
-      features: ['Multiple payment options', 'Card & mobile money', 'Wide coverage'],
-      processingTime: '2-5 minutes'
+      description: 'Pay with M-Pesa, card, or other mobile money',
+      features: ['M-Pesa included', 'Credit/Debit cards', 'Multiple mobile money options', 'Secure payments'],
+      processingTime: 'Instant'
     }
   ];
 

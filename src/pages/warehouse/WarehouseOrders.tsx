@@ -61,7 +61,7 @@ const WarehouseOrders = () => {
           customerEmail: o.User?.email || o.customerEmail || 'N/A',
           customerPhone: o.User?.phone || 'N/A',
           date: o.createdAt,
-          status: o.status,
+          status: o.status || 'pending', // Default to pending if status is null/undefined
           total: o.total,
           items: o.items?.map((item: any) => ({
             productName: item.productName || item.Product?.name || 'N/A',
@@ -461,7 +461,7 @@ const WarehouseOrders = () => {
                       </TableCell>
                       <TableCell>
                         <Badge className={getStatusColor(order.status)}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1).replace('_', ' ')}
+                          {(order.status || 'pending').charAt(0).toUpperCase() + (order.status || 'pending').slice(1).replace('_', ' ')}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -491,7 +491,7 @@ const WarehouseOrders = () => {
                             <Eye className="w-4 h-4 mr-1" />
                             View
                           </Button>
-                          {order.status === 'pending' && (
+                          {(order.status === 'pending' || !order.status) && (
                             <Button
                               size="sm"
                               onClick={() => processOrder(order.id)}

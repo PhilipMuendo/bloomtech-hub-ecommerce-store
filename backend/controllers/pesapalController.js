@@ -1,8 +1,9 @@
 import axios from 'axios';
 import crypto from 'crypto';
-import db from '../sequelize_models/index.js';
-const { Order, Transaction, User } = db;
+import db, { sequelize } from '../sequelize_models/index.js';
+const { Order, Transaction, User, OrderItem, Product } = db;
 import dotenv from 'dotenv';
+import { notifyCustomerOfNewOrder } from '../utils/warehouseNotifications.js';
 
 dotenv.config();
 
@@ -100,7 +101,7 @@ export const initiatePayment = async (req, res) => {
   try {
     console.log('🚀 Initiating Pesapal payment...');
     
-    const { orderId, amount, phoneNumber, email, firstName, lastName } = req.body;
+    const { orderId, amount, phoneNumber, email, firstName, lastName, orderData } = req.body;
 
     // Validate required fields
     if (!orderId || !amount || !phoneNumber || !email) {
@@ -118,21 +119,64 @@ export const initiatePayment = async (req, res) => {
       });
     }
 
-    // Find the order
-    const order = await Order.findByPk(orderId);
-    if (!order) {
-      return res.status(404).json({ 
-        error: 'Order not found',
-        message: 'The specified order does not exist' 
+    // Validate order data
+    if (!orderData || !orderData.items || !Array.isArray(orderData.items) || orderData.items.length === 0) {
+      return res.status(400).json({
+        error: 'Invalid order data',
+        message: 'Order data with items is required'
       });
     }
+
+    // Check if this is a temporary order ID (payment-first flow)
+    const isTemporaryOrder = orderId.startsWith('TEMP_');
     
-    // Verify order belongs to user
-    if (order.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        error: 'Access denied',
-        message: 'You can only pay for your own orders' 
-      });
+    if (isTemporaryOrder) {
+      // For temporary orders, validate the order data but don't create order yet
+      console.log('📦 Validating temporary order data...');
+      
+      // Validate and check stock for all items
+      for (const item of orderData.items) {
+        if (!item.productId || !item.quantity || item.quantity <= 0) {
+          return res.status(400).json({
+            error: 'Invalid item data',
+            message: 'Each item must have valid productId and quantity'
+          });
+        }
+        
+        const product = await Product.findByPk(item.productId);
+        if (!product) {
+          return res.status(400).json({
+            error: 'Product not found',
+            message: `Product with ID ${item.productId} not found`
+          });
+        }
+        
+        if (product.stock < item.quantity) {
+          return res.status(400).json({
+            error: 'Insufficient stock',
+            message: `Insufficient stock for ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}`
+          });
+        }
+      }
+      
+      console.log('✅ Temporary order validation passed');
+    } else {
+      // For existing orders, find and validate the order
+      const order = await Order.findByPk(orderId);
+      if (!order) {
+        return res.status(404).json({ 
+          error: 'Order not found',
+          message: 'The specified order does not exist' 
+        });
+      }
+      
+      // Verify order belongs to user
+      if (order.userId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ 
+          error: 'Access denied',
+          message: 'You can only pay for your own orders' 
+        });
+      }
     }
     
     console.log('📦 Preparing payment request...');
@@ -144,7 +188,7 @@ export const initiatePayment = async (req, res) => {
     const notificationId = await registerIPN();
 
     // Prepare order data for Pesapal v3
-    const orderData = {
+    const pesapalOrderData = {
       id: orderId.toString(),
       currency: "KES",
       amount: parseFloat(amount).toFixed(2),
@@ -167,11 +211,11 @@ export const initiatePayment = async (req, res) => {
       }
     };
 
-    console.log('📦 Order data prepared:', orderData);
+    console.log('📦 Order data prepared:', pesapalOrderData);
 
     // Submit order to Pesapal v3
     const config = getConfig();
-    const response = await axios.post(config.submitOrderUrl, orderData, {
+    const response = await axios.post(config.submitOrderUrl, pesapalOrderData, {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -187,6 +231,7 @@ export const initiatePayment = async (req, res) => {
       await Transaction.create({
         orderId: orderId,
         userId: req.user.id,
+        phoneNumber: phoneNumber,
         amount: parseFloat(amount),
         paymentMethod: 'pesapal',
         status: 'pending',
@@ -194,15 +239,19 @@ export const initiatePayment = async (req, res) => {
         metadata: {
           pesapalOrderId: response.data.order_tracking_id,
           redirectUrl: response.data.redirect_url,
-          notificationId: notificationId
+          notificationId: notificationId,
+          orderData: orderData, // Store the order data for later creation
+          isTemporaryOrder: isTemporaryOrder
         }
       });
 
-      // Update order status
-      await order.update({
-        status: 'payment_pending',
-        paymentMethod: 'pesapal'
-      });
+      // Only update order status if it's an existing order
+      if (!isTemporaryOrder) {
+        await order.update({
+          status: 'payment_pending',
+          paymentMethod: 'pesapal'
+        });
+      }
 
       console.log('✅ Payment initiated successfully');
       
@@ -277,27 +326,92 @@ export const handlePesapalCallback = async (req, res) => {
       }
     });
 
-    // Update order status based on payment status
-    const order = await Order.findByPk(transaction.orderId);
-    if (order) {
-      let orderStatus = 'payment_pending';
-      
-      switch (paymentStatus.status) {
-        case 'COMPLETED':
-          orderStatus = 'paid';
-          break;
-        case 'FAILED':
-          orderStatus = 'payment_failed';
-          break;
-        case 'PENDING':
-          orderStatus = 'payment_pending';
-          break;
-        default:
-          orderStatus = 'payment_pending';
+    // Handle order creation/update based on payment status
+    const isTemporaryOrder = transaction.metadata?.isTemporaryOrder;
+    const orderData = transaction.metadata?.orderData;
+    
+    if (paymentStatus.status === 'COMPLETED') {
+      if (isTemporaryOrder && orderData) {
+        // Create the actual order for temporary orders
+        console.log('🏗️ Creating actual order from temporary order data...');
+        
+                  const result = await sequelize.transaction(async (t) => {
+            // Create the order
+            const order = await Order.create({ 
+              userId: transaction.userId, 
+              total: transaction.amount, 
+              shippingAddress: orderData.shippingAddress || '',
+              status: 'pending',
+              paymentMethod: 'pesapal'
+            }, { transaction: t });
+            
+            console.log('✅ Order created:', order.id);
+            
+            // Create order items
+            const orderItems = orderData.items.map(item => ({
+              orderId: order.id,
+              productId: item.productId,
+              quantity: item.quantity
+            }));
+            
+            await OrderItem.bulkCreate(orderItems, { transaction: t });
+            console.log('✅ Order items created');
+            
+            // Decrement stock for each product
+            for (const item of orderData.items) {
+              await Product.decrement('stock', {
+                by: item.quantity,
+                where: { id: item.productId },
+                transaction: t
+              });
+              console.log(`✅ Stock updated for product ${item.productId}`);
+            }
+            
+            // Update transaction with the real order ID
+            await transaction.update({
+              orderId: order.id,
+              metadata: {
+                ...transaction.metadata,
+                realOrderId: order.id,
+                orderCreated: true
+              }
+            }, { transaction: t });
+            
+            return { order, orderItems };
+          });
+          
+          console.log('✅ Actual order created successfully:', result.order.id);
+          
+          // Send customer confirmation email (outside transaction to avoid blocking)
+          setTimeout(() => {
+            notifyCustomerOfNewOrder(result.order, result.orderItems);
+          }, 1000);
+              } else {
+          // Update existing order status
+          const order = await Order.findByPk(transaction.orderId);
+          if (order) {
+            await order.update({ status: 'pending' });
+            console.log('✅ Order status updated to: pending');
+          }
+        }
+    } else if (paymentStatus.status === 'FAILED') {
+      // For failed payments, only update existing orders
+      if (!isTemporaryOrder) {
+        const order = await Order.findByPk(transaction.orderId);
+        if (order) {
+          await order.update({ status: 'payment_failed' });
+          console.log('✅ Order status updated to: payment_failed');
+        }
       }
-
-      await order.update({ status: orderStatus });
-      console.log('✅ Order status updated to:', orderStatus);
+    } else {
+      // For pending payments, only update existing orders
+      if (!isTemporaryOrder) {
+        const order = await Order.findByPk(transaction.orderId);
+        if (order) {
+          await order.update({ status: 'payment_pending' });
+          console.log('✅ Order status updated to: payment_pending');
+        }
+      }
     }
 
     // Return success response to Pesapal
@@ -417,11 +531,11 @@ export const checkPaymentStatus = async (req, res) => {
  */
 export const getPesapalTransactions = async (req, res) => {
   try {
-    // Check admin permissions
-    if (req.user.role !== 'admin') {
+    // Check superadmin permissions
+    if (req.user.role !== 'superadmin') {
       return res.status(403).json({ 
         error: 'Access denied',
-        message: 'Admin access required'
+        message: 'Superadmin access required'
       });
     }
     
@@ -430,7 +544,7 @@ export const getPesapalTransactions = async (req, res) => {
       include: [
         { 
           model: Order, 
-          include: [{ model: User, attributes: ['id', 'firstName', 'lastName', 'email'] }]
+          include: [{ model: User, attributes: ['id', 'name', 'email'] }]
         }
       ],
       order: [['createdAt', 'DESC']]

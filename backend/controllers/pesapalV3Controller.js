@@ -197,6 +197,7 @@ export const initiatePesapalPayment = async (req, res) => {
       await Transaction.create({
         orderId: orderId,
         userId: req.user.id,
+        phoneNumber: phoneNumber,
         amount: parseFloat(amount),
         paymentMethod: 'pesapal',
         status: 'pending',

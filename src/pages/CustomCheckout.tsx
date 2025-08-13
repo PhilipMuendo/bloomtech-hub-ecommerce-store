@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import MpesaPaymentModal from '@/components/MpesaPaymentModal';
+
 import PesapalPaymentModal from '@/components/PesapalPaymentModal';
 import PaymentMethodSelector from '@/components/PaymentMethodSelector';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +17,7 @@ const CustomCheckout = () => {
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showMpesa, setShowMpesa] = useState(false);
+
   const [showPesapal, setShowPesapal] = useState(false);
   const [showPaymentSelector, setShowPaymentSelector] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
@@ -60,10 +60,7 @@ const CustomCheckout = () => {
   };
 
   const handlePaymentProceed = () => {
-    if (selectedPaymentMethod === 'mpesa') {
-      setShowMpesa(true);
-      setShowPaymentSelector(false);
-    } else if (selectedPaymentMethod === 'pesapal') {
+    if (selectedPaymentMethod === 'pesapal') {
       setShowPesapal(true);
       setShowPaymentSelector(false);
     }
@@ -74,7 +71,7 @@ const CustomCheckout = () => {
       title: "Payment successful!", 
       description: "Your order has been processed successfully." 
     });
-    setShowMpesa(false);
+
     setShowPesapal(false);
     // Refresh the page to update status
     window.location.reload();
@@ -198,7 +195,7 @@ const CustomCheckout = () => {
                   Proceed to Payment
                 </Button>
                 <p className="text-sm text-muted-foreground text-center mt-2">
-                  Secure payment via M-Pesa or Pesapal
+                  Secure payment via Pesapal (includes M-Pesa, cards & mobile money)
                 </p>
               </div>
             )}
@@ -234,14 +231,7 @@ const CustomCheckout = () => {
           </div>
         )}
         
-        {/* M-Pesa Payment Modal */}
-        <MpesaPaymentModal
-          isOpen={showMpesa}
-          onClose={() => setShowMpesa(false)}
-          orderId={order.id}
-          amount={order.total}
-          onSuccess={handlePaymentSuccess}
-        />
+
         
         {/* Pesapal Payment Modal */}
         <PesapalPaymentModal

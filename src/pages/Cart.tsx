@@ -6,7 +6,7 @@ import { useCart } from '@/context/CartContext';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import NewsletterForm from '@/components/NewsletterForm';
-import MpesaPaymentModal from '@/components/MpesaPaymentModal';
+
 import PesapalPaymentModal from '@/components/PesapalPaymentModal';
 import PaymentMethodSelector from '@/components/PaymentMethodSelector';
 import GetQuoteModal from '@/components/GetQuoteModal';
@@ -16,7 +16,7 @@ const Cart = () => {
   const { cartItems, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCart();
   const { toast } = useToast();
   const { user } = useAuth();
-  const [showMpesaModal, setShowMpesaModal] = React.useState(false);
+
   const [showPesapalModal, setShowPesapalModal] = React.useState(false);
   const [currentOrderId, setCurrentOrderId] = React.useState('');
   const [showQuote, setShowQuote] = React.useState(false);
@@ -52,40 +52,23 @@ const Cart = () => {
       });
       return;
     }
-    try {
-      setIsProcessingOrder(true);
-      const orderResponse = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token}`
-        },
-        body: JSON.stringify({
-          items: cartItems.map(item => ({
-            productId: item.id,
-            quantity: item.quantity
-          })),
-          total: getTotalPrice(),
-          shippingAddress: pickupPoint
-        })
-      });
-      const orderData = await orderResponse.json();
-      if (orderData.id) {
-        setCurrentOrderId(orderData.id);
-        setShowPaymentSelector(true);
-        localStorage.removeItem('pickupPoint');
-      } else {
-        throw new Error('Failed to create order');
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create order. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessingOrder(false);
-    }
+    
+    // Store order data for payment processing (don't create order yet)
+    const orderData = {
+      items: cartItems.map(item => ({
+        productId: item.id,
+        quantity: item.quantity
+      })),
+      total: getTotalPrice(),
+      shippingAddress: pickupPoint
+    };
+    
+    // Store in localStorage for payment controllers to access
+    localStorage.setItem('pendingOrderData', JSON.stringify(orderData));
+    localStorage.removeItem('pickupPoint');
+    
+    // Show payment selector
+    setShowPaymentSelector(true);
   };
 
   const handleCheckout = () => {
@@ -106,10 +89,11 @@ const Cart = () => {
   };
 
   const handlePaymentProceed = () => {
-    if (selectedPaymentMethod === 'mpesa') {
-      setShowMpesaModal(true);
-      setShowPaymentSelector(false);
-    } else if (selectedPaymentMethod === 'pesapal') {
+    // Generate a temporary order ID for payment processing
+    const tempOrderId = `TEMP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    setCurrentOrderId(tempOrderId);
+    
+    if (selectedPaymentMethod === 'pesapal') {
       setShowPesapalModal(true);
       setShowPaymentSelector(false);
     }
@@ -117,6 +101,8 @@ const Cart = () => {
 
   const handlePaymentSuccess = () => {
     clearCart();
+    // Clean up localStorage
+    localStorage.removeItem('pendingOrderData');
     toast({ title: "Order placed and paid successfully!" });
     navigate('/orders');
   };
@@ -280,13 +266,7 @@ const Cart = () => {
         </div>
       )}
 
-      <MpesaPaymentModal
-        isOpen={showMpesaModal}
-        onClose={() => setShowMpesaModal(false)}
-        orderId={currentOrderId}
-        amount={getTotalPrice()}
-        onSuccess={handlePaymentSuccess}
-      />
+
       
       <PesapalPaymentModal
         isOpen={showPesapalModal}

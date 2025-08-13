@@ -35,6 +35,26 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
     }).format(amount);
   };
 
+  const normalizePhoneNumber = (phone: string): string => {
+    if (!phone) return '';
+    
+    // Remove any non-digit characters except +
+    let cleaned = phone.replace(/[^\d+]/g, '');
+    
+    // Handle different formats
+    if (cleaned.startsWith('+254')) {
+      return cleaned.substring(1); // Remove + and return 254...
+    } else if (cleaned.startsWith('254')) {
+      return cleaned; // Already in correct format
+    } else if (cleaned.startsWith('0')) {
+      return '254' + cleaned.substring(1); // Replace 0 with 254
+    } else if (cleaned.length === 9) {
+      return '254' + cleaned; // Add 254 prefix
+    }
+    
+    return cleaned; // Return as is if no pattern matches
+  };
+
   const initiatePesapalPayment = async () => {
     setIsProcessing(true);
     setPaymentStatus('pending');
@@ -45,17 +65,30 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user?.token}`
         },
-        body: JSON.stringify({ orderId })
+        body: JSON.stringify({ 
+          orderId,
+          amount,
+          phoneNumber: normalizePhoneNumber(user?.phone || ''),
+          email: user?.email || 'customer@example.com',
+          firstName: user?.name?.split(' ')[0] || 'Customer',
+          lastName: user?.name?.split(' ').slice(1).join(' ') || 'User',
+          orderData: JSON.parse(localStorage.getItem('pendingOrderData') || '{}')
+        })
       });
       const data = await response.json();
-      if (data.paymentUrl) {
-        setPaymentUrl(data.paymentUrl);
+      
+      if (!response.ok) {
+        throw new Error(data.message || `HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      if (data.data?.redirectUrl) {
+        setPaymentUrl(data.data.redirectUrl);
         // Open payment URL in new window or iframe
-        window.open(data.paymentUrl, '_blank');
+        window.open(data.data.redirectUrl, '_blank');
         // Start polling payment status
         pollPaymentStatus();
       } else {
-        throw new Error('Failed to get payment URL');
+        throw new Error(data.message || 'Failed to get payment URL');
       }
     } catch (error) {
       setPaymentStatus('failed');

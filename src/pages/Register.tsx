@@ -11,8 +11,9 @@ import PasswordInput from '@/components/PasswordInput';
 const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; password?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; phone?: string; password?: string }>({});
   const [successMessage, setSuccessMessage] = useState('');
   const { register, loading } = useAuth();
   const navigate = useNavigate();
@@ -31,16 +32,18 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Inline validation
-    const errors: { name?: string; email?: string; password?: string } = {};
+    const errors: { name?: string; email?: string; phone?: string; password?: string } = {};
     if (!name) errors.name = 'Name is required';
     if (!email) errors.email = 'Email is required';
     else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) errors.email = 'Invalid email address';
+    if (!phone) errors.phone = 'Phone number is required';
+    else if (!/^(\+254|0)?[17]\d{8}$/.test(phone)) errors.phone = 'Please enter a valid Kenyan phone number (e.g., 254740505584, +254740505584, or 0740505584)';
     if (!password) errors.password = 'Password is required';
     else if (password.length < 6) errors.password = 'Password must be at least 6 characters';
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
     try {
-      const res = await register(name, email, password);
+      const res = await register(name, email, password, phone);
       if (res && res.message) {
         setSuccessMessage(res.message);
         // If user is verified (development mode), redirect to login after 3 seconds
@@ -119,6 +122,19 @@ const Register = () => {
                 aria-invalid={!!fieldErrors.email}
               />
               {fieldErrors.email && <p className="text-destructive text-xs mt-1">{fieldErrors.email}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                                      placeholder="254740505584"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                aria-invalid={!!fieldErrors.phone}
+              />
+              {fieldErrors.phone && <p className="text-destructive text-xs mt-1">{fieldErrors.phone}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>

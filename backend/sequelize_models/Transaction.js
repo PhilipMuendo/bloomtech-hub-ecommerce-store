@@ -5,7 +5,7 @@ export default (sequelize) => {
 
   Transaction.init({
     orderId: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.STRING,
       allowNull: false,
     },
     userId: {
@@ -14,11 +14,15 @@ export default (sequelize) => {
     },
     phoneNumber: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
     },
     amount: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
+    },
+    paymentMethod: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     transactionId: {
       type: DataTypes.STRING,
@@ -49,6 +53,10 @@ export default (sequelize) => {
     },
     rawCallback: {
       type: DataTypes.JSON,
+    },
+    metadata: {
+      type: DataTypes.JSON,
+      allowNull: true,
     }
   }, {
     sequelize,

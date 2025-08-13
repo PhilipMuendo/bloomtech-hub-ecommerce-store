@@ -19,6 +19,11 @@ export default (sequelize) => {
     status: {
       type: DataTypes.ENUM('pending', 'processing', 'delivered', 'cancelled'),
       defaultValue: 'pending',
+      allowNull: false,
+    },
+    paymentMethod: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
     shippingAddress: {
       type: DataTypes.STRING,

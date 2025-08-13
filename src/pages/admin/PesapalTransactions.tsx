@@ -210,7 +210,7 @@ const PesapalTransactions = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Pesapal Transactions</h1>
+        <h1 className="text-2xl font-bold">Transactions</h1>
         <div className="flex gap-2">
           <Button onClick={fetchTransactions} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -232,7 +232,7 @@ const PesapalTransactions = () => {
                 <p className="text-sm font-medium text-muted-foreground">Total Transactions</p>
                 <p className="text-2xl font-bold">{stats.total}</p>
               </div>
-              <Globe className="h-8 w-8 text-blue-600" />
+              <CreditCard className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
@@ -344,7 +344,7 @@ const PesapalTransactions = () => {
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-2">
                           <Phone className="h-4 w-4 text-muted-foreground" />
-                          {transaction.phoneNumber || 'N/A'}
+                          {transaction.phoneNumber && transaction.phoneNumber !== '254700000000' ? transaction.phoneNumber : 'N/A'}
                         </div>
                       </td>
                       <td className="py-3 px-4 font-medium">

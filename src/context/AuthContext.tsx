@@ -4,6 +4,7 @@ interface User {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   role: 'user' | 'admin' | 'superadmin' | 'warehouse';
   token: string;
 }
@@ -16,7 +17,7 @@ interface AuthState {
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   googleLogin: (idToken: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<any>;
+  register: (name: string, email: string, password: string, phone: string) => Promise<any>;
   logout: () => void;
   isAdmin: () => boolean;
   isSuperAdmin: () => boolean;
@@ -126,13 +127,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (name: string, email: string, password: string): Promise<any> => {
+  const register = async (name: string, email: string, password: string, phone: string): Promise<any> => {
     dispatch({ type: 'LOGIN_START' });
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name, email, password, phone })
       });
 
       const data = await response.json();

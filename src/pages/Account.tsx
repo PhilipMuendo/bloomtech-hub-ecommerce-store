@@ -28,13 +28,14 @@ const Account = () => {
   const { toast } = useToast();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [phone, setPhone] = useState(user?.phone || '');
   const [saving, setSaving] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; password?: string; newPassword?: string; confirmPassword?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; phone?: string; password?: string; newPassword?: string; confirmPassword?: string }>({});
   const [emailChanged, setEmailChanged] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -46,13 +47,15 @@ const Account = () => {
   useEffect(() => {
     setName(user?.name || '');
     setEmail(user?.email || '');
+    setPhone(user?.phone || '');
   }, [user]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const errors: { name?: string; email?: string } = {};
+    const errors: { name?: string; email?: string; phone?: string } = {};
     if (!name.trim()) errors.name = 'Name cannot be empty';
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) errors.email = 'Invalid email format';
+    if (phone && !/^(\+254|0)?[17]\d{8}$/.test(phone)) errors.phone = 'Please enter a valid Kenyan phone number (e.g., 254740505584, +254740505584, or 0740505584)';
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
     setSaving(true);
@@ -64,14 +67,14 @@ const Account = () => {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` }),
         },
-        body: JSON.stringify({ name, email })
+        body: JSON.stringify({ name, email, phone })
       });
       if (!res.ok) throw new Error('Failed to update profile');
       const updated = await res.json();
       toast({ title: 'Success', description: 'Profile updated successfully!' });
       // Update context/localStorage with new user info
       if (updated && updated.user && updated.user.name && updated.user.email) {
-        const newUser = { ...user, name: updated.user.name, email: updated.user.email };
+        const newUser = { ...user, name: updated.user.name, email: updated.user.email, phone: updated.user.phone };
         updateUser(newUser);
         if (updated.user.verified === false) {
           setEmailChanged(true);
@@ -240,6 +243,35 @@ const Account = () => {
                       {fieldErrors.email}
                     </p>
                   )}
+                </div>
+
+                <div className="space-y-3">
+                  <Label htmlFor="phone" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Phone Number
+                  </Label>
+                  <div className="relative">
+                    <Input 
+                      id="phone" 
+                      type="tel"
+                      value={phone} 
+                      onChange={e => setPhone(e.target.value)} 
+                      disabled={saving}
+                      aria-invalid={!!fieldErrors.phone}
+                      className={`pl-10 h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500 ${fieldErrors.phone ? 'border-red-300' : ''}`}
+                      placeholder="254740505584 (optional)"
+                    />
+                    <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                  </div>
+                  {fieldErrors.phone && (
+                    <p className="text-red-500 text-xs flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3" />
+                      {fieldErrors.phone}
+                    </p>
+                  )}
+                                     <p className="text-xs text-gray-500">
+                     Required for Pesapal payments. Format: 254740505584, +254740505584, or 0740505584
+                   </p>
                 </div>
 
                 <Button 
