@@ -103,6 +103,11 @@ const AdminOrders = () => {
     [page, statusFilter, dateFrom, dateTo]
   );
 
+  // Fetch orders on component mount
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
   // Filter orders by date range
   const filteredOrders = orders.filter(order => {
     const orderDate = new Date(order.date).setHours(0,0,0,0);

@@ -16,7 +16,8 @@ import {
   Bell,
   Activity,
   CreditCard,
-  Globe
+  Globe,
+  MessageCircle
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
@@ -46,6 +47,7 @@ const AdminLayout = () => {
   const [showNotif, setShowNotif] = useState(false);
   const [notificationTab, setNotificationTab] = useState<'stock' | 'orders'>('stock');
   const [adminQuoteNotifications, setAdminQuoteNotifications] = useState(0);
+  const [contactMessageNotifications, setContactMessageNotifications] = useState(0);
 
   useEffect(() => {
     async function fetchLowStock() {
@@ -103,6 +105,25 @@ const AdminLayout = () => {
       }
     };
     fetchAdminQuoteNotifications();
+    
+    const fetchContactMessageNotifications = async () => {
+      if (user?.role !== 'admin' && user?.role !== 'superadmin') return;
+      try {
+        const res = await fetch('/api/contact/messages?status=new', {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        if (!res.ok) {
+          console.error("Failed to fetch contact messages:", res.status, res.statusText);
+          return;
+        }
+        const data = await res.json();
+        const newMessages = data.messages?.filter((m: any) => m.status === 'new') || [];
+        setContactMessageNotifications(newMessages.length);
+      } catch (error) {
+        console.error("Failed to fetch contact message notifications:", error);
+      }
+    };
+    fetchContactMessageNotifications();
   }, [user]);
 
   const menuItems = [
@@ -113,6 +134,7 @@ const AdminLayout = () => {
     { path: '/admin/quotes', icon: Bell, label: 'Quotes' },
     { path: '/admin/users', icon: Users, label: 'Users' },
     { path: '/admin/reviews', icon: MessageSquare, label: 'Reviews' },
+    { path: '/admin/contact-messages', icon: MessageCircle, label: 'Contact Messages' },
     { path: '/admin/newsletter', icon: Mail, label: 'Newsletter' },
     { path: '/admin/blogs', icon: BookOpen, label: 'Blogs' },
     // Superadmin only items
@@ -203,6 +225,11 @@ const AdminLayout = () => {
                   {item.path === '/admin/quotes' && adminQuoteNotifications > 0 && (
                     <span className="ml-auto inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
                       {adminQuoteNotifications}
+                    </span>
+                  )}
+                  {item.path === '/admin/contact-messages' && contactMessageNotifications > 0 && (
+                    <span className="ml-auto inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
+                      {contactMessageNotifications}
                     </span>
                   )}
                 </Link>

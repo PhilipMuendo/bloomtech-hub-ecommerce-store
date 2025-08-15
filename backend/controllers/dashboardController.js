@@ -5,12 +5,22 @@ const { Product, Order, User, Review, Newsletter, Quote, OrderItem } = db;
 // GET /api/dashboard/summary
 export const getDashboardSummary = async (req, res, next) => {
   try {
+    const { startDate, endDate } = req.query;
+    
+    // Build date filter
+    const dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter.createdAt = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      };
+    }
+
     const [totalProducts, totalOrders, totalUsers, totalReviews, totalRevenue, totalSubscribers] = await Promise.all([
       Product.count(),
-      Order.count(),
-      User.count(),
-      Review.count(),
-      Order.sum('total'),
+      Order.count({ where: dateFilter }),
+      User.count({ where: dateFilter }),
+      Review.count({ where: dateFilter }),
+      Order.sum('total', { where: dateFilter }),
       Newsletter.count(),
     ]);
     res.json({ totalProducts, totalOrders, totalUsers, totalReviews, revenue: totalRevenue, subscribers: totalSubscribers });
@@ -25,19 +35,27 @@ export const getQuoteSummary = async (req, res, next) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    const [pendingQuotes, closedThisMonth] = await Promise.all([
+    const { startDate, endDate } = req.query;
+    
+    // Build date filter
+    const dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter.updatedAt = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      };
+    }
+
+    const [pendingQuotes, closedQuotes] = await Promise.all([
       Quote.count({ where: { status: 'pending' } }),
       Quote.count({
         where: {
           status: 'closed',
-          updatedAt: {
-            [Op.gte]: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-          },
+          ...dateFilter
         },
       }),
     ]);
 
-    res.json({ pendingQuotes, closedThisMonth });
+    res.json({ pendingQuotes, closedThisMonth: closedQuotes });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch quote summary', error: err.message });
   }
@@ -45,27 +63,45 @@ export const getQuoteSummary = async (req, res, next) => {
 
 export const getRevenueTrend = async (req, res, next) => {
   try {
-    const now = new Date();
-    const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({
-        label: d.toLocaleString('default', { month: 'short' }),
-        year: d.getFullYear(),
-        month: d.getMonth(),
-      });
+    const { startDate, endDate } = req.query;
+    
+    let start, end;
+    if (startDate && endDate) {
+      start = new Date(startDate);
+      end = new Date(endDate);
+    } else {
+      // Default to last 6 months if no date range provided
+      end = new Date();
+      start = new Date(end.getFullYear(), end.getMonth() - 5, 1);
     }
-    const startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+    // Generate monthly data points within the date range
+    const months = [];
+    const current = new Date(start);
+    while (current <= end) {
+      months.push({
+        label: current.toLocaleString('default', { month: 'short' }),
+        year: current.getFullYear(),
+        month: current.getMonth(),
+      });
+      current.setMonth(current.getMonth() + 1);
+    }
+
     const data = await Order.findAll({
       attributes: [
         [fn('YEAR', sequelize.col('createdAt')), 'year'],
         [fn('MONTH', sequelize.col('createdAt')), 'month'],
         [fn('SUM', sequelize.col('total')), 'revenue'],
       ],
-      where: { createdAt: { [Op.gte]: startDate } },
+      where: { 
+        createdAt: { 
+          [Op.between]: [start, end] 
+        } 
+      },
       group: [fn('YEAR', sequelize.col('createdAt')), fn('MONTH', sequelize.col('createdAt'))],
       raw: true,
     });
+
     const trend = months.map(({ label, year, month }) => {
       const found = data.find(d => d.year == year && d.month == month + 1);
       return { month: label, revenue: found ? parseFloat(found.revenue) : 0 };
@@ -79,12 +115,29 @@ export const getRevenueTrend = async (req, res, next) => {
 // GET /api/dashboard/orders-by-category
 export const getOrdersByCategory = async (req, res) => {
   try {
+    const { startDate, endDate } = req.query;
+    
+    // Build date filter for orders
+    const orderDateFilter = {};
+    if (startDate && endDate) {
+      orderDateFilter.createdAt = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      };
+    }
+
     // Define the 4 main categories
     const mainCategories = ['security', 'ict', 'electrical', 'power'];
     
-    // Group orders by product category
+    // Group orders by product category with date filter
     const orderItems = await OrderItem.findAll({
-      include: [{ model: Product, attributes: ['category'] }],
+      include: [{ 
+        model: Product, 
+        attributes: ['category'] 
+      }, {
+        model: Order,
+        where: orderDateFilter,
+        required: true
+      }],
       raw: true,
     });
     
@@ -118,27 +171,45 @@ export const getOrdersByCategory = async (req, res) => {
 // GET /api/dashboard/user-signups
 export const getUserSignups = async (req, res) => {
   try {
-    const now = new Date();
-    const months = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push({
-        label: d.toLocaleString('default', { month: 'short' }),
-        year: d.getFullYear(),
-        month: d.getMonth(),
-      });
+    const { startDate, endDate } = req.query;
+    
+    let start, end;
+    if (startDate && endDate) {
+      start = new Date(startDate);
+      end = new Date(endDate);
+    } else {
+      // Default to last 6 months if no date range provided
+      end = new Date();
+      start = new Date(end.getFullYear(), end.getMonth() - 5, 1);
     }
-    const startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+    // Generate monthly data points within the date range
+    const months = [];
+    const current = new Date(start);
+    while (current <= end) {
+      months.push({
+        label: current.toLocaleString('default', { month: 'short' }),
+        year: current.getFullYear(),
+        month: current.getMonth(),
+      });
+      current.setMonth(current.getMonth() + 1);
+    }
+
     const data = await User.findAll({
       attributes: [
         [fn('YEAR', sequelize.col('createdAt')), 'year'],
         [fn('MONTH', sequelize.col('createdAt')), 'month'],
         [fn('COUNT', sequelize.col('id')), 'signups'],
       ],
-      where: { createdAt: { [Op.gte]: startDate } },
+      where: { 
+        createdAt: { 
+          [Op.between]: [start, end] 
+        } 
+      },
       group: [fn('YEAR', sequelize.col('createdAt')), fn('MONTH', sequelize.col('createdAt'))],
       raw: true,
     });
+
     const trend = months.map(({ label, year, month }) => {
       const found = data.find(d => d.year == year && d.month == month + 1);
       return { month: label, signups: found ? parseInt(found.signups) : 0 };

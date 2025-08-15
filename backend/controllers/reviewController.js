@@ -39,6 +39,37 @@ export const createReview = async (req, res) => {
       return res.status(400).json({ error: 'Missing fields' });
     }
     
+    // Check if user has already reviewed this product
+    const existingReview = await Review.findOne({
+      where: { productId, userId: req.user.id }
+    });
+    
+    if (existingReview) {
+      return res.status(400).json({ 
+        error: 'You have already reviewed this product' 
+      });
+    }
+    
+    // Check if user has purchased and received this product
+    const { Order, OrderItem } = db;
+    const deliveredOrder = await Order.findOne({
+      where: {
+        userId: req.user.id,
+        status: 'delivered'
+      },
+      include: [{
+        model: OrderItem,
+        where: { productId },
+        required: true
+      }]
+    });
+    
+    if (!deliveredOrder) {
+      return res.status(403).json({ 
+        error: 'You can only review products you have purchased and received. Please ensure your order has been delivered before leaving a review.' 
+      });
+    }
+    
     const review = await Review.create({
       productId,
       userId: req.user.id,
@@ -66,6 +97,50 @@ export const getProductReviews = async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
     res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// GET /api/reviews/can-review/:productId (check if user can review a product)
+export const canReviewProduct = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    
+    // Check if user has already reviewed this product
+    const existingReview = await Review.findOne({
+      where: { productId, userId: req.user.id }
+    });
+    
+    if (existingReview) {
+      return res.json({ 
+        canReview: false, 
+        reason: 'You have already reviewed this product' 
+      });
+    }
+    
+    // Check if user has purchased and received this product
+    const { Order, OrderItem } = db;
+    const deliveredOrder = await Order.findOne({
+      where: {
+        userId: req.user.id,
+        status: 'delivered'
+      },
+      include: [{
+        model: OrderItem,
+        where: { productId },
+        required: true
+      }]
+    });
+    
+    if (!deliveredOrder) {
+      return res.json({ 
+        canReview: false, 
+        reason: 'You can only review products you have purchased and received. Please ensure your order has been delivered before leaving a review.' 
+      });
+    }
+    
+    res.json({ canReview: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

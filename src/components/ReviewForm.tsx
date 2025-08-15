@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Star } from 'lucide-react';
+import { Star, CheckCircle, AlertCircle } from 'lucide-react';
 import { useReviews } from '@/hooks/useReviews';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
@@ -24,6 +24,9 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [hoveredRating, setHoveredRating] = useState(0);
+  const [canReview, setCanReview] = useState<boolean | null>(null);
+  const [reviewReason, setReviewReason] = useState<string>('');
+  const [checkingReview, setCheckingReview] = useState(true);
   const { addReview } = useReviews(productId);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -33,16 +36,69 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId }) => {
     defaultValues: { rating: 0, comment: '' },
   });
 
+  // Check if user can review this product
+  useEffect(() => {
+    const checkCanReview = async () => {
+      if (!user) {
+        setCanReview(false);
+        setReviewReason('Please log in to write a review');
+        setCheckingReview(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/reviews/can-review/${productId}`, {
+          headers: {
+            'Authorization': `Bearer ${user.token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setCanReview(data.canReview);
+          setReviewReason(data.reason || '');
+        } else {
+          setCanReview(false);
+          setReviewReason('Unable to verify review eligibility');
+        }
+      } catch (error) {
+        setCanReview(false);
+        setReviewReason('Unable to verify review eligibility');
+      } finally {
+        setCheckingReview(false);
+      }
+    };
+
+    checkCanReview();
+  }, [user, productId]);
+
   const onSubmit = async (data: { rating: number; comment: string }) => {
     if (!user) return;
     try {
       await addReview(data.rating, data.comment);
       reset();
       toast({ title: "Review submitted successfully!" });
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to submit review", variant: "destructive" });
+    } catch (error: any) {
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to submit review", 
+        variant: "destructive" 
+      });
     }
   };
+
+  if (checkingReview) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Write a Review</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">Checking review eligibility...</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!user) {
     return (
@@ -58,12 +114,42 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ productId }) => {
     );
   }
 
+  if (!canReview) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Write a Review</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5" />
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">{reviewReason}</p>
+              <p className="text-xs text-muted-foreground">
+                Reviews are only available for products you have purchased and received. 
+                Once your order is delivered, you'll be able to leave a review.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Write a Review</CardTitle>
       </CardHeader>
       <CardContent>
+        <div className="flex items-start gap-3 mb-4">
+          <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
+          <div>
+            <p className="text-sm text-muted-foreground">
+              You can review this product because you have purchased and received it.
+            </p>
+          </div>
+        </div>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Label>Rating</Label>

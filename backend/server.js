@@ -36,6 +36,7 @@ import newsletterRoutes from './routes/newsletterRoutes.js';
 import quoteRoutes from './routes/quoteRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
 import subcategoryRoutes from './routes/subcategoryRoutes.js';
+import contactRoutes from './routes/contactRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -98,6 +99,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api', newsletterRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/contact', contactRoutes);
 app.use('/api/subcategories', subcategoryRoutes);
 
 // 404 handler (should be before error handler)

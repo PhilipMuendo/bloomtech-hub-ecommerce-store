@@ -50,6 +50,7 @@ const Newsletter = lazy(() => import("./pages/admin/Newsletter"));
 const AdminBlogs = lazy(() => import('./pages/admin/AdminBlogs'));
 const LowStockProducts = lazy(() => import('./pages/admin/LowStockProducts'));
 const Quotes = lazy(() => import("./pages/admin/Quotes"));
+const ContactMessages = lazy(() => import("./pages/admin/ContactMessages"));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 
 const PesapalTransactions = lazy(() => import("./pages/admin/PesapalTransactions"));
@@ -320,6 +321,11 @@ const AnimatedRoutes = () => {
           <Route path="reviews" element={
             <Suspense fallback={<LoadingSpinner />}>
               <Reviews />
+            </Suspense>
+          } />
+          <Route path="contact-messages" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <ContactMessages />
             </Suspense>
           } />
           <Route path="newsletter" element={

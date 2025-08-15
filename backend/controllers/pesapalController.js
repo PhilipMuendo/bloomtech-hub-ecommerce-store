@@ -121,10 +121,21 @@ export const initiatePayment = async (req, res) => {
     }
 
     // Validate user authentication
-    if (!req.user) {
+    if (!req.user || !req.user.id) {
+      console.log('❌ User authentication failed:', { user: req.user });
       return res.status(401).json({
         error: 'Authentication required',
         message: 'User must be logged in to make payments'
+      });
+    }
+
+    // Verify user exists in database
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      console.log('❌ User not found in database:', req.user.id);
+      return res.status(401).json({
+        error: 'User not found',
+        message: 'User account not found. Please log in again.'
       });
     }
 
@@ -255,6 +266,7 @@ export const initiatePayment = async (req, res) => {
     if (response.data.status === '200' && response.data.redirect_url) {
       try {
         // Create transaction record
+        console.log('📝 Creating transaction record with userId:', req.user.id);
         const transaction = await Transaction.create({
           orderId: orderIdString,
           userId: req.user.id,
@@ -295,6 +307,16 @@ export const initiatePayment = async (req, res) => {
         });
       } catch (dbError) {
         console.error('❌ Database error:', dbError.message);
+        console.error('📋 Database error details:', dbError);
+        
+        // Check if it's a foreign key constraint error
+        if (dbError.name === 'SequelizeForeignKeyConstraintError') {
+          return res.status(500).json({
+            error: 'User validation error',
+            message: 'User account validation failed. Please log in again.'
+          });
+        }
+        
         return res.status(500).json({
           error: 'Database error',
           message: 'Failed to create transaction record'

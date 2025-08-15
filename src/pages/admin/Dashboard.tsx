@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
+import { DateRange } from 'react-day-picker';
+import { addDays } from 'date-fns';
 import {
   Package,
   ShoppingCart,
@@ -51,7 +53,10 @@ const OrdersByCategoryTooltip = ({ active, payload, totalOrders }: any) => {
 };
 
 const Dashboard = () => {
-  const [dateRange, setDateRange] = useState('last30days');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: addDays(new Date(), -30),
+    to: new Date(),
+  });
   const [stats, setStats] = useState(null);
   const [revenueData, setRevenueData] = useState([]);
   const [ordersByCategoryData, setOrdersByCategoryData] = useState([]);
@@ -84,12 +89,22 @@ const Dashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         };
+
+        // Build query parameters for date range
+        const params = new URLSearchParams();
+        if (dateRange?.from) {
+          params.append('startDate', dateRange.from.toISOString());
+        }
+        if (dateRange?.to) {
+          params.append('endDate', dateRange.to.toISOString());
+        }
+
         const fetchOptions = { method: 'GET', headers };
         const [summaryRes, revenueRes, ordersCatRes, signupsRes] = await Promise.all([
-          fetch('/api/dashboard/summary', fetchOptions),
-          fetch('/api/dashboard/revenue-trend', fetchOptions),
-          fetch('/api/dashboard/orders-by-category', fetchOptions),
-          fetch('/api/dashboard/user-signups', fetchOptions),
+          fetch(`/api/dashboard/summary?${params.toString()}`, fetchOptions),
+          fetch(`/api/dashboard/revenue-trend?${params.toString()}`, fetchOptions),
+          fetch(`/api/dashboard/orders-by-category?${params.toString()}`, fetchOptions),
+          fetch(`/api/dashboard/user-signups?${params.toString()}`, fetchOptions),
         ]);
         if (!summaryRes.ok || !revenueRes.ok || !ordersCatRes.ok || !signupsRes.ok) {
           throw new Error('Failed to fetch dashboard data');
@@ -128,7 +143,17 @@ const Dashboard = () => {
       try {
         const userObj = JSON.parse(localStorage.getItem('user') || '{}');
         const token = userObj.token;
-        const res = await fetch('/api/dashboard/quote-summary', {
+        
+        // Build query parameters for date range
+        const params = new URLSearchParams();
+        if (dateRange?.from) {
+          params.append('startDate', dateRange.from.toISOString());
+        }
+        if (dateRange?.to) {
+          params.append('endDate', dateRange.to.toISOString());
+        }
+        
+        const res = await fetch(`/api/dashboard/quote-summary?${params.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -210,6 +235,23 @@ const Dashboard = () => {
     </Card>
   );
 
+  // Helper function to get date range description
+  const getDateRangeDescription = () => {
+    if (!dateRange?.from || !dateRange?.to) return 'All time';
+    
+    const from = dateRange.from;
+    const to = dateRange.to;
+    const diffTime = Math.abs(to.getTime() - from.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return 'Today';
+    if (diffDays <= 7) return 'This week';
+    if (diffDays <= 31) return 'This month';
+    if (diffDays <= 90) return 'This quarter';
+    if (diffDays <= 365) return 'This year';
+    return 'Selected period';
+  };
+
   const totalOrdersByCategory = ordersByCategoryData.reduce((sum, cat) => sum + (cat.orders || 0), 0);
 
   return (
@@ -237,18 +279,10 @@ const Dashboard = () => {
               <p className="text-muted-foreground text-sm sm:text-base">Welcome to BLOOMTECH Hub Admin</p>
             </div>
             <div className="flex items-center space-x-2 mt-2 sm:mt-0">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <Select value={dateRange} onValueChange={setDateRange}>
-                <SelectTrigger className="w-32 sm:w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="last7days">Last 7 Days</SelectItem>
-                  <SelectItem value="last30days">Last 30 Days</SelectItem>
-                  <SelectItem value="last3months">Last 3 Months</SelectItem>
-                  <SelectItem value="thisyear">This Year</SelectItem>
-                </SelectContent>
-              </Select>
+              <DateRangePicker
+                dateRange={dateRange}
+                onDateRangeChange={setDateRange}
+              />
             </div>
           </div>
 
@@ -298,7 +332,7 @@ const Dashboard = () => {
                   title="Quotes Closed"
                   value={quoteStats.closedThisMonth}
                   icon={CheckSquare}
-                  description="This month"
+                  description={getDateRangeDescription()}
                   color="bg-blue-500"
                 />
                 <StatCard

@@ -51,7 +51,12 @@ export const useReviews = (productId: string) => {
         },
         body: JSON.stringify({ productId, rating, comment })
       });
-      if (!res.ok) throw new Error('Failed to submit review');
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to submit review');
+      }
+      
       await fetchReviews(); // Refresh reviews after adding
     } finally {
       setLoading(false);
