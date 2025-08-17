@@ -62,6 +62,11 @@ const sanitizeString = (str) => {
 
 // SQL Injection Protection
 export const sqlInjectionProtection = (req, res, next) => {
+  // Skip for contact form submissions to avoid false positives
+  if (req.path === '/api/contact' && req.method === 'POST') {
+    return next();
+  }
+  
   const sqlPatterns = [
     /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/i,
     /(\b(OR|AND)\b\s+\d+\s*=\s*\d+)/i,

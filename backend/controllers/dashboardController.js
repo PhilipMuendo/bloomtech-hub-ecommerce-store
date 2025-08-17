@@ -63,19 +63,11 @@ export const getQuoteSummary = async (req, res, next) => {
 
 export const getRevenueTrend = async (req, res, next) => {
   try {
-    const { startDate, endDate } = req.query;
-    
-    let start, end;
-    if (startDate && endDate) {
-      start = new Date(startDate);
-      end = new Date(endDate);
-    } else {
-      // Default to last 6 months if no date range provided
-      end = new Date();
-      start = new Date(end.getFullYear(), end.getMonth() - 5, 1);
-    }
+    // Always show last 6 months regardless of date range picker
+    const end = new Date();
+    const start = new Date(end.getFullYear(), end.getMonth() - 5, 1);
 
-    // Generate monthly data points within the date range
+    // Generate monthly data points for the last 6 months
     const months = [];
     const current = new Date(start);
     while (current <= end) {

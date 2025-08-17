@@ -1,3 +1,5 @@
+"use client"
+
 import * as React from "react"
 import { CalendarIcon } from "lucide-react"
 import { addDays, format } from "date-fns"
@@ -12,17 +14,37 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-interface DateRangePickerProps {
-  dateRange: DateRange | undefined
-  onDateRangeChange: (range: DateRange | undefined) => void
-  className?: string
+interface DateRangePickerProps extends React.ComponentProps<"div"> {
+  date?: DateRange
+  onDateChange?: (date: DateRange | undefined) => void
 }
 
 export function DateRangePicker({
-  dateRange,
-  onDateRangeChange,
   className,
+  date,
+  onDateChange,
 }: DateRangePickerProps) {
+  const [selectedRange, setSelectedRange] = React.useState<DateRange | undefined>(
+    date
+  )
+
+  React.useEffect(() => {
+    setSelectedRange(date)
+  }, [date])
+
+  const handleDateSelect = (range: DateRange | undefined) => {
+    setSelectedRange(range)
+    onDateChange?.(range)
+  }
+
+  const quickSelect = (days: number) => {
+    const end = new Date()
+    const start = addDays(end, -days + 1)
+    const range = { from: start, to: end }
+    setSelectedRange(range)
+    onDateChange?.(range)
+  }
+
   return (
     <div className={cn("grid gap-2", className)}>
       <Popover>
@@ -32,71 +54,56 @@ export function DateRangePicker({
             variant={"outline"}
             className={cn(
               "w-[260px] justify-start text-left font-normal",
-              !dateRange && "text-muted-foreground"
+              !selectedRange && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {dateRange?.from ? (
-              dateRange.to ? (
+            {selectedRange?.from ? (
+              selectedRange.to ? (
                 <>
-                  {format(dateRange.from, "LLL dd, y")} -{" "}
-                  {format(dateRange.to, "LLL dd, y")}
+                  {format(selectedRange.from, "LLL dd, y")} -{" "}
+                  {format(selectedRange.to, "LLL dd, y")}
                 </>
               ) : (
-                format(dateRange.from, "LLL dd, y")
+                format(selectedRange.from, "LLL dd, y")
               )
             ) : (
               <span>Pick a date range</span>
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="end">
+        <PopoverContent className="w-auto p-0" align="start">
           <Calendar
             initialFocus
             mode="range"
-            defaultMonth={dateRange?.from}
-            selected={dateRange}
-            onSelect={onDateRangeChange}
-            numberOfMonths={2}
+            defaultMonth={selectedRange?.from}
+            selected={selectedRange}
+            onSelect={handleDateSelect}
+            numberOfMonths={1}
           />
           <div className="p-3 border-t">
-            <div className="flex gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  const today = new Date()
-                  onDateRangeChange({
-                    from: addDays(today, -7),
-                    to: today,
-                  })
-                }}
+                onClick={() => quickSelect(7)}
+                className="text-xs"
               >
                 Last 7 days
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  const today = new Date()
-                  onDateRangeChange({
-                    from: addDays(today, -30),
-                    to: today,
-                  })
-                }}
+                onClick={() => quickSelect(30)}
+                className="text-xs"
               >
                 Last 30 days
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  const today = new Date()
-                  onDateRangeChange({
-                    from: addDays(today, -90),
-                    to: today,
-                  })
-                }}
+                onClick={() => quickSelect(90)}
+                className="text-xs"
               >
                 Last 3 months
               </Button>

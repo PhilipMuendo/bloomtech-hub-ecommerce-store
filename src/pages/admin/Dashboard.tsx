@@ -102,7 +102,7 @@ const Dashboard = () => {
         const fetchOptions = { method: 'GET', headers };
         const [summaryRes, revenueRes, ordersCatRes, signupsRes] = await Promise.all([
           fetch(`/api/dashboard/summary?${params.toString()}`, fetchOptions),
-          fetch(`/api/dashboard/revenue-trend?${params.toString()}`, fetchOptions),
+          fetch(`/api/dashboard/revenue-trend`, fetchOptions), // Revenue trend always shows last 6 months
           fetch(`/api/dashboard/orders-by-category?${params.toString()}`, fetchOptions),
           fetch(`/api/dashboard/user-signups?${params.toString()}`, fetchOptions),
         ]);
@@ -273,17 +273,13 @@ const Dashboard = () => {
       ) : (
         <>
           {/* Header with Date Filter */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Dashboard</h1>
-              <p className="text-muted-foreground text-sm sm:text-base">Welcome to BLOOMTECH Hub Admin</p>
-            </div>
-            <div className="flex items-center space-x-2 mt-2 sm:mt-0">
-              <DateRangePicker
-                dateRange={dateRange}
-                onDateRangeChange={setDateRange}
-              />
-            </div>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <DateRangePicker
+              date={dateRange}
+              onDateChange={setDateRange}
+              className="w-auto"
+            />
           </div>
 
           {/* Animated Stats Cards */}
