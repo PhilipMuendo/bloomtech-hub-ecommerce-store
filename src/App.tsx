@@ -38,6 +38,9 @@ const ReturnsRefunds = lazy(() => import('./pages/ReturnsRefunds'));
 const Shipping = lazy(() => import("./pages/Shipping"));
 const MyQuotes = lazy(() => import('./pages/MyQuotes'));
 const CustomCheckout = lazy(() => import('./pages/CustomCheckout'));
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
+const PaymentFailure = lazy(() => import('./pages/PaymentFailure'));
+const TestProductCreation = lazy(() => import('./pages/admin/TestProductCreation'));
 
 // Lazy load admin pages separately for better code splitting
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
@@ -278,6 +281,21 @@ const AnimatedRoutes = () => {
             <CustomCheckout />
           </Suspense>
         } />
+        <Route path="/payment-success" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <PaymentSuccess />
+          </Suspense>
+        } />
+                    <Route path="/payment-failure" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <PaymentFailure />
+              </Suspense>
+            } />
+            <Route path="/test-product-creation" element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <TestProductCreation />
+              </Suspense>
+            } />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/verify-email" element={<Suspense fallback={<div>Loading...</div>}><VerifyEmail /></Suspense>} />
         <Route path="/resend-verification" element={<Suspense fallback={<div>Loading...</div>}><ResendVerification /></Suspense>} />

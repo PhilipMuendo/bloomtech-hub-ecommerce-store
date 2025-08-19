@@ -270,7 +270,7 @@ const Account = () => {
                     </p>
                   )}
                                      <p className="text-xs text-gray-500">
-                     Required for Pesapal payments. Format: 254740505584, +254740505584, or 0740505584
+                     Required for payment processing. Format: 254740505584, +254740505584, or 0740505584
                    </p>
                 </div>
 

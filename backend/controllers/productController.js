@@ -9,14 +9,6 @@ const { Product } = db;
 const fixImageUrl = (imageUrl, req) => {
   if (!imageUrl) return imageUrl;
   
-  console.log('🔍 Fixing image URL:', imageUrl);
-  console.log('🔍 Request headers:', {
-    host: req.get('host'),
-    forwardedHost: req.get('x-forwarded-host'),
-    forwardedProto: req.get('x-forwarded-proto'),
-    userAgent: req.get('user-agent')
-  });
-  
   // If it's already a full URL, check if it needs to be updated for ngrok
   if (imageUrl.startsWith('http://localhost') || imageUrl.startsWith('https://localhost')) {
     const forwardedHost = req.get('x-forwarded-host');
@@ -26,14 +18,17 @@ const fixImageUrl = (imageUrl, req) => {
       // Replace localhost with ngrok URL
       const ngrokUrl = `${forwardedProto}://${forwardedHost}`;
       const fixedUrl = imageUrl.replace(/https?:\/\/localhost:\d+/, ngrokUrl);
-      console.log('✅ Fixed URL:', fixedUrl);
       return fixedUrl;
-    } else {
-      console.log('❌ No ngrok headers found');
     }
   }
   
-  console.log('🔄 Returning original URL:', imageUrl);
+  // If it's a relative path, make it absolute
+  if (imageUrl.startsWith('/')) {
+    const host = req.get('x-forwarded-host') || req.get('host');
+    const protocol = req.get('x-forwarded-proto') || req.protocol;
+    return `${protocol}://${host}${imageUrl}`;
+  }
+  
   return imageUrl;
 };
 
@@ -79,10 +74,33 @@ export const getAllProducts = async (req, res, next) => {
       limit: parseInt(limit)
     });
     
-    // Fix image URLs for ngrok access
+    // Fix image URLs for ngrok access and decode HTML entities
     const productsWithFixedUrls = products.map(product => {
       const productData = product.toJSON();
+      
+      // Decode HTML entities in imageUrl
+      if (productData.imageUrl) {
+        productData.imageUrl = productData.imageUrl
+          .replace(/&amp;amp;/g, '&')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#x2F;/g, '/');
+      }
+      
       productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+      
+      // Decode HTML entities in description
+      if (productData.description) {
+        productData.description = productData.description
+          .replace(/&amp;amp;/g, '&')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#x2F;/g, '/');
+      }
       return productData;
     });
     
@@ -107,7 +125,30 @@ export const getProductById = async (req, res, next) => {
     }
     
     const productData = product.toJSON();
+    
+    // Decode HTML entities in imageUrl
+    if (productData.imageUrl) {
+      productData.imageUrl = productData.imageUrl
+        .replace(/&amp;amp;/g, '&')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#x2F;/g, '/');
+    }
+    
     productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+    
+    // Decode HTML entities in description
+    if (productData.description) {
+      productData.description = productData.description
+        .replace(/&amp;amp;/g, '&')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#x2F;/g, '/');
+    }
     res.json(productData);
   } catch (err) {
     next(err);
@@ -205,10 +246,33 @@ export const getFeaturedProducts = async (req, res, next) => {
       limit: 10
     });
     
-    // Fix image URLs for ngrok access
+    // Fix image URLs for ngrok access and decode HTML entities
     const productsWithFixedUrls = products.map(product => {
       const productData = product.toJSON();
+      
+      // Decode HTML entities in imageUrl
+      if (productData.imageUrl) {
+        productData.imageUrl = productData.imageUrl
+          .replace(/&amp;amp;/g, '&')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#x2F;/g, '/');
+      }
+      
       productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+      
+      // Decode HTML entities in description
+      if (productData.description) {
+        productData.description = productData.description
+          .replace(/&amp;amp;/g, '&')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#x2F;/g, '/');
+      }
       return productData;
     });
     
@@ -243,10 +307,33 @@ export const searchProducts = async (req, res, next) => {
     
     const products = await Product.findAll({ where });
     
-    // Fix image URLs for ngrok access
+    // Fix image URLs for ngrok access and decode HTML entities
     const productsWithFixedUrls = products.map(product => {
       const productData = product.toJSON();
+      
+      // Decode HTML entities in imageUrl
+      if (productData.imageUrl) {
+        productData.imageUrl = productData.imageUrl
+          .replace(/&amp;amp;/g, '&')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#x2F;/g, '/');
+      }
+      
       productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+      
+      // Decode HTML entities in description
+      if (productData.description) {
+        productData.description = productData.description
+          .replace(/&amp;amp;/g, '&')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#x2F;/g, '/');
+      }
       return productData;
     });
     
@@ -263,24 +350,58 @@ export const exportProducts = async (req, res, next) => {
       attributes: ['id', 'name', 'description', 'price', 'category', 'subcategory', 'stock', 'featured', 'createdAt', 'updatedAt']
     });
     
-    const fields = [
-      'id', 
-      'name', 
-      'description', 
-      'price', 
-      'category', 
-      'subcategory', 
-      'stock', 
-      'featured', 
-      'createdAt', 
-      'updatedAt'
-    ];
-    const json2csvParser = new Json2csvParser({ fields });
-    const csv = json2csvParser.parse(products);
+    // Helper function to format currency
+    const formatCurrency = (amount) => {
+      return new Intl.NumberFormat('en-KE', {
+        style: 'currency',
+        currency: 'KES',
+        minimumFractionDigits: 0
+      }).format(amount);
+    };
+
+    // Transform data for CSV export
+    const csvData = products.map(product => {
+      const productData = product.toJSON();
+      return {
+        'Product ID': productData.id,
+        'Name': productData.name,
+        'Description': productData.description,
+        'Price (KES)': formatCurrency(productData.price),
+        'Category': productData.category,
+        'Subcategory': productData.subcategory,
+        'Stock': productData.stock,
+        'Featured': productData.featured ? 'Yes' : 'No',
+        'Created Date': new Date(productData.createdAt).toLocaleDateString('en-KE'),
+        'Last Updated': new Date(productData.updatedAt).toLocaleDateString('en-KE')
+      };
+    });
     
-    res.header('Content-Type', 'text/csv');
+    const fields = [
+      'Product ID', 
+      'Name', 
+      'Description', 
+      'Price (KES)', 
+      'Category', 
+      'Subcategory', 
+      'Stock', 
+      'Featured', 
+      'Created Date', 
+      'Last Updated'
+    ];
+    
+    const json2csvParser = new Json2csvParser({ 
+      fields,
+      quote: '"',
+      escapedQuote: '""',
+      delimiter: ','
+    });
+    const csv = json2csvParser.parse(csvData);
+    
+    // Add BOM for proper UTF-8 encoding in Excel
+    const BOM = '\uFEFF';
+    res.header('Content-Type', 'text/csv; charset=utf-8');
     res.attachment('products.csv');
-    res.send(csv);
+    res.send(BOM + csv);
   } catch (err) {
     next(err);
   }
@@ -297,10 +418,33 @@ export const getLowStockProducts = async (req, res, next) => {
       order: [['stock', 'ASC']]
     });
     
-    // Fix image URLs for ngrok access
+    // Fix image URLs for ngrok access and decode HTML entities
     const productsWithFixedUrls = products.map(product => {
       const productData = product.toJSON();
+      
+      // Decode HTML entities in imageUrl
+      if (productData.imageUrl) {
+        productData.imageUrl = productData.imageUrl
+          .replace(/&amp;amp;/g, '&')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#x2F;/g, '/');
+      }
+      
       productData.imageUrl = fixImageUrl(productData.imageUrl, req);
+      
+      // Decode HTML entities in description
+      if (productData.description) {
+        productData.description = productData.description
+          .replace(/&amp;amp;/g, '&')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#x2F;/g, '/');
+      }
       return productData;
     });
     

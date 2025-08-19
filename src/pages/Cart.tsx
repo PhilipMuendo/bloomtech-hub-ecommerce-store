@@ -8,7 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import NewsletterForm from '@/components/NewsletterForm';
 
 import PesapalPaymentModal from '@/components/PesapalPaymentModal';
-import PaymentMethodSelector from '@/components/PaymentMethodSelector';
+import PaymentConfirmation from '@/components/PaymentMethodSelector';
 import GetQuoteModal from '@/components/GetQuoteModal';
 import { Tag } from 'lucide-react';
 
@@ -20,13 +20,13 @@ const Cart = () => {
   const [showPesapalModal, setShowPesapalModal] = React.useState(false);
   const [currentOrderId, setCurrentOrderId] = React.useState('');
   const [showQuote, setShowQuote] = React.useState(false);
-  const [showPaymentSelector, setShowPaymentSelector] = React.useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = React.useState('');
+  const [showPaymentConfirmation, setShowPaymentConfirmation] = React.useState(false);
+
   const [isProcessingOrder, setIsProcessingOrder] = React.useState(false);
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    // If returning from shipping info, show payment selector after order creation
+    // If returning from shipping info, show payment confirmation after order creation
     const params = new URLSearchParams(window.location.search);
     if (params.get('shipping') === 'done') {
       handleOrderWithShipping();
@@ -67,8 +67,8 @@ const Cart = () => {
     localStorage.setItem('pendingOrderData', JSON.stringify(orderData));
     localStorage.removeItem('pickupPoint');
     
-    // Show payment selector
-    setShowPaymentSelector(true);
+    // Show payment confirmation
+    setShowPaymentConfirmation(true);
   };
 
   const handleCheckout = () => {
@@ -84,19 +84,14 @@ const Cart = () => {
     navigate('/shipping');
   };
 
-  const handlePaymentMethodSelect = (method: string) => {
-    setSelectedPaymentMethod(method);
-  };
-
   const handlePaymentProceed = () => {
     // Generate a temporary order ID for payment processing
     const tempOrderId = `TEMP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     setCurrentOrderId(tempOrderId);
     
-    if (selectedPaymentMethod === 'pesapal') {
-      setShowPesapalModal(true);
-      setShowPaymentSelector(false);
-    }
+    // Since there's only one payment method, proceed directly to payment
+    setShowPesapalModal(true);
+    setShowPaymentConfirmation(false);
   };
 
   const handlePaymentSuccess = () => {
@@ -248,16 +243,14 @@ const Cart = () => {
         </div>
       </div>
 
-      {/* Payment Method Selector Modal */}
-      {showPaymentSelector && (
+      {/* Payment Confirmation Modal */}
+      {showPaymentConfirmation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-md">
             <CardContent className="p-6">
-              <PaymentMethodSelector
-                selectedMethod={selectedPaymentMethod}
-                onMethodChange={handlePaymentMethodSelect}
+              <PaymentConfirmation
                 onProceed={handlePaymentProceed}
-                onCancel={() => setShowPaymentSelector(false)}
+                onCancel={() => setShowPaymentConfirmation(false)}
                 amount={getTotalPrice()}
                 disabled={isProcessingOrder}
               />

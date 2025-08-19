@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 
 import PesapalPaymentModal from '@/components/PesapalPaymentModal';
-import PaymentMethodSelector from '@/components/PaymentMethodSelector';
+import PaymentConfirmation from '@/components/PaymentMethodSelector';
 import { useToast } from '@/hooks/use-toast';
 
 const CustomCheckout = () => {
@@ -20,7 +20,7 @@ const CustomCheckout = () => {
 
   const [showPesapal, setShowPesapal] = useState(false);
   const [showPaymentSelector, setShowPaymentSelector] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
+
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -55,15 +55,10 @@ const CustomCheckout = () => {
     if (orderId) fetchOrder();
   }, [user, orderId]);
 
-  const handlePaymentMethodSelect = (method: string) => {
-    setSelectedPaymentMethod(method);
-  };
-
   const handlePaymentProceed = () => {
-    if (selectedPaymentMethod === 'pesapal') {
-      setShowPesapal(true);
-      setShowPaymentSelector(false);
-    }
+    // Since there's only one payment method, proceed directly to payment
+    setShowPesapal(true);
+    setShowPaymentSelector(false);
   };
 
   const handlePaymentSuccess = () => {
@@ -195,7 +190,7 @@ const CustomCheckout = () => {
                   Proceed to Payment
                 </Button>
                 <p className="text-sm text-muted-foreground text-center mt-2">
-                  Secure payment via Pesapal (includes M-Pesa, cards & mobile money)
+                  Secure payment processing with multiple payment options
                 </p>
               </div>
             )}
@@ -215,13 +210,11 @@ const CustomCheckout = () => {
           </CardContent>
         </Card>
         
-        {/* Payment Method Selector Modal */}
+        {/* Payment Confirmation Modal */}
         {showPaymentSelector && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <PaymentMethodSelector
-                selectedMethod={selectedPaymentMethod}
-                onMethodChange={handlePaymentMethodSelect}
+              <PaymentConfirmation
                 onProceed={handlePaymentProceed}
                 onCancel={() => setShowPaymentSelector(false)}
                 amount={order.total}

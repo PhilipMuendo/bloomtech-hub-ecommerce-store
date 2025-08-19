@@ -158,21 +158,49 @@ const PesapalTransactions = () => {
   };
 
   const exportTransactions = () => {
-    const csvContent = [
-      ['ID', 'Order ID', 'Phone Number', 'Amount', 'Status', 'Transaction ID', 'Date', 'Result Description'],
-      ...filteredTransactions.map(t => [
-        t?.id || 'N/A',
-        t?.orderId || 'N/A',
-        t?.phoneNumber || 'N/A',
-        t?.amount ? formatAmount(t.amount) : 'N/A',
-        t?.status || 'N/A',
-        t?.transactionId || 'N/A',
-        t?.createdAt ? formatDate(t.createdAt) : 'N/A',
-        t?.resultDesc || 'N/A'
-      ])
-    ].map(row => row.join(',')).join('\n');
+    // Helper function to escape CSV fields
+    const escapeCSV = (field: any) => {
+      if (field === null || field === undefined) return '';
+      const stringField = String(field);
+      // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
+      if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+        return `"${stringField.replace(/"/g, '""')}"`;
+      }
+      return stringField;
+    };
 
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    // Helper function to format phone number
+    const formatPhoneNumber = (phone: string) => {
+      if (!phone) return 'N/A';
+      // Convert scientific notation back to readable format
+      const num = parseFloat(phone);
+      if (isNaN(num)) return phone;
+      return num.toString();
+    };
+
+    const csvData = filteredTransactions.map(t => ({
+      'ID': t?.id || 'N/A',
+      'Order ID': t?.orderId || 'N/A',
+      'Phone Number': formatPhoneNumber(t?.phoneNumber),
+      'Amount (KES)': t?.amount ? formatAmount(t.amount) : 'N/A',
+      'Status': t?.status || 'N/A',
+      'Transaction ID': t?.transactionId || 'N/A',
+      'Date': t?.createdAt ? formatDate(t.createdAt) : 'N/A',
+      'Result Description': t?.resultDesc || 'N/A'
+    }));
+
+    // Create CSV content with proper escaping
+    const headers = Object.keys(csvData[0]);
+    const csvRows = [
+      headers.map(escapeCSV).join(','),
+      ...csvData.map(row => headers.map(header => escapeCSV(row[header as keyof typeof row])).join(','))
+    ];
+
+    const csvContent = csvRows.join('\r\n');
+
+    // Add BOM for proper UTF-8 encoding in Excel
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

@@ -619,43 +619,68 @@ export const exportOrders = async (req, res, next) => {
       });
     }
     
+    // Helper function to format phone number
+    const formatPhoneNumber = (phone) => {
+      if (!phone) return 'N/A';
+      // Convert scientific notation back to readable format
+      const num = parseFloat(phone);
+      if (isNaN(num)) return phone;
+      return num.toString();
+    };
+
+    // Helper function to format currency
+    const formatCurrency = (amount) => {
+      return new Intl.NumberFormat('en-KE', {
+        style: 'currency',
+        currency: 'KES',
+        minimumFractionDigits: 0
+      }).format(amount);
+    };
+
     // Transform data for CSV export
     const csvData = filteredOrders.map(order => {
       const orderData = order.toJSON();
       const items = orderData.OrderItems || [];
       const itemNames = items.map(item => item.Product?.name || 'N/A').join('; ');
       const itemQuantities = items.map(item => item.quantity).join('; ');
-      const itemPrices = items.map(item => item.Product?.price || 0).join('; ');
+      const itemPrices = items.map(item => formatCurrency(item.Product?.price || 0)).join('; ');
       
       return {
         'Order ID': orderData.id,
         'Customer Name': orderData.User?.name || 'N/A',
         'Customer Email': orderData.User?.email || 'N/A',
-        'Customer Phone': orderData.User?.phone || 'N/A',
-        'Order Date': new Date(orderData.createdAt).toLocaleDateString(),
+        'Customer Phone': formatPhoneNumber(orderData.User?.phone),
+        'Order Date': new Date(orderData.createdAt).toLocaleDateString('en-KE'),
         'Status': orderData.status,
-        'Total Amount': orderData.total,
+        'Total Amount (KES)': formatCurrency(orderData.total),
         'Items': itemNames,
         'Quantities': itemQuantities,
         'Item Prices': itemPrices,
         'Shipping Address': orderData.shippingAddress || 'N/A',
-        'Delivered At': orderData.deliveredAt ? new Date(orderData.deliveredAt).toLocaleDateString() : 'N/A'
+        'Delivered At': orderData.deliveredAt ? new Date(orderData.deliveredAt).toLocaleDateString('en-KE') : 'N/A'
       };
     });
     
-    // Generate CSV
+    // Generate CSV with proper options
     const fields = [
       'Order ID', 'Customer Name', 'Customer Email', 'Customer Phone', 
-      'Order Date', 'Status', 'Total Amount', 'Items', 'Quantities', 
+      'Order Date', 'Status', 'Total Amount (KES)', 'Items', 'Quantities', 
       'Item Prices', 'Shipping Address', 'Delivered At'
     ];
     
-    const json2csvParser = new Parser({ fields });
+    const json2csvParser = new Parser({ 
+      fields,
+      quote: '"',
+      escapedQuote: '""',
+      delimiter: ','
+    });
     const csv = json2csvParser.parse(csvData);
     
-    res.header('Content-Type', 'text/csv');
+    // Add BOM for proper UTF-8 encoding in Excel
+    const BOM = '\uFEFF';
+    res.header('Content-Type', 'text/csv; charset=utf-8');
     res.attachment('orders.csv');
-    res.send(csv);
+    res.send(BOM + csv);
   } catch (err) {
     console.error('Error in exportOrders:', err);
     next(err);

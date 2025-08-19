@@ -47,6 +47,20 @@ const sanitizeString = (str) => {
     return str;
   }
   
+  // Don't encode forward slashes in URLs to prevent validation issues
+  if (str.includes('http://') || str.includes('https://') || str.includes('localhost')) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;')
+      .replace(/\\/g, '&#x5C;')
+      .replace(/{/g, '&#x7B;')
+      .replace(/}/g, '&#x7D;')
+      .replace(/`/g, '&#x60;');
+  }
+  
   return str
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -62,8 +76,13 @@ const sanitizeString = (str) => {
 
 // SQL Injection Protection
 export const sqlInjectionProtection = (req, res, next) => {
-  // Skip for contact form submissions to avoid false positives
+  // Skip for contact form submissions and product updates to avoid false positives
   if (req.path === '/api/contact' && req.method === 'POST') {
+    return next();
+  }
+  
+  // Skip for product updates to avoid false positives with subcategory names
+  if (req.path.startsWith('/api/products/') && req.method === 'PUT') {
     return next();
   }
   
@@ -169,8 +188,8 @@ export const validateProductInput = [
     .withMessage('Product name contains invalid characters'),
   
   body('price')
-    .isFloat({ min: 0 })
-    .withMessage('Price must be a positive number'),
+    .isFloat({ min: 1.01 })
+    .withMessage('Price must be greater than 1 KES'),
   
   body('category')
     .isIn(['ict', 'electrical', 'security', 'power'])
@@ -180,7 +199,7 @@ export const validateProductInput = [
     .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage('Subcategory must be between 2 and 50 characters')
-    .matches(/^[a-zA-Z0-9\-_]+$/)
+    .matches(/^[a-zA-Z0-9\s\-_]+$/)
     .withMessage('Subcategory contains invalid characters'),
   
   body('description')
@@ -191,6 +210,11 @@ export const validateProductInput = [
   body('stock')
     .isInt({ min: 0 })
     .withMessage('Stock must be a non-negative integer'),
+  
+  body('imageUrl')
+    .optional()
+    .isString()
+    .withMessage('Image URL must be a string'),
   
   (req, res, next) => {
     const errors = validationResult(req);

@@ -104,7 +104,7 @@ const Dashboard = () => {
           fetch(`/api/dashboard/summary?${params.toString()}`, fetchOptions),
           fetch(`/api/dashboard/revenue-trend`, fetchOptions), // Revenue trend always shows last 6 months
           fetch(`/api/dashboard/orders-by-category?${params.toString()}`, fetchOptions),
-          fetch(`/api/dashboard/user-signups?${params.toString()}`, fetchOptions),
+          fetch(`/api/dashboard/user-signups`, fetchOptions), // User signups always shows last 6 months
         ]);
         if (!summaryRes.ok || !revenueRes.ok || !ordersCatRes.ok || !signupsRes.ok) {
           throw new Error('Failed to fetch dashboard data');
@@ -128,6 +128,7 @@ const Dashboard = () => {
             ][i % 6],
           }))
         );
+        console.log('📊 User Signups Data:', signups);
         setUserSignupsData(signups);
       } catch (err) {
         setError(err.message || 'Error loading dashboard');
@@ -402,15 +403,16 @@ const Dashboard = () => {
                 <CardDescription>Monthly new user registrations</CardDescription>
               </CardHeader>
               <CardContent className="overflow-x-auto max-w-full">
-                <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[320px] max-w-full">
+                                 <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[1000px] max-w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={userSignupsData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis
-                        dataKey="month"
-                        stroke="hsl(var(--muted-foreground))"
-                        fontSize={12}
-                      />
+                                         <BarChart data={userSignupsData} margin={{ left: 20, right: 20, top: 20, bottom: 20 }}>
+                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                       <XAxis
+                         dataKey="month"
+                         stroke="hsl(var(--muted-foreground))"
+                         fontSize={12}
+                         interval={0}
+                       />
                       <YAxis
                         stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
@@ -427,6 +429,7 @@ const Dashboard = () => {
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartContainer>
+                
               </CardContent>
             </Card>
             {/* Orders by Category Chart */}

@@ -179,29 +179,46 @@ const Products = () => {
     setLoading(true);
     setError(null);
     try {
+      console.log('🔍 Adding product with data:', formData);
+      
+      const payload = {
+        ...formData,
+        price: Number(formData.price),
+        stock: Number(formData.stock),
+        featured: !!formData.featured,
+      };
+      
+      console.log('📤 Sending payload:', payload);
+      
       const res = await fetch('/api/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${currentUser?.token}`
         },
-        body: JSON.stringify({
-          ...formData,
-          price: Number(formData.price),
-          stock: Number(formData.stock),
-          featured: !!formData.featured,
-        })
+        body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('Failed to add product');
+      
+      console.log('📥 Response status:', res.status);
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error('❌ Server error:', errorData);
+        throw new Error(errorData.error || errorData.message || errorData.details || 'Failed to add product');
+      }
+      
       const newProductData = await res.json();
-              toast({ 
-          title: 'Product Added', 
-          description: `${formData.name} has been added to the catalog. Product ID: ${newProductData.id}`,
-          duration: 8000
-        });
+      console.log('✅ Product created:', newProductData);
+      
+      toast({ 
+        title: 'Product Added', 
+        description: `${formData.name} has been added to the catalog. Product ID: ${newProductData.id}`,
+        duration: 8000
+      });
       setIsAddDialogOpen(false);
       fetchProducts(1);
     } catch (err: any) {
+      console.error('❌ Error adding product:', err);
       setError(err.message);
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -242,7 +259,9 @@ const Products = () => {
       
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.message || 'Failed to update product');
+        console.error('❌ Server error:', errorData);
+        const errorMessage = errorData.details?.[0]?.msg || errorData.error || errorData.message || 'Failed to update product';
+        throw new Error(errorMessage);
       }
       
       const data = await res.json();
@@ -774,15 +793,29 @@ const Products = () => {
                   <TableRow key={product.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <img
-                          src={getImageUrl(product.imageUrl)}
-                          alt={product.name}
-                          className="w-10 h-10 rounded object-cover"
-                        />
+                        {product.imageUrl ? (
+                          <img
+                            src={getImageUrl(product.imageUrl)}
+                            alt={product.name}
+                            className="w-10 h-10 rounded object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextElementSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        {!product.imageUrl && (
+                          <div className="w-10 h-10 rounded bg-gray-200 flex items-center justify-center">
+                            <span className="text-gray-400 text-xs">No img</span>
+                          </div>
+                        )}
+                        <div className="w-10 h-10 rounded bg-gray-200 flex items-center justify-center" style={{ display: 'none' }}>
+                          <span className="text-gray-400 text-xs">Broken</span>
+                        </div>
                         <div>
                           <div className="font-medium">{product.name}</div>
                           <div className="text-sm text-muted-foreground">
-                            {product.description.substring(0, 50)}...
+                            {product.description.substring(0, 50).replace(/&amp;amp;/g, '&').replace(/&amp;/g, '&')}...
                           </div>
                         </div>
                       </div>

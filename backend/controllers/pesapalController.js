@@ -4,17 +4,26 @@ import db, { sequelize } from '../sequelize_models/index.js';
 const { Order, Transaction, User, OrderItem, Product } = db;
 import dotenv from 'dotenv';
 import { notifyCustomerOfNewOrder } from '../utils/warehouseNotifications.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { generateTrackingNumber, normalizeId, toIntegerId, isTemporaryOrderId } from '../utils/idUtils.js';
+import config from '../config/index.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables
 dotenv.config();
+dotenv.config({ path: path.join(__dirname, 'pesapal.env') });
 
 const {
   PESAPAL_CONSUMER_KEY,
   PESAPAL_CONSUMER_SECRET,
   PESAPAL_CALLBACK_URL,
   PESAPAL_API_ENDPOINT
-} = process.env;
+} = config.pesapal;
 
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = config.isProduction;
 
 // Get configuration based on environment
 function getConfig() {
@@ -69,8 +78,12 @@ async function registerIPN() {
     const token = await getBearerToken();
     const config = getConfig();
     
+    // Clean the callback URL to ensure proper format
+    const cleanCallbackUrl = PESAPAL_CALLBACK_URL.replace(/"/g, '').trim();
+    const ipnUrl = cleanCallbackUrl.replace('/callback', '/ipn');
+    
     const ipnData = {
-      url: `${PESAPAL_CALLBACK_URL.replace('/callback', '/ipn')}`,
+      url: ipnUrl,
       ipn_notification_type: "GET"
     };
 
@@ -151,8 +164,8 @@ export const initiatePayment = async (req, res) => {
     }
 
     // Check if this is a temporary order ID (payment-first flow)
-    const orderIdString = String(orderId); // Ensure orderId is a string
-    const isTemporaryOrder = orderIdString.startsWith('TEMP_');
+    const orderIdString = normalizeId(orderId); // Ensure orderId is a string
+    const isTemporaryOrder = isTemporaryOrderId(orderIdString);
     console.log('📦 Order type:', isTemporaryOrder ? 'Temporary' : 'Existing');
     console.log('📦 Order ID (string):', orderIdString);
     
@@ -187,8 +200,15 @@ export const initiatePayment = async (req, res) => {
       
       console.log('✅ Temporary order validation passed');
     } else {
-      // For existing orders, find and validate the order
-      const order = await Order.findByPk(orderIdString);
+          // For existing orders, find and validate the order
+    const orderIdInt = toIntegerId(orderIdString);
+    if (!orderIdInt) {
+      return res.status(400).json({
+        error: 'Invalid order ID format',
+        message: 'Order ID must be a valid number'
+      });
+    }
+    const order = await Order.findByPk(orderIdInt);
       if (!order) {
         return res.status(404).json({ 
           error: 'Order not found',
@@ -224,14 +244,21 @@ export const initiatePayment = async (req, res) => {
       });
     }
 
+    // Get the backend URL for redirects
+    const backendUrl = config.urls.backend;
+    
+    // Clean the callback URL to ensure proper format
+    const cleanCallbackUrl = PESAPAL_CALLBACK_URL.replace(/"/g, '').trim();
+    
     // Prepare order data for Pesapal v3
     const pesapalOrderData = {
       id: orderIdString,
       currency: "KES",
       amount: parseFloat(amount).toFixed(2),
       description: `Payment for Order #${orderIdString}`,
-      callback_url: PESAPAL_CALLBACK_URL,
-      notification_id: notificationId || "",
+      callback_url: cleanCallbackUrl,
+      redirect_url: `${backendUrl}/api/payments/pesapal/redirect?orderId=${orderIdString}`,
+      ...(notificationId && { notification_id: notificationId }), // Only include if notificationId exists
       billing_address: {
         email_address: email,
         phone_number: phoneNumber,
@@ -265,11 +292,11 @@ export const initiatePayment = async (req, res) => {
 
     if (response.data.status === '200' && response.data.redirect_url) {
       try {
-        // Create transaction record
-        console.log('📝 Creating transaction record with userId:', req.user.id);
-        const transaction = await Transaction.create({
-          orderId: orderIdString,
-          userId: req.user.id,
+            // Create transaction record
+    console.log('📝 Creating transaction record with userId:', req.user.id);
+    const transaction = await Transaction.create({
+      orderId: orderIdString,
+      userId: toIntegerId(req.user.id),
           phoneNumber: phoneNumber,
           amount: parseFloat(amount),
           paymentMethod: 'pesapal',
@@ -344,14 +371,16 @@ export const handlePesapalCallback = async (req, res) => {
     console.log('📋 IPN Data:', req.body);
     console.log('🔗 Query params:', req.query);
 
-    const {
-      pesapal_notification_type,
-      pesapal_merchant_reference,
-      pesapal_transaction_tracking_id
-    } = req.body;
+    // Handle both POST (body) and GET (query) requests
+    const data = req.method === 'GET' ? req.query : req.body;
+    
+    // Handle different parameter naming conventions
+    const pesapalMerchantReference = data.pesapal_merchant_reference || data.OrderMerchantReference;
+    const pesapalTransactionTrackingId = data.pesapal_transaction_tracking_id || data.OrderTrackingId;
+    const pesapalNotificationType = data.pesapal_notification_type;
 
     // Validate required fields
-    if (!pesapal_merchant_reference || !pesapal_transaction_tracking_id) {
+    if (!pesapalMerchantReference || !pesapalTransactionTrackingId) {
       console.log('❌ Missing required IPN fields');
       return res.status(400).json({ error: 'Missing required fields' });
     }
@@ -359,18 +388,18 @@ export const handlePesapalCallback = async (req, res) => {
     // Find the transaction
     const transaction = await Transaction.findOne({
       where: { 
-        orderId: pesapal_merchant_reference,
-        'metadata.pesapalOrderId': pesapal_transaction_tracking_id
+        orderId: pesapalMerchantReference,
+        'metadata.pesapalOrderId': pesapalTransactionTrackingId
       }
     });
 
     if (!transaction) {
-      console.log('❌ Transaction not found:', pesapal_merchant_reference);
+      console.log('❌ Transaction not found:', pesapalMerchantReference);
       return res.status(404).json({ error: 'Transaction not found' });
     }
 
     // Get payment status from Pesapal
-    const paymentStatus = await getPaymentStatus(pesapal_transaction_tracking_id);
+    const paymentStatus = await getPaymentStatus(pesapalTransactionTrackingId);
     
     console.log('📊 Payment status:', paymentStatus);
 
@@ -388,7 +417,7 @@ export const handlePesapalCallback = async (req, res) => {
     const isTemporaryOrder = transaction.metadata?.isTemporaryOrder;
     const orderData = transaction.metadata?.orderData;
     
-    if (paymentStatus.status === 'COMPLETED') {
+    if (paymentStatus.status === 'COMPLETED' || paymentStatus.status === 'Completed') {
       if (isTemporaryOrder && orderData) {
         // Create the actual order for temporary orders
         console.log('🏗️ Creating actual order from temporary order data...');
@@ -472,18 +501,84 @@ export const handlePesapalCallback = async (req, res) => {
       }
     }
 
-    // Return success response to Pesapal
-    return res.status(200).json({
-      status: '200',
-      message: 'IPN processed successfully'
-    });
-
+    // Check if this is a customer redirect (browser request) or IPN (server request)
+    const userAgent = req.headers['user-agent'] || '';
+    const isBrowserRequest = userAgent.includes('Mozilla') || userAgent.includes('Chrome') || userAgent.includes('Safari') || userAgent.includes('Edge');
+    
+    if (isBrowserRequest) {
+      // This is a customer redirect - redirect them to the appropriate page
+      console.log('🌐 Customer browser detected, redirecting to frontend...');
+      
+      const orderId = pesapalMerchantReference;
+      // Get the real order ID if it exists
+      const realOrderId = transaction.metadata?.realOrderId || orderId;
+      
+      if (paymentStatus.status === 'COMPLETED' || paymentStatus.status === 'Completed') {
+                      return res.redirect(`${config.urls.frontend}/payment-success?orderId=${realOrderId}&status=completed&trackingId=${pesapalTransactionTrackingId}`);
+            } else if (paymentStatus.status === 'FAILED') {
+              return res.redirect(`${config.urls.frontend}/payment-failure?orderId=${orderId}&status=failed&reason=${encodeURIComponent(paymentStatus.message)}`);
+            } else {
+              return res.redirect(`${config.urls.frontend}/payment-success?orderId=${realOrderId}&status=pending&trackingId=${pesapalTransactionTrackingId}`);
+            }
+    } else {
+      // This is an IPN request - return JSON response
+      return res.status(200).json({
+        status: '200',
+        message: 'IPN processed successfully'
+      });
+    }
   } catch (error) {
     console.error('❌ Error processing IPN:', error.message);
     return res.status(500).json({
       error: 'IPN processing failed',
       message: error.message
     });
+  }
+};
+
+/**
+ * Handle customer redirect after payment
+ */
+export const handleCustomerRedirect = async (req, res) => {
+  try {
+    console.log('🔄 Customer redirect received');
+    console.log('📋 Query params:', req.query);
+
+    const { orderId, status, trackingId } = req.query;
+    
+    if (!orderId) {
+      return res.redirect(`${config.urls.frontend}/payment-failure?reason=No order ID provided`);
+    }
+
+    // Find the transaction
+    const transaction = await Transaction.findOne({
+      where: { orderId: orderId }
+    });
+
+    if (!transaction) {
+      return res.redirect(`${config.urls.frontend}/payment-failure?orderId=${orderId}&reason=Transaction not found`);
+    }
+
+    // Check payment status
+    const paymentStatus = await getPaymentStatus(transaction.metadata?.pesapalOrderId);
+
+    // Get the real order ID if it exists
+    const realOrderId = transaction.metadata?.realOrderId || orderId;
+    
+    if (paymentStatus.status === 'COMPLETED' || paymentStatus.status === 'Completed') {
+      // Redirect to success page with real order ID
+      return res.redirect(`${config.urls.frontend}/payment-success?orderId=${realOrderId}&status=completed&trackingId=${transaction.metadata?.pesapalOrderId}`);
+    } else if (paymentStatus.status === 'FAILED') {
+      // Redirect to failure page
+      return res.redirect(`${config.urls.frontend}/payment-failure?orderId=${orderId}&status=failed&reason=${encodeURIComponent(paymentStatus.message)}`);
+    } else {
+      // Redirect to pending page
+      return res.redirect(`${config.urls.frontend}/payment-success?orderId=${realOrderId}&status=pending&trackingId=${transaction.metadata?.pesapalOrderId}`);
+    }
+
+  } catch (error) {
+    console.error('❌ Error handling customer redirect:', error.message);
+    return res.redirect(`${config.urls.frontend}/payment-failure?reason=${encodeURIComponent('Error processing payment')}`);
   }
 };
 

@@ -40,6 +40,8 @@ import contactRoutes from './routes/contactRoutes.js';
 
 // Load environment variables
 dotenv.config();
+// Load Pesapal-specific environment variables
+dotenv.config({ path: path.join(__dirname, 'pesapal.env') });
 
 console.log('Database:', process.env.DB_NAME || 'bloomtech_db');
 
@@ -70,8 +72,8 @@ app.use('/api/', apiRateLimiter); // Global API rate limiting
 // Logging
 app.use(morgan('combined')); // Enhanced logging
 app.use('/public', express.static(path.join(__dirname, 'public')));
-console.log('Static files served from:', path.join(__dirname, '../public'));
-const staticDir = path.join(__dirname, '../public/lovable-uploads');
+console.log('Static files served from:', path.join(__dirname, 'public'));
+const staticDir = path.join(__dirname, 'public/lovable-uploads');
 if (fs.existsSync(staticDir)) {
   console.log('Files in lovable-uploads:', fs.readdirSync(staticDir));
 } else {

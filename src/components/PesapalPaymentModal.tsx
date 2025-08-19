@@ -224,7 +224,7 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
       case 'failed':
         return 'Payment Failed';
       default:
-        return 'Pay with Pesapal';
+        return 'Complete Payment';
     }
   };
 
@@ -274,7 +274,7 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
                  className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                  size="lg"
                >
-                 {isProcessing ? 'Initiating Payment...' : 'Pay with Pesapal'}
+                 {isProcessing ? 'Initiating Payment...' : 'Proceed to Payment'}
                </Button>
              </div>
            )}
