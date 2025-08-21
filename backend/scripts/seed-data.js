@@ -118,44 +118,7 @@ async function seedData() {
       }
     }
     
-    // 3. Create Sample Blog Posts
-    console.log('\n📝 Creating sample blog posts...');
-    const sampleBlogs = [
-      {
-        title: 'The Future of Smart Home Security',
-        content: 'Smart home security systems are revolutionizing how we protect our homes. With advanced AI and IoT integration, these systems provide unprecedented levels of protection and convenience. Learn about the latest trends and technologies in home security.',
-        author: 'Philip Muendo',
-        slug: 'future-smart-home-security',
-        published: true
-      },
-      {
-        title: 'Solar Energy: A Sustainable Power Solution',
-        content: 'Solar energy is becoming increasingly popular as a sustainable and cost-effective power solution. This comprehensive guide covers the benefits, installation process, and maintenance of solar panel systems for residential and commercial use.',
-        author: 'Philip Muendo',
-        slug: 'solar-energy-sustainable-power-solution',
-        published: true
-      },
-      {
-        title: 'Network Infrastructure Best Practices',
-        content: 'Building a robust network infrastructure is crucial for modern businesses. This article covers essential networking concepts, equipment selection, and best practices for creating reliable and scalable network solutions.',
-        author: 'Philip Muendo',
-        slug: 'network-infrastructure-best-practices',
-        published: true
-      }
-    ];
-    
-    for (const blogData of sampleBlogs) {
-      const [blog, created] = await db.Blog.findOrCreate({
-        where: { slug: blogData.slug },
-        defaults: blogData
-      });
-      
-      if (created) {
-        console.log(`✅ Blog created: ${blogData.title}`);
-      } else {
-        console.log(`ℹ️  Blog already exists: ${blogData.title}`);
-      }
-    }
+
     
     // 4. Create Sample Newsletter Subscribers
     console.log('\n📧 Creating sample newsletter subscribers...');
@@ -182,7 +145,7 @@ async function seedData() {
     console.log('\n📊 Seeding Summary:');
     console.log('- 1 Super Admin user');
     console.log(`- ${sampleProducts.length} Sample products`);
-    console.log(`- ${sampleBlogs.length} Sample blog posts`);
+
     console.log(`- ${sampleSubscribers.length} Sample newsletter subscribers`);
     
     console.log('\n🔑 Admin Login Credentials:');

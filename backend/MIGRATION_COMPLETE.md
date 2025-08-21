@@ -17,7 +17,7 @@ Your BLOOMTECH Hub platform has been successfully migrated from MongoDB to MySQL
 2. **Data Migration**
    - ✅ Sample data seeded successfully
    - ✅ Admin user created and verified
-   - ✅ Products, blogs, and newsletter subscribers added
+   - ✅ Products and newsletter subscribers added
    - ✅ Data integrity verified
 
 3. **API Migration**
@@ -45,7 +45,7 @@ Your BLOOMTECH Hub platform has been successfully migrated from MongoDB to MySQL
 - `quotes` - Quote requests
 - `quote_items` - Quote line items
 - `messages` - Quote messages
-- `blogs` - Blog posts
+
 - `campaigns` - Email campaigns
 - `newsletters` - Newsletter subscribers
 - `transactions` - Payment transactions
@@ -55,7 +55,7 @@ Your BLOOMTECH Hub platform has been successfully migrated from MongoDB to MySQL
 ### Data Seeded
 - **1 Super Admin user** (admin@bloomtech.com)
 - **8 Sample products** across categories
-- **3 Sample blog posts**
+
 - **3 Sample newsletter subscribers**
 
 ## 🔧 Technical Details
@@ -105,9 +105,7 @@ All endpoints tested and working:
 - `GET /api/quotes` - ✅ Working (0 quotes)
 - `POST /api/quotes` - ✅ Working
 
-### ✅ Blogs
-- `GET /api/blogs` - ✅ Working (3 blogs)
-- `GET /api/blogs/:slug` - ✅ Working
+
 
 ## 🎯 Next Steps
 

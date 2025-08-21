@@ -103,37 +103,7 @@ async function addSampleData() {
       }
     }
 
-    // 3. Create sample blog posts
-    console.log('\n📝 Creating sample blog posts...');
-    const sampleBlogs = [
-      {
-        title: 'The Future of Smart Home Security',
-        content: 'Smart home security systems are revolutionizing how we protect our homes. With advanced AI and IoT integration, these systems provide unprecedented levels of protection and convenience.',
-        author: 'Philip Muendo',
-        slug: 'future-smart-home-security',
-        published: true
-      },
-      {
-        title: 'Solar Energy: A Sustainable Power Solution',
-        content: 'Solar energy is becoming increasingly popular as a sustainable and cost-effective power solution. Learn about the benefits and installation process.',
-        author: 'Philip Muendo',
-        slug: 'solar-energy-sustainable-power-solution',
-        published: true
-      }
-    ];
 
-    for (const blogData of sampleBlogs) {
-      const [blog, created] = await db.Blog.findOrCreate({
-        where: { title: blogData.title },
-        defaults: blogData
-      });
-
-      if (created) {
-        console.log(`✅ Blog "${blogData.title}" created successfully`);
-      } else {
-        console.log(`ℹ️  Blog "${blogData.title}" already exists`);
-      }
-    }
 
     // Note: Campaign model is for email campaigns, not promotional campaigns
     console.log('\n📝 Skipping campaigns (model is for email campaigns)');
@@ -142,7 +112,7 @@ async function addSampleData() {
     console.log('\n📊 Summary:');
     console.log('- 1 Super Admin user');
     console.log('- 4 Sample products');
-    console.log('- 2 Sample blog posts');
+
 
   } catch (error) {
     console.error('❌ Error adding sample data:', error);

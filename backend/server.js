@@ -28,7 +28,7 @@ import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import campaignRoutes from './routes/campaignRoutes.js';
-import blogRoutes from './routes/blogRoutes.js';
+
 import db, { sequelize } from './sequelize_models/index.js';
 import fs from 'fs';
 import reviewRoutes from './routes/reviewRoutes.js';
@@ -97,7 +97,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/campaigns', campaignRoutes);
-app.use('/api/blogs', blogRoutes);
+
 app.use('/api/reviews', reviewRoutes);
 app.use('/api', newsletterRoutes);
 app.use('/api/quotes', quoteRoutes);

@@ -37,7 +37,7 @@ BloomTech Hub Ecommerce Store is a modern, full-featured ecommerce platform with
 - **Quote Management**: Handle custom quote requests and convert them to orders
 - **Newsletter Subscribers**: View all newsletter signups in real time
 - **Transaction Tracking**: Monitor payment transactions and statuses
-- **Blog Management**: Create and manage blog posts and campaigns
+
 - **Mobile-First Admin**: All tables, charts, and navigation are fully mobile responsive
 - **Role-Based Access**: Admin and superadmin roles, with superadmin protected from self-deactivation
 - **Data Export**: Export data to CSV format for analysis
@@ -208,7 +208,7 @@ The project uses MySQL with Sequelize ORM. The database includes the following m
 - **Transactions**: Payment transaction records
 - **BackInStockAlerts**: Stock notification system
 - **Newsletters**: Newsletter subscription management
-- **Blogs**: Blog post management
+
 - **Campaigns**: Marketing campaign management
 
 ---

@@ -321,9 +321,7 @@ const Header = () => {
                 <Link to="/shop" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                   Shop
                 </Link>
-                <Link to="/blog" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
-                  Blog
-                </Link>
+                
                 <Link to="/about" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
                   About Us
                 </Link>
@@ -434,9 +432,7 @@ const Header = () => {
                   <Link to="/shop" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                     Shop
                   </Link>
-                  <Link to="/blog" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
-                    Blog
-                  </Link>
+                  
                   <Link to="/about" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                     About Us
                   </Link>

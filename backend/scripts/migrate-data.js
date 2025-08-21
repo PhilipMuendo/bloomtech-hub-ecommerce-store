@@ -47,19 +47,12 @@ const orderSchema = new mongoose.Schema({
   trackingNumber: String,
 }, { timestamps: true });
 
-const blogSchema = new mongoose.Schema({
-  title: String,
-  content: String,
-  image: String,
-  author: String,
-  slug: String,
-  published: Boolean,
-}, { timestamps: true });
+
 
 const User = mongoose.model('User', userSchema);
 const Product = mongoose.model('Product', productSchema);
 const Order = mongoose.model('Order', orderSchema);
-const Blog = mongoose.model('Blog', blogSchema);
+
 
 async function migrateData() {
   let mongoConnection;
@@ -136,27 +129,7 @@ async function migrateData() {
       }
     }
     
-    // Migrate Blogs
-    console.log('\n📝 Migrating blogs...');
-    const mongoBlogs = await Blog.find({});
-    console.log(`Found ${mongoBlogs.length} blogs in MongoDB`);
-    
-    for (const mongoBlog of mongoBlogs) {
-      const existingBlog = await db.Blog.findOne({ where: { slug: mongoBlog.slug } });
-      if (!existingBlog) {
-        await db.Blog.create({
-          title: mongoBlog.title,
-          content: mongoBlog.content,
-          image: mongoBlog.image,
-          author: mongoBlog.author,
-          slug: mongoBlog.slug,
-          published: mongoBlog.published || false,
-        });
-        console.log(`✅ Migrated blog: ${mongoBlog.title}`);
-      } else {
-        console.log(`⏭️  Blog already exists: ${mongoBlog.title}`);
-      }
-    }
+
     
     // Migrate Orders (with items)
     console.log('\n📦 Migrating orders...');
@@ -205,7 +178,7 @@ async function migrateData() {
     console.log('\n📊 Migration Summary:');
     console.log(`- Users: ${mongoUsers.length}`);
     console.log(`- Products: ${mongoProducts.length}`);
-    console.log(`- Blogs: ${mongoBlogs.length}`);
+
     console.log(`- Orders: ${mongoOrders.length}`);
     
   } catch (error) {

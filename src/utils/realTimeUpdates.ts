@@ -17,7 +17,7 @@ export const REAL_TIME_EVENTS = {
   USER_STATUS_CHANGED: 'userStatusChanged',
   
   // Content related events
-  BLOGS_UPDATED: 'blogsUpdated',
+
   REVIEWS_UPDATED: 'reviewsUpdated',
   NEWSLETTER_UPDATED: 'newsletterUpdated',
   

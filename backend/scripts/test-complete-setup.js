@@ -37,8 +37,8 @@ async function testCompleteSetup() {
     const productCount = await db.Product.count();
     console.log(`✅ Products: ${productCount}`);
     
-    const blogCount = await db.Blog.count();
-    console.log(`✅ Blogs: ${blogCount}`);
+    
+    
     
     const newsletterCount = await db.Newsletter.count();
     console.log(`✅ Newsletter subscribers: ${newsletterCount}`);

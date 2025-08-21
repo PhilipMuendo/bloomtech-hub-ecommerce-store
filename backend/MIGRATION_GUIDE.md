@@ -60,7 +60,7 @@ This creates all necessary tables:
 - `quotes` - Quote requests
 - `quote_items` - Quote line items
 - `messages` - Quote messages
-- `blogs` - Blog posts
+
 - `campaigns` - Email campaigns
 - `newsletters` - Newsletter subscribers
 - `transactions` - Payment transactions
@@ -74,7 +74,7 @@ npm run db:seed
 This creates:
 - Super admin user (admin@bloomtech.com / SuperSecure@123)
 - Sample products across categories
-- Sample blog posts
+
 - Sample newsletter subscribers
 
 ### Step 4: Migrate Existing Data (Optional)
@@ -195,12 +195,7 @@ The server will run on `http://localhost:5000`
 - `PUT /api/quotes/:id/status` - Update quote status
 - `POST /api/quotes/:id/message` - Add message to quote
 
-### Blogs
-- `GET /api/blogs` - Get all blogs
-- `GET /api/blogs/:slug` - Get specific blog
-- `POST /api/blogs` - Create blog (admin)
-- `PUT /api/blogs/:id` - Update blog (admin)
-- `DELETE /api/blogs/:id` - Delete blog (admin)
+
 
 ### Dashboard (Admin)
 - `GET /api/dashboard/summary` - Get dashboard summary

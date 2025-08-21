@@ -35,9 +35,7 @@ const Footer = () => {
               <Link to="/shop" className="block text-sm opacity-80 hover:opacity-100 transition-opacity">
                 Shop
               </Link>
-              <Link to="/blog" className="block text-sm opacity-80 hover:opacity-100 transition-opacity">
-                Blog
-              </Link>
+              
               <Link to="/contact" className="block text-sm opacity-80 hover:opacity-100 transition-opacity">
                 Contact
               </Link>

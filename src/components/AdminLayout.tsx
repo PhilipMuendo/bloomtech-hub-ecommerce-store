@@ -11,7 +11,7 @@ import {
   Mail,
   LogOut,
   ArrowLeft,
-  BookOpen,
+
   Menu,
   Bell,
   Activity,
@@ -138,7 +138,7 @@ const AdminLayout = () => {
     { path: '/admin/reviews', icon: MessageSquare, label: 'Reviews' },
     { path: '/admin/contact-messages', icon: MessageCircle, label: 'Contact Messages' },
     { path: '/admin/newsletter', icon: Mail, label: 'Newsletter' },
-    { path: '/admin/blogs', icon: BookOpen, label: 'Blogs' },
+  
     // Superadmin only items
     ...(user?.role === 'superadmin' ? [
       { path: '/admin/pesapal-transactions', icon: CreditCard, label: 'Transactions' },

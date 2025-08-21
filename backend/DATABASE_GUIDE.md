@@ -70,7 +70,7 @@ node scripts/fixAdminPassword.js
 - **Fields**: name, description, price, category, stock, imageUrl, featured
 - **Categories**: Security Systems, Power Solutions, ICT Equipment, Electrical Materials
 
-### 3. Blog Model
+
 - **Fields**: title, content, image, author, slug, published
 
 ### 4. Order Model
@@ -91,7 +91,7 @@ node scripts/fixAdminPassword.js
 The `addSampleData.js` script creates:
 - **Super admin user** (admin@bloomtech.com / SuperSecure@123) - **Pre-verified for immediate access**
 - 4 sample products across different categories
-- 2 sample blog posts
+
 
 **Note**: The super admin account is automatically verified and can login immediately. Regular user accounts require email verification.
 
@@ -110,10 +110,7 @@ Once the server is running, you can use these endpoints:
 - `PUT /api/products/:id` - Update product (admin only)
 - `DELETE /api/products/:id` - Delete product (admin only)
 
-#### Blogs
-- `POST /api/blogs` - Create new blog (admin only)
-- `GET /api/blogs` - Get all blogs
-- `GET /api/blogs/:slug` - Get specific blog
+
 
 #### Orders
 - `POST /api/orders` - Create new order

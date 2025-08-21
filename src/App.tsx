@@ -24,14 +24,12 @@ const Cart = lazy(() => import("./pages/Cart"));
 const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const FAQs = lazy(() => import("./pages/FAQs"));
-const Blog = lazy(() => import("./pages/Blog"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Wishlist = lazy(() => import("./pages/Wishlist"));
 const Orders = lazy(() => import("./pages/Orders"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Account = lazy(() => import('./pages/Account'));
-const BlogPost = lazy(() => import("./pages/BlogPost"));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const ReturnsRefunds = lazy(() => import('./pages/ReturnsRefunds'));
@@ -50,7 +48,6 @@ const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const Users = lazy(() => import("./pages/admin/Users"));
 const Reviews = lazy(() => import("./pages/admin/Reviews"));
 const Newsletter = lazy(() => import("./pages/admin/Newsletter"));
-const AdminBlogs = lazy(() => import('./pages/admin/AdminBlogs'));
 const LowStockProducts = lazy(() => import('./pages/admin/LowStockProducts'));
 const Quotes = lazy(() => import("./pages/admin/Quotes"));
 const ContactMessages = lazy(() => import("./pages/admin/ContactMessages"));
@@ -159,30 +156,7 @@ const AnimatedRoutes = () => {
           </motion.div>
           </Suspense>
         } />
-        <Route path="/blog" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Blog />
-          </motion.div>
-          </Suspense>
-        } />
-        <Route path="/blog/:slug" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <BlogPost />
-          </motion.div>
-          </Suspense>
-        } />
+
         <Route path="/wishlist" element={
           <Suspense fallback={<LoadingSpinner />}>
           <motion.div
@@ -357,11 +331,7 @@ const AnimatedRoutes = () => {
               <Newsletter />
             </Suspense>
           } />
-          <Route path="blogs" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <AdminBlogs />
-            </Suspense>
-          } />
+
           <Route path="low-stock" element={
             <Suspense fallback={<LoadingSpinner />}>
               <LowStockProducts />

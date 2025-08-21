@@ -11,7 +11,7 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const {
   User, Product, Order, OrderItem, CartItem, Wishlist, Review,
-  Quote, QuoteItem, Message, Blog, Campaign, Transaction,
+  Quote, QuoteItem, Message, Campaign, Transaction,
   BackInStockAlert, Newsletter
 } = db;
 
@@ -23,7 +23,7 @@ import CartItemMongo from '../legacy_models/CartItem.js';
 import WishlistMongo from '../legacy_models/Wishlist.js';
 import ReviewMongo from '../legacy_models/Review.js';
 import QuoteMongo from '../legacy_models/Quote.js';
-import BlogMongo from '../legacy_models/Blog.js';
+
 import CampaignMongo from '../legacy_models/Campaign.js';
 import TransactionMongo from '../legacy_models/Transaction.js';
 import BackInStockAlertMongo from '../legacy_models/BackInStockAlert.js';
@@ -50,7 +50,7 @@ const migrateData = async () => {
       products: {},
       orders: {},
       quotes: {},
-      blogs: {},
+    
       campaigns: {},
       transactions: {}
     };
@@ -209,23 +209,7 @@ const migrateData = async () => {
     }
     console.log(`Migrated ${quotes.length} quotes`);
     
-    // 8. Migrate Blogs
-    console.log('Migrating Blogs...');
-    const blogs = await BlogMongo.find({});
-    for (const blog of blogs) {
-      const newBlog = await Blog.create({
-        title: blog.title,
-        content: blog.content,
-        image: blog.image,
-        author: blog.author,
-        slug: blog.slug,
-        published: blog.published,
-        createdAt: blog.createdAt,
-        updatedAt: blog.updatedAt
-      });
-      idMapping.blogs[blog._id.toString()] = newBlog.id;
-    }
-    console.log(`Migrated ${blogs.length} blogs`);
+    
     
     // 9. Migrate Campaigns
     console.log('Migrating Campaigns...');
@@ -299,7 +283,7 @@ const migrateData = async () => {
       products: Object.keys(idMapping.products).length,
       orders: Object.keys(idMapping.orders).length,
       quotes: Object.keys(idMapping.quotes).length,
-      blogs: Object.keys(idMapping.blogs).length,
+  
       campaigns: Object.keys(idMapping.campaigns).length,
       transactions: Object.keys(idMapping.transactions).length
     });
