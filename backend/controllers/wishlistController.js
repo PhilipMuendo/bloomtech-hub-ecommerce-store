@@ -2,6 +2,33 @@ import db from '../sequelize_models/index.js';
 
 const { Wishlist, Product } = db;
 
+// Utility function to fix image URLs for ngrok
+const fixImageUrl = (imageUrl, req) => {
+  if (!imageUrl) return imageUrl;
+  
+  // If it's already a full URL, check if it needs to be updated for ngrok
+  if (imageUrl.startsWith('http://localhost') || imageUrl.startsWith('https://localhost')) {
+    const forwardedHost = req.get('x-forwarded-host');
+    const forwardedProto = req.get('x-forwarded-proto');
+    
+    if (forwardedHost && forwardedProto) {
+      // Replace localhost with ngrok URL
+      const ngrokUrl = `${forwardedProto}://${forwardedHost}`;
+      const fixedUrl = imageUrl.replace(/https?:\/\/localhost:\d+/, ngrokUrl);
+      return fixedUrl;
+    }
+  }
+  
+  // If it's a relative path, make it absolute
+  if (imageUrl.startsWith('/')) {
+    const host = req.get('x-forwarded-host') || req.get('host');
+    const protocol = req.get('x-forwarded-proto') || req.protocol;
+    return `${protocol}://${host}${imageUrl}`;
+  }
+  
+  return imageUrl;
+};
+
 // Get current user's wishlist
 export const getWishlist = async (req, res, next) => {
   try {
@@ -9,7 +36,41 @@ export const getWishlist = async (req, res, next) => {
       where: { userId: req.user.id },
       include: [{ model: Product }]
     });
-    res.json(wishlist);
+    
+    // Fix image URLs and decode HTML entities for each product
+    const processedWishlist = wishlist.map(item => {
+      const itemData = item.toJSON();
+      
+      if (itemData.Product) {
+        // Decode HTML entities in imageUrl
+        if (itemData.Product.imageUrl) {
+          itemData.Product.imageUrl = itemData.Product.imageUrl
+            .replace(/&amp;amp;/g, '&')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#x2F;/g, '/');
+        }
+        
+        itemData.Product.imageUrl = fixImageUrl(itemData.Product.imageUrl, req);
+        
+        // Decode HTML entities in description
+        if (itemData.Product.description) {
+          itemData.Product.description = itemData.Product.description
+            .replace(/&amp;amp;/g, '&')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#x2F;/g, '/');
+        }
+      }
+      
+      return itemData;
+    });
+    
+    res.json(processedWishlist);
   } catch (err) {
     next(err);
   }

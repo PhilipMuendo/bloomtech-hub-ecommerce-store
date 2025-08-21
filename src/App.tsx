@@ -55,6 +55,7 @@ const LowStockProducts = lazy(() => import('./pages/admin/LowStockProducts'));
 const Quotes = lazy(() => import("./pages/admin/Quotes"));
 const ContactMessages = lazy(() => import("./pages/admin/ContactMessages"));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
+const BankTransferOrders = lazy(() => import("./pages/admin/BankTransferOrders"));
 
 const PesapalTransactions = lazy(() => import("./pages/admin/PesapalTransactions"));
 const WarehouseOrders = lazy(() => import("./pages/warehouse/WarehouseOrders"));
@@ -324,6 +325,11 @@ const AnimatedRoutes = () => {
           <Route path="orders" element={
             <Suspense fallback={<LoadingSpinner />}>
               <AdminOrders />
+            </Suspense>
+          } />
+          <Route path="bank-transfer-orders" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <BankTransferOrders />
             </Suspense>
           } />
           <Route path="quotes" element={

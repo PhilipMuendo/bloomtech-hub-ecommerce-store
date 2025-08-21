@@ -8,9 +8,10 @@ import { useAuth } from '@/context/AuthContext';
 import NewsletterForm from '@/components/NewsletterForm';
 
 import PesapalPaymentModal from '@/components/PesapalPaymentModal';
+import BankTransferPaymentModal from '@/components/BankTransferPaymentModal';
 import PaymentConfirmation from '@/components/PaymentMethodSelector';
 import GetQuoteModal from '@/components/GetQuoteModal';
-import { Tag } from 'lucide-react';
+import { Tag, CreditCard, Building2 } from 'lucide-react';
 
 const Cart = () => {
   const { cartItems, updateQuantity, removeFromCart, getTotalPrice, clearCart } = useCart();
@@ -18,6 +19,7 @@ const Cart = () => {
   const { user } = useAuth();
 
   const [showPesapalModal, setShowPesapalModal] = React.useState(false);
+  const [showBankTransferModal, setShowBankTransferModal] = React.useState(false);
   const [currentOrderId, setCurrentOrderId] = React.useState('');
   const [showQuote, setShowQuote] = React.useState(false);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = React.useState(false);
@@ -89,15 +91,28 @@ const Cart = () => {
     const tempOrderId = `TEMP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     setCurrentOrderId(tempOrderId);
     
-    // Since there's only one payment method, proceed directly to payment
-    setShowPesapalModal(true);
+    // Check if order requires bank transfer (KSH 500,000 threshold)
+    const BANK_TRANSFER_THRESHOLD = 500000;
+    const requiresBankTransfer = getTotalPrice() >= BANK_TRANSFER_THRESHOLD;
+    
+    if (requiresBankTransfer) {
+      setShowBankTransferModal(true);
+    } else {
+      setShowPesapalModal(true);
+    }
     setShowPaymentConfirmation(false);
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = (realOrderId?: string) => {
     clearCart();
     // Clean up localStorage
     localStorage.removeItem('pendingOrderData');
+    
+    if (realOrderId) {
+      // Update the current order ID to the real one
+      setCurrentOrderId(realOrderId);
+    }
+    
     toast({ title: "Order placed and paid successfully!" });
     navigate('/orders');
   };
@@ -264,6 +279,14 @@ const Cart = () => {
       <PesapalPaymentModal
         isOpen={showPesapalModal}
         onClose={() => setShowPesapalModal(false)}
+        orderId={currentOrderId}
+        amount={getTotalPrice()}
+        onSuccess={handlePaymentSuccess}
+      />
+      
+      <BankTransferPaymentModal
+        isOpen={showBankTransferModal}
+        onClose={() => setShowBankTransferModal(false)}
         orderId={currentOrderId}
         amount={getTotalPrice()}
         onSuccess={handlePaymentSuccess}

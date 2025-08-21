@@ -184,7 +184,7 @@ export const validateProductInput = [
     .trim()
     .isLength({ min: 2, max: 100 })
     .withMessage('Product name must be between 2 and 100 characters')
-    .matches(/^[a-zA-Z0-9\s\-_.,()&]+$/)
+    .matches(/^[a-zA-Z0-9\s\-_.,()&\/]+$/)
     .withMessage('Product name contains invalid characters'),
   
   body('price')

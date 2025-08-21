@@ -110,16 +110,29 @@ const Wishlist: React.FC = () => {
               <CardContent className="p-3 sm:p-4">
                 {/* Image Container */}
                 <div className="relative aspect-square mb-3 sm:mb-4 overflow-hidden rounded-lg bg-gray-100">
-                  <img
-                    src={productImage}
-                    alt={productName}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                    loading="lazy"
-                    onError={(e) => {
-                      // Fallback to placeholder if image fails to load
-                      e.currentTarget.src = '/placeholder.svg';
-                    }}
-                  />
+                  {productImage ? (
+                    <img
+                      src={productImage}
+                      alt={productName}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                      onError={(e) => {
+                        console.log('❌ Image failed to load:', productImage);
+                        // Fallback to placeholder if image fails to load
+                        e.currentTarget.src = '/placeholder.svg';
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  {!productImage && (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                      <span className="text-gray-400 text-sm">No image</span>
+                    </div>
+                  )}
+                  <div className="w-full h-full flex items-center justify-center bg-gray-200" style={{ display: 'none' }}>
+                    <span className="text-gray-400 text-sm">Broken image</span>
+                  </div>
                   
                   {/* Out of Stock Badge */}
                   {!inStock && (

@@ -37,6 +37,7 @@ import quoteRoutes from './routes/quoteRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
 import subcategoryRoutes from './routes/subcategoryRoutes.js';
 import contactRoutes from './routes/contactRoutes.js';
+import bankTransferRoutes from './routes/bankTransferRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -103,6 +104,7 @@ app.use('/api/quotes', quoteRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/subcategories', subcategoryRoutes);
+app.use('/api/bank-transfer', bankTransferRoutes);
 
 // 404 handler (should be before error handler)
 app.use(notFoundHandler);

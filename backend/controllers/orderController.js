@@ -179,15 +179,27 @@ export const createOrder = async (req, res, next) => {
     
     console.log('✅ All items validated');
     
+    // Check if order requires bank transfer (KSH 500,000 threshold)
+    const BANK_TRANSFER_THRESHOLD = 500000;
+    const requiresBankTransfer = calculatedTotal >= BANK_TRANSFER_THRESHOLD;
+    
     // Create order and order items in a transaction
     console.log('Starting database transaction...');
     const result = await sequelize.transaction(async (t) => {
       console.log('Creating order...');
-      const order = await Order.create({ 
+      const orderData = {
         userId: req.user.id, 
         total: calculatedTotal, 
         shippingAddress: shippingAddress || ''
-      }, { transaction: t });
+      };
+      
+      // Set payment method based on order total
+      if (requiresBankTransfer) {
+        orderData.paymentMethod = 'bank_transfer';
+        console.log('💰 Order requires bank transfer (amount >= KSH 500,000)');
+      }
+      
+      const order = await Order.create(orderData, { transaction: t });
       
       console.log('✅ Order created:', order.id);
       

@@ -63,4 +63,14 @@ export const generateTemporaryOrderId = () => {
  */
 export const isTemporaryOrderId = (orderId) => {
   return String(orderId).startsWith('TEMP_');
+};
+
+/**
+ * Generate a unique invoice number for bank transfer orders
+ * @returns {string} - Unique invoice number
+ */
+export const generateInvoiceNumber = () => {
+  const timestamp = Date.now().toString(36);
+  const random = Math.random().toString(36).substring(2, 6);
+  return `INV-${timestamp}-${random}`.toUpperCase();
 }; 
