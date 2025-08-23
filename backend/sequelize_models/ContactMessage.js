@@ -24,15 +24,11 @@ export default (sequelize) => {
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM('new', 'read', 'replied', 'closed'),
+      type: DataTypes.ENUM('new', 'read'),
       defaultValue: 'new',
       allowNull: false,
     },
-    priority: {
-      type: DataTypes.ENUM('low', 'medium', 'high', 'urgent'),
-      defaultValue: 'medium',
-      allowNull: false,
-    },
+
     adminNotes: {
       type: DataTypes.TEXT,
       allowNull: true,

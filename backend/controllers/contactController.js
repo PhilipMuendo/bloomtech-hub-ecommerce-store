@@ -30,7 +30,7 @@ export const submitContactForm = async (req, res) => {
       subject,
       message,
       status: 'new',
-      priority: 'medium',
+
       ipAddress: req.ip,
       userAgent: req.get('User-Agent')
     });
@@ -97,11 +97,10 @@ export const submitContactForm = async (req, res) => {
 // GET /api/contact/messages - Get all contact messages (admin only)
 export const getContactMessages = async (req, res) => {
   try {
-    const { page = 1, limit = 20, status, priority } = req.query;
+    const { page = 1, limit = 20, status } = req.query;
     const where = {};
     
     if (status && status !== 'all') where.status = status;
-    if (priority && priority !== 'all') where.priority = priority;
     
     const offset = (parseInt(page) - 1) * parseInt(limit);
     

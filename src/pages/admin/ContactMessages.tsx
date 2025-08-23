@@ -16,8 +16,8 @@ interface ContactMessage {
   email: string;
   subject: string;
   message: string;
-  status: 'new' | 'read' | 'replied' | 'closed';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'new' | 'read';
+
   adminNotes?: string;
   respondedBy?: number;
   respondedAt?: string;
@@ -30,7 +30,7 @@ interface ContactMessage {
 const ContactMessages = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
+
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +48,7 @@ const ContactMessages = () => {
       params.set('page', String(page));
       params.set('limit', '20');
       if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
-      if (priorityFilter && priorityFilter !== 'all') params.set('priority', priorityFilter);
+
       
       const response = await fetch(`/api/contact/messages?${params.toString()}`, {
         headers: {
@@ -77,7 +77,7 @@ const ContactMessages = () => {
 
   useEffect(() => {
     fetchMessages();
-  }, [page, statusFilter, priorityFilter]);
+  }, [page, statusFilter]);
 
   const filteredMessages = messages.filter(message => {
     const searchLower = searchTerm.toLowerCase();
@@ -94,21 +94,11 @@ const ContactMessages = () => {
     switch (status) {
       case 'new': return 'secondary';
       case 'read': return 'default';
-      case 'replied': return 'default';
-      case 'closed': return 'destructive';
       default: return 'secondary';
     }
   };
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'low': return 'secondary';
-      case 'medium': return 'default';
-      case 'high': return 'destructive';
-      case 'urgent': return 'destructive';
-      default: return 'default';
-    }
-  };
+
 
   const updateMessageStatus = async (messageId: string, newStatus: string, adminNotes?: string) => {
     try {
@@ -207,22 +197,8 @@ const ContactMessages = () => {
             <div className="text-2xl font-bold">{messages.filter(m => m.status === 'new').length}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">High Priority</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{messages.filter(m => m.priority === 'high' || m.priority === 'urgent').length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Replied</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{messages.filter(m => m.status === 'replied').length}</div>
-          </CardContent>
-        </Card>
+        
+        
       </div>
 
       <Card>
@@ -247,26 +223,13 @@ const ContactMessages = () => {
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="new">New</SelectItem>
-                <SelectItem value="read">Read</SelectItem>
-                <SelectItem value="replied">Replied</SelectItem>
-                <SelectItem value="closed">Closed</SelectItem>
-              </SelectContent>
+                             <SelectContent>
+                 <SelectItem value="all">All Status</SelectItem>
+                 <SelectItem value="new">New</SelectItem>
+                 <SelectItem value="read">Read</SelectItem>
+               </SelectContent>
             </Select>
-            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Priority" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Priority</SelectItem>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
-              </SelectContent>
-            </Select>
+            
           </div>
 
           <div className="overflow-x-auto max-w-full">
@@ -276,7 +239,7 @@ const ContactMessages = () => {
                   <TableHead>Contact</TableHead>
                   <TableHead>Subject</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Priority</TableHead>
+
                   <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -300,11 +263,7 @@ const ContactMessages = () => {
                         {message.status.charAt(0).toUpperCase() + message.status.slice(1)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant={getPriorityColor(message.priority)}>
-                        {message.priority.charAt(0).toUpperCase() + message.priority.slice(1)}
-                      </Badge>
-                    </TableCell>
+                    
                     <TableCell>{new Date(message.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
@@ -362,9 +321,7 @@ const ContactMessages = () => {
                   <p><strong>Status:</strong> <Badge variant={getStatusColor(selectedMessage.status)}>
                     {selectedMessage.status.charAt(0).toUpperCase() + selectedMessage.status.slice(1)}
                   </Badge></p>
-                  <p><strong>Priority:</strong> <Badge variant={getPriorityColor(selectedMessage.priority)}>
-                    {selectedMessage.priority.charAt(0).toUpperCase() + selectedMessage.priority.slice(1)}
-                  </Badge></p>
+                  
                   {selectedMessage.respondedAt && (
                     <p><strong>Responded:</strong> {new Date(selectedMessage.respondedAt).toLocaleString()}</p>
                   )}
@@ -387,39 +344,24 @@ const ContactMessages = () => {
                 </div>
               )}
 
-              <div className="flex gap-2 pt-4">
-                {selectedMessage.status === 'new' && (
-                  <>
-                    <Button
-                      onClick={() => updateMessageStatus(selectedMessage.id, 'read')}
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Mark as Read
-                    </Button>
-                    <Button
-                      onClick={() => updateMessageStatus(selectedMessage.id, 'replied')}
-                    >
-                      <MessageSquare className="mr-2 h-4 w-4" />
-                      Mark as Replied
-                    </Button>
-                  </>
-                )}
-                {selectedMessage.status === 'read' && (
-                  <Button
-                    onClick={() => updateMessageStatus(selectedMessage.id, 'replied')}
-                  >
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    Mark as Replied
-                  </Button>
-                )}
-                <Button
-                  variant="destructive"
-                  onClick={() => updateMessageStatus(selectedMessage.id, 'closed')}
-                >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Close Message
-                </Button>
-              </div>
+                             <div className="flex gap-2 pt-4">
+                 {selectedMessage.status === 'new' && (
+                   <Button
+                     onClick={() => updateMessageStatus(selectedMessage.id, 'read')}
+                   >
+                     <CheckCircle className="mr-2 h-4 w-4" />
+                     Mark as Read
+                   </Button>
+                 )}
+                 {selectedMessage.status === 'read' && (
+                   <Button
+                     onClick={() => updateMessageStatus(selectedMessage.id, 'new')}
+                   >
+                     <Clock className="mr-2 h-4 w-4" />
+                     Mark as New
+                   </Button>
+                 )}
+               </div>
             </div>
           </DialogContent>
         </Dialog>
