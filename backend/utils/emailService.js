@@ -37,6 +37,7 @@ const createTransporter = () => {
  * @param {string} options.html - HTML content
  * @param {string} options.text - Plain text content (optional)
  * @param {string} options.from - Sender email (optional)
+ * @param {Array}  options.attachments - Nodemailer attachments array (optional)
  */
 export const sendEmail = async (options) => {
   try {
@@ -48,6 +49,9 @@ export const sendEmail = async (options) => {
       console.log('To:', options.to);
       console.log('Subject:', options.subject);
       console.log('Content:', options.html);
+      if (options.attachments?.length) {
+        console.log('Attachments:', options.attachments.map(a => a.filename || 'attachment').join(', '));
+      }
       console.log('--- End Email ---');
       
       // Return a mock success response
@@ -62,7 +66,8 @@ export const sendEmail = async (options) => {
       to: options.to,
       subject: options.subject,
       html: options.html,
-      text: options.text || options.html.replace(/<[^>]*>/g, '') // Strip HTML tags for text version
+      text: options.text || options.html.replace(/<[^>]*>/g, ''), // Strip HTML tags
+      attachments: options.attachments || []
     };
 
     const info = await transporter.sendMail(mailOptions);
@@ -79,9 +84,12 @@ export const sendEmail = async (options) => {
     console.log('To:', options.to);
     console.log('Subject:', options.subject);
     console.log('Content:', options.html);
+    if (options.attachments?.length) {
+      console.log('Attachments:', options.attachments.map(a => a.filename || 'attachment').join(', '));
+    }
     console.log('--- End Email ---');
     
-    // Don't throw error to prevent breaking the bank transfer flow
+    // Don't throw error to prevent breaking the flow
     return {
       messageId: `failed-${Date.now()}`,
       response: 'Email sending failed but content logged'
@@ -130,6 +138,8 @@ const generateEmailTemplate = (template, data) => {
       return generateProformaInvoiceTemplate(data);
     case 'payment-confirmed':
       return generatePaymentConfirmedTemplate(data);
+    case 'order-delivered-thanks':
+      return generateOrderDeliveredTemplate(data);
     default:
       return `<p>${data.message || 'No template found'}</p>`;
   }
@@ -318,6 +328,53 @@ const generatePaymentConfirmedTemplate = (data) => {
   `;
 };
 
+function generateOrderDeliveredTemplate(data) {
+  const formatAmount = (amount) => new Intl.NumberFormat('en-KE', {
+    style: 'currency',
+    currency: 'KES',
+    minimumFractionDigits: 0
+  }).format(amount);
+
+  const itemsHtml = (data.items || []).map(it => `
+    <tr>
+      <td style="padding:8px;border-bottom:1px solid #eee;">${it.name}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;">${it.quantity}</td>
+      <td style="padding:8px;border-bottom:1px solid #eee;">${formatAmount(it.unitPrice || 0)}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Order Delivered</title>
+      </head>
+      <body style="font-family:Arial, sans-serif;line-height:1.6;color:#333;">
+        <div style="max-width:600px;margin:0 auto;padding:20px;">
+          <h2 style="text-align:center;margin-bottom:16px;">Thank You for Shopping with Us!</h2>
+          <p>Dear ${data.customerName || 'Customer'},</p>
+          <p>Your order <strong>${data.orderNumber}</strong> has been delivered. We truly appreciate your business and hope you enjoy your purchase.</p>
+          <h3 style="margin-top:24px;margin-bottom:8px;">Order Summary</h3>
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:8px;border-bottom:1px solid #eee;">Item</th>
+                <th style="text-align:left;padding:8px;border-bottom:1px solid #eee;">Qty</th>
+                <th style="text-align:left;padding:8px;border-bottom:1px solid #eee;">Unit Price</th>
+              </tr>
+            </thead>
+            <tbody>${itemsHtml}</tbody>
+          </table>
+          <p style="margin-top:16px;">Total Paid: <strong>${formatAmount(data.total || 0)}</strong></p>
+          <p>If you have any questions or need support, just reply to this email.</p>
+          <p>Warm regards,<br/>BLOOMTECH HUB LIMITED</p>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
 /**
  * Send email with template
  * @param {Object} options - Email options
@@ -325,13 +382,15 @@ const generatePaymentConfirmedTemplate = (data) => {
  * @param {string} options.subject - Email subject
  * @param {string} options.template - Template name
  * @param {Object} options.data - Template data
+ * @param {Array}  options.attachments - Nodemailer attachments array (optional)
  */
 export const sendTemplatedEmail = async (options) => {
   const html = generateEmailTemplate(options.template, options.data);
   return sendEmail({
     to: options.to,
     subject: options.subject,
-    html
+    html,
+    attachments: options.attachments || []
   });
 };
 

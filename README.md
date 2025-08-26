@@ -15,13 +15,16 @@ BloomTech Hub Ecommerce Store is a modern, full-featured ecommerce platform with
 - **Wishlist**: Save products for later viewing
 - **Checkout Process**: Streamlined checkout flow with multiple payment options
 - **Payment Integration**: 
-  - M-Pesa mobile money payments
-  - Pesapal card and mobile money payments
+  - M-Pesa mobile money payments (for orders under KSH 500,000)
+  - Pesapal card and mobile money payments (for orders under KSH 500,000)
+  - **Bank Transfer System**: For high-value orders (KSH 500,000+) with proforma invoice generation
   - Secure payment processing with webhook callbacks
 - **Newsletter Signup**: Subscribe to updates and promotions (real backend integration)
 - **Product Reviews**: Submit and view reviews; reviews are visible to admin for moderation
 - **Quote System**: Request custom quotes for bulk orders or special requirements
 - **Back-in-Stock Alerts**: Get notified when out-of-stock items become available
+- **Contact Form**: Customer support and inquiry system
+- **Pickup Point Selection**: Choose from all 47 counties in Kenya for order pickup
 - **Responsive Design**: Fully optimized for desktops, tablets, and all phone sizes
 - **Modern UI Components**: Utilizes shadcn-ui and Tailwind CSS for a clean and consistent look
 - **Context Management**: Uses React Context for managing cart, auth, and wishlist state
@@ -32,9 +35,11 @@ BloomTech Hub Ecommerce Store is a modern, full-featured ecommerce platform with
 - **Dashboard**: Visualize key stats (products, orders, users, reviews, revenue, newsletter subscribers) with responsive charts
 - **Product Management**: View, filter, add, edit, and manage all products with image uploads
 - **Order Management**: Track orders, update statuses, and manage fulfillment
+- **Bank Transfer Orders**: Dedicated interface for managing high-value bank transfer orders with payment confirmation
 - **User Management**: View and manage user accounts, roles, and permissions
 - **Review Moderation**: Approve/reject reviews; only approved reviews show on the storefront
 - **Quote Management**: Handle custom quote requests and convert them to orders
+- **Contact Messages**: Manage customer inquiries and support requests with simplified status tracking (New/Read)
 - **Newsletter Subscribers**: View all newsletter signups in real time
 - **Transaction Tracking**: Monitor payment transactions and statuses
 
@@ -47,15 +52,17 @@ BloomTech Hub Ecommerce Store is a modern, full-featured ecommerce platform with
 - **MySQL Database**: Robust relational database with Sequelize ORM
 - **Authentication**: JWT-based authentication and authorization middleware
 - **Payment Processing**: 
-  - M-Pesa STK push integration
-  - Pesapal payment gateway integration
+  - M-Pesa STK push integration (for orders under KSH 500,000)
+  - Pesapal payment gateway integration (for orders under KSH 500,000)
+  - **Bank Transfer System**: Proforma invoice generation and payment confirmation for high-value orders
   - Webhook handling for payment callbacks
 - **Order Management**: Place, track, and manage orders with status updates
 - **Wishlist Management**: Add/remove products from wishlist
 - **Cart Management**: Add/remove/update cart items
 - **Quote System**: Handle custom quote requests and conversions
+- **Contact System**: Manage customer inquiries and support requests
 - **Newsletter**: Subscribe and view subscribers via API
-- **Email Integration**: Nodemailer for transactional emails
+- **Email Integration**: Nodemailer for transactional emails with templated email support
 - **File Upload**: Multer for handling image uploads
 - **Logging & Security**: Uses morgan for logging, dotenv for environment variables, and CORS for security
 
@@ -209,7 +216,7 @@ The project uses MySQL with Sequelize ORM. The database includes the following m
 - **BackInStockAlerts**: Stock notification system
 - **Newsletters**: Newsletter subscription management
 
-- **Campaigns**: Marketing campaign management
+- **ContactMessages**: Customer support and inquiry management
 
 ---
 
@@ -224,6 +231,13 @@ The project uses MySQL with Sequelize ORM. The database includes the following m
 - Multi-payment method support (cards, mobile money)
 - Secure payment processing
 - Real-time payment status updates
+
+### Bank Transfer System
+- Automatic detection for orders exceeding KSH 500,000
+- Proforma invoice generation with business bank details
+- Email notifications to customers with payment instructions
+- Manual payment confirmation by admin team
+- Tax invoice generation upon payment approval
 
 ### Payment Flow
 1. User selects payment method during checkout
@@ -330,6 +344,19 @@ bloomtech-hub-ecommerce-store/
 - `GET    /api/admin/orders` — Admin: Get all orders
 - `GET    /api/admin/quotes` — Admin: Get all quotes
 - `GET    /api/admin/newsletter` — Admin: Get newsletter subscribers
+- `GET    /api/admin/contact-messages` — Admin: Get contact messages
+
+### Bank Transfer
+- `GET    /api/bank-transfer/bank-details` — Get business bank details
+- `POST   /api/bank-transfer/generate-invoice/:orderId` — Generate proforma invoice
+- `POST   /api/bank-transfer/confirm-payment/:orderId` — Confirm bank transfer payment
+- `GET    /api/bank-transfer/orders` — Get bank transfer orders
+
+### Contact
+- `POST   /api/contact` — Submit contact form
+- `GET    /api/contact/messages` — Admin: Get contact messages
+- `PUT    /api/contact/messages/:id/status` — Admin: Update message status
+- `DELETE /api/contact/messages/:id` — Admin: Delete contact message
 
 ---
 
@@ -416,7 +443,17 @@ For support, email support@bloomtechhub.com or create an issue in the repository
 
 ## Changelog
 
-### v2.0.0 (Current)
+### v2.1.0 (Current)
+- **Bank Transfer System**: Added support for high-value orders (KSH 500,000+) with proforma invoice generation
+- **Contact System**: Implemented customer support and inquiry management with simplified status tracking
+- **Pickup Points**: Added all 47 counties in Kenya for order pickup selection
+- **Email Templates**: Enhanced email system with templated emails for invoices and notifications
+- **Admin Enhancements**: Added dedicated bank transfer orders management interface
+- **Payment Thresholds**: Automatic payment method selection based on order value
+- **Simplified Contact Management**: Streamlined contact message status to New/Read only
+- **Enhanced Security**: Improved validation and error handling
+
+### v2.0.0
 - Migrated from MongoDB to MySQL with Sequelize ORM
 - Added M-Pesa and Pesapal payment integrations
 - Enhanced admin dashboard with comprehensive analytics

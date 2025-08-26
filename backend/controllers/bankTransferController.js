@@ -2,6 +2,7 @@ import db from '../sequelize_models/index.js';
 import { generateInvoiceNumber } from '../utils/idUtils.js';
 import { sendTemplatedEmail } from '../utils/emailService.js';
 import AuditService from '../services/auditService.js';
+import { generateInvoicePdf } from '../utils/pdfUtils.js';
 
 const { Order, User, OrderItem, Product } = db;
 
@@ -188,7 +189,7 @@ export const confirmBankTransferPayment = async (req, res, next) => {
 
     const order = await Order.findOne({
       where: { id: orderId },
-      include: [{ model: User, attributes: ['name', 'email', 'phone'] }]
+      include: [{ model: User, attributes: ['name', 'email', 'phone'] }, { model: OrderItem, include: [{ model: Product, attributes: ['name', 'price'] }] }]
     });
 
     if (!order) {
@@ -213,7 +214,19 @@ export const confirmBankTransferPayment = async (req, res, next) => {
       processedAt: new Date()
     });
 
-    // Send confirmation email to customer
+    // Prepare PDF invoice attachment
+    let attachments = [];
+    try {
+      const invoiceNumber = generateInvoiceNumber();
+      // Ensure Order has items + product info for line items
+      const fullOrder = order.toJSON();
+      const pdfBuffer = await generateInvoicePdf({ order: fullOrder, invoiceNumber });
+      attachments.push({ filename: `Invoice-${invoiceNumber}.pdf`, content: pdfBuffer });
+    } catch (pdfErr) {
+      console.error('Failed to generate invoice PDF:', pdfErr);
+    }
+
+    // Send confirmation email to customer (with invoice attached)
     try {
       await sendTemplatedEmail({
         to: order.User.email,
@@ -230,7 +243,8 @@ export const confirmBankTransferPayment = async (req, res, next) => {
             'You will receive updates on your order status',
             'Expected delivery: 3-5 business days'
           ]
-        }
+        },
+        attachments
       });
     } catch (emailError) {
       console.error('Failed to send payment confirmation email:', emailError);

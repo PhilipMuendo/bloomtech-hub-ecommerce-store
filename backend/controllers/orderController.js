@@ -3,6 +3,9 @@ import { Op } from 'sequelize';
 import AuditService from '../services/auditService.js';
 import { Parser } from 'json2csv';
 import { notifyOrderStatusChange } from '../utils/warehouseNotifications.js';
+import { sendTemplatedEmail } from '../utils/emailService.js';
+import { generateInvoicePdf } from '../utils/pdfUtils.js';
+import { generateInvoiceNumber } from '../utils/idUtils.js';
 
 const { Order, Product, User, OrderItem } = db;
 
@@ -331,6 +334,50 @@ export const updateOrderStatus = async (req, res, next) => {
           deliveredBy: req.user.id,
           deliveredAt: new Date()
         });
+
+        // Send thank-you email to customer with downloadable invoice
+        try {
+          const orderWithUserAndItems = await Order.findOne({
+            where: { id: currentOrder.id },
+            include: [
+              { model: User, attributes: ['name', 'email'] },
+              { model: OrderItem, include: [{ model: Product, attributes: ['name', 'price'] }] }
+            ]
+          });
+
+          const items = (orderWithUserAndItems?.OrderItems || []).map(oi => ({
+            name: oi.Product?.name || `Product #${oi.productId}`,
+            quantity: oi.quantity,
+            unitPrice: Number(oi.Product?.price || 0)
+          }));
+
+          const invoiceNumber = generateInvoiceNumber();
+          const invoiceBuffer = await generateInvoicePdf({
+            order: orderWithUserAndItems,
+            invoiceNumber
+          });
+
+          await sendTemplatedEmail({
+            to: orderWithUserAndItems.User.email,
+            subject: `Order Delivered - Thank You! (#${orderWithUserAndItems.trackingNumber})`,
+            template: 'order-delivered-thanks',
+            data: {
+              customerName: orderWithUserAndItems.User.name,
+              orderNumber: orderWithUserAndItems.trackingNumber,
+              total: Number(orderWithUserAndItems.total || 0),
+              items
+            },
+            attachments: [
+              {
+                filename: `Invoice-${invoiceNumber}.pdf`,
+                content: invoiceBuffer,
+                contentType: 'application/pdf'
+              }
+            ]
+          });
+        } catch (emailErr) {
+          console.error('Failed to send delivery thank-you email with invoice:', emailErr);
+        }
       }
     }
 
