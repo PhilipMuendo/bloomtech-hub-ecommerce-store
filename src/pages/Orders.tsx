@@ -63,7 +63,9 @@ const Orders = () => {
     setError(null);
     try {
       const token = user?.token || (typeof window !== 'undefined' && localStorage.getItem('user') && JSON.parse(localStorage.getItem('user')).token);
-      const res = await fetch('/api/orders', {
+      const params = new URLSearchParams();
+      if (user?.id) params.set('userId', String(user.id));
+      const res = await fetch(`/api/orders?${params.toString()}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error('Failed to fetch orders');

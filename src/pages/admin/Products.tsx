@@ -98,6 +98,8 @@ const Products = () => {
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+  // Prevent modal re-opening loops when URL still has ?edit during async updates
+  const lastHandledEditIdRef = React.useRef<string | null>(null);
 
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -147,17 +149,62 @@ const Products = () => {
     };
   }, []);
 
-  // Auto-open edit dialog if ?edit=productId is present
+  // Auto-open edit dialog if ?edit=productId is present (guarded to avoid re-open loops)
   useEffect(() => {
-    if (products.length > 0) {
-      const editId = searchParams.get('edit');
-      if (editId) {
-        const prod = products.find(p => p.id === editId);
-        if (prod) setEditingProduct(prod);
-      }
+    const editId = searchParams.get('edit');
+    if (!editId) return;
+    // If we've already handled this editId and the dialog was closed, don't auto-open again
+    if (lastHandledEditIdRef.current === editId && !editingProduct) return;
+    if (products.length === 0) return;
+    const prod = products.find(p => p.id === editId);
+    if (prod) {
+      lastHandledEditIdRef.current = editId;
+      setEditingProduct(prod);
     }
     // eslint-disable-next-line
-  }, [products]);
+  }, [products, searchParams]);
+
+  // Fallback: If the product to edit is not in the current page results, fetch it by ID and open the modal
+  useEffect(() => {
+    const maybeOpenEditById = async () => {
+      const editId = searchParams.get('edit');
+      if (!editId) return;
+      // If we've already handled this id and dialog is closed, skip
+      if (lastHandledEditIdRef.current === editId && !editingProduct) return;
+      if (editingProduct && editingProduct.id === editId) return;
+      // If present in current list, the previous effect will handle it
+      const existsInList = products.some(p => p.id === editId);
+      if (existsInList) return;
+      try {
+        const res = await fetch(`/api/products/${editId}`);
+        if (!res.ok) {
+          console.warn('Edit target not found by ID:', editId);
+          return;
+        }
+        const product = await res.json();
+        // Normalize expected fields if backend returns different casing/shape
+        const normalized: Product = {
+          id: product.id,
+          name: product.name,
+          price: Number(product.price),
+          imageUrl: product.imageUrl || '',
+          category: product.category,
+          subcategory: product.subcategory,
+          description: product.description || '',
+          stock: Number(product.stock ?? 0),
+          featured: !!product.featured,
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt,
+        };
+        lastHandledEditIdRef.current = editId;
+        setEditingProduct(normalized);
+      } catch (e) {
+        console.error('Failed to fetch product for edit by ID:', e);
+      }
+    };
+    maybeOpenEditById();
+    // eslint-disable-next-line
+  }, [searchParams, products, editingProduct]);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -228,6 +275,17 @@ const Products = () => {
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
+  };
+
+  const clearEditParam = () => {
+    setSearchParams(params => {
+      const next = new URLSearchParams(params);
+      next.delete('edit');
+      return next;
+    });
+    // Mark current id as handled to prevent re-open until param changes
+    const current = searchParams.get('edit');
+    if (current) lastHandledEditIdRef.current = current;
   };
 
   const handleUpdateProduct = async (formData?: any) => {
@@ -441,7 +499,30 @@ const Products = () => {
 
     // Watch for category changes to update subcategories
     const selectedCategory = watch('category');
-    const [availableSubcategories, setAvailableSubcategories] = React.useState<Subcategory[]>([]);
+    // Utility to normalize labels to Title Case (treat '-' and '_' as spaces) for stable rendering
+    const normalizeLabel = (value: string) => {
+      if (!value) return value;
+      const spaced = value.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+      return spaced
+        .toLowerCase()
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    };
+
+    const [availableSubcategories, setAvailableSubcategories] = React.useState<Subcategory[]>(() => {
+      if (product?.subcategory && product?.category) {
+        return [{
+          id: -1,
+          name: product.subcategory,
+          category: product.category,
+          displayName: normalizeLabel(product.subcategory),
+          description: product.subcategory,
+          isActive: true,
+        }];
+      }
+      return [];
+    });
 
     // Fetch subcategories from API when category changes
     React.useEffect(() => {
@@ -451,7 +532,37 @@ const Products = () => {
           
           if (response.ok) {
             const data = await response.json();
-            setAvailableSubcategories(data.data || []);
+            let list: Subcategory[] = Array.isArray(data.data) ? data.data : [];
+            // Normalize labels to Title Case for visual stability
+            list = list.map(s => ({
+              ...s,
+              displayName: normalizeLabel(s.displayName || s.name)
+            }));
+            // Ensure current subcategory remains selectable during edit even if not in fetched list
+            if (isEdit && product?.subcategory) {
+              const exists = list.some(s => s.name === product.subcategory);
+              if (!exists) {
+                list = [
+                  {
+                    id: -1,
+                    name: product.subcategory,
+                    category: selectedCategory,
+                    displayName: normalizeLabel(product.subcategory),
+                    description: product.subcategory,
+                    isActive: true,
+                  },
+                  ...list
+                ];
+              }
+            }
+            // Deduplicate by name to avoid flicker
+            const seen = new Set<string>();
+            const deduped = list.filter(item => {
+              if (seen.has(item.name)) return false;
+              seen.add(item.name);
+              return true;
+            });
+            setAvailableSubcategories(deduped);
           } else {
             console.error('Failed to fetch subcategories:', response.status, response.statusText);
             setAvailableSubcategories([]);
@@ -464,10 +575,9 @@ const Products = () => {
 
       if (selectedCategory) {
         fetchSubcategories();
-        // Only reset subcategory when category changes if it's not an edit operation
-        // or if the current subcategory doesn't belong to the new category
-        if (!isEdit || !product?.subcategory) {
-        setValue('subcategory', '');
+        // Only reset subcategory when creating a new product.
+        if (!isEdit) {
+          setValue('subcategory', '');
         }
       }
     }, [selectedCategory, setValue]);
@@ -506,7 +616,7 @@ const Products = () => {
     const previewData = watch();
 
     return (
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-4 md:p-8 min-w-[350px] w-full max-w-2xl mx-auto max-h-[75vh] overflow-y-auto" aria-label="Add Product Form">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-4 md:p-8 min-w-[350px] w-full max-w-2xl mx-auto" aria-label="Add Product Form">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <Label htmlFor="name">Product Name</Label>
@@ -901,8 +1011,16 @@ const Products = () => {
       </Card>
 
       {editingProduct && (
-        <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
-          <DialogContent className="max-w-2xl">
+        <Dialog
+          open={!!editingProduct}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditingProduct(null);
+              clearEditParam();
+            }
+          }}
+        >
+          <DialogContent className="max-w-2xl h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Product</DialogTitle>
               <DialogDescription>
@@ -912,7 +1030,7 @@ const Products = () => {
             <ProductForm
               product={editingProduct}
               onSave={handleUpdateProduct}
-              onCancel={() => setEditingProduct(null)}
+              onCancel={() => { setEditingProduct(null); clearEditParam(); }}
             />
           </DialogContent>
         </Dialog>
