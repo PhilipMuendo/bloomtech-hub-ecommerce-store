@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8081,
     proxy: {
-      '/api': 'http://localhost:5000'
+      '/api': mode === 'development' ? 'http://localhost:5000' : 'https://bloomtechub.com'
     }
   },
   plugins: [

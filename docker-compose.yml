@@ -7,20 +7,30 @@ services:
       - "5000:5000"
     environment:
       - NODE_ENV=development
-      - MONGO_URI=mongodb://mongo:27017/bloomtech
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=bloomtech_db
+      - DB_PORT=3306
     depends_on:
-      - mongo
+      - mysql
     volumes:
       - ./backend:/app
       - /app/node_modules
 
-  mongo:
-    image: mongo:6.0
+  mysql:
+    image: mysql:8.0
     restart: always
     ports:
-      - "27017:27017"
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=bloomtech_db
+      - MYSQL_USER=bloomtech
+      - MYSQL_PASSWORD=bloomtech123
     volumes:
-      - mongo_data:/data/db
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
 
 volumes:
-  mongo_data: 
+  mysql_data: 

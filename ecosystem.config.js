@@ -21,7 +21,7 @@ module.exports = {
       name: 'bloomtech-frontend',
       script: 'serve',
       cwd: './frontend-dist',
-      args: '-s -l 3000',
+      args: '-s -l 3000 -n',
       instances: 1,
       autorestart: true,
       watch: false,

@@ -77,8 +77,14 @@ mkdir -p logs
 
 # Check if .env file exists in backend
 if [ ! -f "backend/.env" ]; then
-    print_warning "No .env file found in backend. Please create one with production settings."
-    print_status "You can copy from env.example and update with your production values."
+    print_warning "No .env file found in backend. Creating from production template..."
+    if [ -f "backend/.env.production" ]; then
+        cp backend/.env.production backend/.env
+        print_status "Created .env from production template. Please update with your actual values."
+    else
+        print_warning "No production template found. Please create .env with production settings."
+        print_status "You can copy from env.example and update with your production values."
+    fi
 fi
 
 print_status "Installing PM2 globally..."

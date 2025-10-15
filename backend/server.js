@@ -54,7 +54,7 @@ app.set('trust proxy', 1);
 // Security middleware (order matters!)
 app.use(securityHeaders); // Security headers first
 
-// Use development CORS for ngrok testing
+// Use development CORS for ngrok testing, production CORS for live domain
 const corsConfig = process.env.NODE_ENV === 'development' ? devCorsOptions : corsOptions;
 app.use(cors(corsConfig)); // CORS configuration
 app.use(hpp()); // HTTP Parameter Pollution protection
