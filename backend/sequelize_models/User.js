@@ -113,6 +113,7 @@ export default (sequelize) => {
   }, {
     sequelize,
     modelName: 'User',
+    tableName: 'users',
     timestamps: true,
     hooks: {
       beforeSave: async (user) => {

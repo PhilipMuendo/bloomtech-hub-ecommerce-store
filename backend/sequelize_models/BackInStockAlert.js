@@ -16,6 +16,7 @@ export default (sequelize) => {
   }, {
     sequelize,
     modelName: 'BackInStockAlert',
+    tableName: 'backinstockalerts',
     timestamps: true
   });
 

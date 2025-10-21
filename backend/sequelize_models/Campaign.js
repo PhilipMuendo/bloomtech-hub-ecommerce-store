@@ -23,6 +23,7 @@ export default (sequelize) => {
   }, {
     sequelize,
     modelName: 'Campaign',
+    tableName: 'campaigns',
     timestamps: true
   });
 

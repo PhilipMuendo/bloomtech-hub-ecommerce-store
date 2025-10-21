@@ -72,6 +72,7 @@ export default (sequelize) => {
   }, {
     sequelize,
     modelName: 'Audit',
+    tableName: 'audits',
     timestamps: true,
     indexes: [
       {

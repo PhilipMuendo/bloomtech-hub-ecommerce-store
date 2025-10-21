@@ -52,6 +52,7 @@ export default (sequelize) => {
   }, {
     sequelize,
     modelName: 'ContactMessage',
+    tableName: 'contactmessages',
     timestamps: true
   });
 

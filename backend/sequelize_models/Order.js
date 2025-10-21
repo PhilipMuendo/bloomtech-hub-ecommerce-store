@@ -71,6 +71,7 @@ export default (sequelize) => {
   }, {
     sequelize,
     modelName: 'Order',
+    tableName: 'orders',
     timestamps: true,
     hooks: {
       beforeCreate: (order) => {
@@ -106,6 +107,7 @@ export const OrderItem = (sequelize) => {
   }, {
     sequelize,
     modelName: 'OrderItem',
+    tableName: 'orderitems',
     timestamps: false
   });
   return OrderItem;

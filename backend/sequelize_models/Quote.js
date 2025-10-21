@@ -69,6 +69,7 @@ export default (sequelize) => {
   }, {
     sequelize,
     modelName: 'Quote',
+    tableName: 'quotes',
     timestamps: true
   });
 
@@ -95,6 +96,7 @@ export const QuoteItem = (sequelize) => {
   }, {
     sequelize,
     modelName: 'QuoteItem',
+    tableName: 'quoteitems',
     timestamps: false
   });
   return QuoteItem;
@@ -119,6 +121,7 @@ export const Message = (sequelize) => {
   }, {
     sequelize,
     modelName: 'Message',
+    tableName: 'messages',
     timestamps: true
   });
   return Message;

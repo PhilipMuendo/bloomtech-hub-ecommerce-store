@@ -38,6 +38,7 @@ export default (sequelize) => {
   }, {
     sequelize,
     modelName: 'Review',
+    tableName: 'reviews',
     timestamps: true
   });
 

@@ -43,6 +43,7 @@ export default (sequelize) => {
   }, {
     sequelize,
     modelName: 'Subcategory',
+    tableName: 'subcategories',
     timestamps: true,
     indexes: [
       {

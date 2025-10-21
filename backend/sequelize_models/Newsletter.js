@@ -13,6 +13,7 @@ export default (sequelize) => {
   }, {
     sequelize,
     modelName: 'Newsletter',
+    tableName: 'newsletters',
     timestamps: true
   });
 

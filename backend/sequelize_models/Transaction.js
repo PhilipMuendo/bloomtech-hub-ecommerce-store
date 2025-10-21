@@ -61,6 +61,7 @@ export default (sequelize) => {
   }, {
     sequelize,
     modelName: 'Transaction',
+    tableName: 'transactions',
     timestamps: true
   });
 
