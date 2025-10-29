@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingCart, Search as SearchIcon, User, List, Heart, LogOut, ChevronDown, Shield, Package } from 'lucide-react';
+import { Search, ShoppingCart, Search as SearchIcon, User, List, Heart, LogOut, ChevronDown, Shield, Package, FileText, Bell } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,33 @@ import {
 const UserDropdown = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [unreadQuotes, setUnreadQuotes] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUnreadQuotes = async () => {
+      try {
+        const res = await fetch('/api/quotes/user', {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        if (res.ok) {
+          const quotes = await res.json();
+          // Count quotes with status 'responded' that user hasn't seen
+          const unread = quotes.filter((q: any) => q.status === 'responded' && !q.userSeen).length;
+          setUnreadQuotes(unread);
+        }
+      } catch (err) {
+        console.error('Failed to fetch unread quotes:', err);
+      }
+    };
+
+    fetchUnreadQuotes();
+    // Refresh less frequently - every 2 minutes to avoid rate limiting
+    const interval = setInterval(fetchUnreadQuotes, 120000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   if (!user) return null;
   const firstName = user.name?.split(' ')[0] || user.email?.split('@')[0] || 'User';
   return (
@@ -45,6 +72,16 @@ const UserDropdown = () => {
         <DropdownMenuItem asChild>
           <Link to="/wishlist" className="flex items-center gap-2">
             <Heart className="w-4 h-4" /> Wishlist
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/my-quotes" className="flex items-center gap-2 relative">
+            <FileText className="w-4 h-4" /> My Quotes
+            {unreadQuotes > 0 && (
+              <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {unreadQuotes}
+              </span>
+            )}
           </Link>
         </DropdownMenuItem>
         {/* Admin Panel link for admin/superadmin */}

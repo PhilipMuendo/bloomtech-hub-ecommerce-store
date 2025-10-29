@@ -1,5 +1,6 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import express from 'express';
@@ -30,7 +31,6 @@ import paymentRoutes from './routes/paymentRoutes.js';
 import campaignRoutes from './routes/campaignRoutes.js';
 
 import db, { sequelize } from './sequelize_models/index.js';
-import fs from 'fs';
 import reviewRoutes from './routes/reviewRoutes.js';
 import newsletterRoutes from './routes/newsletterRoutes.js';
 import quoteRoutes from './routes/quoteRoutes.js';
@@ -41,6 +41,7 @@ import bankTransferRoutes from './routes/bankTransferRoutes.js';
 
 // Load environment variables
 dotenv.config();
+
 // Load Pesapal-specific environment variables
 dotenv.config({ path: path.join(__dirname, 'pesapal.env') });
 

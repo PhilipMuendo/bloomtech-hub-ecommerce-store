@@ -245,20 +245,22 @@ export const checkAccountLockout = async (req, res, next) => {
     
     const user = await User.findOne({ where: { email } });
     
-    if (user && user.failedLoginAttempts >= 5) {
+    if (user && (user.failedLoginAttempts || 0) >= 5) {
       const lockoutTime = 15 * 60 * 1000; // 15 minutes
-      const timeSinceLastAttempt = Date.now() - new Date(user.lastFailedLogin).getTime();
-      
-      if (timeSinceLastAttempt < lockoutTime) {
-        const remainingTime = Math.ceil((lockoutTime - timeSinceLastAttempt) / 1000 / 60);
-        return res.status(429).json({
-          error: 'Account temporarily locked',
-          message: `Too many failed login attempts. Try again in ${remainingTime} minutes.`
-        });
-      } else {
-        // Reset failed attempts after lockout period
-        user.failedLoginAttempts = 0;
-        await user.save();
+      if (user.lastFailedLogin) {
+        const timeSinceLastAttempt = Date.now() - new Date(user.lastFailedLogin).getTime();
+        
+        if (timeSinceLastAttempt < lockoutTime) {
+          const remainingTime = Math.ceil((lockoutTime - timeSinceLastAttempt) / 1000 / 60);
+          return res.status(429).json({
+            error: 'Account temporarily locked',
+            message: `Too many failed login attempts. Try again in ${remainingTime} minutes.`
+          });
+        } else {
+          // Reset failed attempts after lockout period
+          user.failedLoginAttempts = 0;
+          await user.save();
+        }
       }
     }
     

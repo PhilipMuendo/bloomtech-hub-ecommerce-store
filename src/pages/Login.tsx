@@ -243,18 +243,125 @@ const Login = () => {
                   )}
                 </Button>
                 
-                <div className="relative my-6">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-gray-300" />
-                  </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-4 bg-white text-gray-500 font-medium">
-                      Or continue with
-                    </span>
-                  </div>
-                </div>
-                
-                <GoogleLoginButton />
+::1 - - [29/Oct/2025:14:02:56 +0000] "GET /api/products/featured HTTP/1.1" 304 - "http://localhost:8081/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::1 - - [29/Oct/2025:14:02:56 +0000] "GET /public/lovable-uploads/1755587875171-31429542.png HTTP/1.1" 304 - "http://localhost:8081/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+::1 - - [29/Oct/2025:14:02:56 +0000] "GET /public/lovable-uploads/1755586601525-778952009.png HTTP/1.1" 304 - "http://localhost:8081/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+Login attempt for email: muendophilip10@gmail.com
+Login error: Error
+    at Query.run (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\sequelize\lib\dialects\mysql\query.js:52:25)
+    at C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\sequelize\lib\sequelize.js:315:28
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async MySQLQueryInterface.select (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\sequelize\lib\dialects\abstract\query-interface.js:407:12)
+    at async User.findAll (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\sequelize\lib\model.js:1140:21)
+    at async User.findOne (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\sequelize\lib\model.js:1240:12)
+    at async login (file:///C:/Users/ADMIN/Desktop/BLOOMTECH/bloomtech-hub-ecommerce-store/backend/controllers/authController.js:228:18) {
+  name: 'SequelizeDatabaseError',
+  parent: Error: Unknown column 'failedLoginAttempts' in 'field list'
+      at Packet.asError (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\packets\packet.js:740:17)
+      at Query.execute (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\commands\command.js:29:26)
+      at Connection.handlePacket (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\base\connection.js:475:34)
+      at PacketParser.onPacket (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\base\connection.js:93:12)
+      at PacketParser.executeStart (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\packet_parser.js:75:16)
+      at Socket.<anonymous> (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\base\connection.js:100:25)
+      at Socket.emit (node:events:518:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5) {
+    code: 'ER_BAD_FIELD_ERROR',
+    errno: 1054,
+    sqlState: '42S22',
+    sqlMessage: "Unknown column 'failedLoginAttempts' in 'field list'",
+    sql: "SELECT `id`, `name`, `email`, `phone`, `password`, `role`, `status`, `isAdmin`, `verified`, `verificationToken`, `verificationTokenExpires`, `resetPasswordToken`, `resetPasswordExpires`, `googleId`, `googleEmail`, `googleName`, `googlePicture`, `authProvider`, `failedLoginAttempts`, `lastFailedLogin`, `lastLogin`, `lastLogout`, `createdAt`, `updatedAt` FROM `users` AS `User` WHERE `User`.`email` = 'muendophilip10@gmail.com';",
+    parameters: undefined
+  },
+  original: Error: Unknown column 'failedLoginAttempts' in 'field list'
+      at Packet.asError (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\packets\packet.js:740:17)
+      at Query.execute (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\commands\command.js:29:26)
+      at Connection.handlePacket (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\base\connection.js:475:34)
+      at PacketParser.onPacket (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\base\connection.js:93:12)
+      at PacketParser.executeStart (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\packet_parser.js:75:16)
+      at Socket.<anonymous> (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\base\connection.js:100:25)
+      at Socket.emit (node:events:518:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5) {
+    code: 'ER_BAD_FIELD_ERROR',
+    errno: 1054,
+    sqlState: '42S22',
+    sqlMessage: "Unknown column 'failedLoginAttempts' in 'field list'",
+    sql: "SELECT `id`, `name`, `email`, `phone`, `password`, `role`, `status`, `isAdmin`, `verified`, `verificationToken`, `verificationTokenExpires`, `resetPasswordToken`, `resetPasswordExpires`, `googleId`, `googleEmail`, `googleName`, `googlePicture`, `authProvider`, `failedLoginAttempts`, `lastFailedLogin`, `lastLogin`, `lastLogout`, `createdAt`, `updatedAt` FROM `users` AS `User` WHERE `User`.`email` = 'muendophilip10@gmail.com';",
+    parameters: undefined
+  },
+  sql: "SELECT `id`, `name`, `email`, `phone`, `password`, `role`, `status`, `isAdmin`, `verified`, `verificationToken`, `verificationTokenExpires`, `resetPasswordToken`, `resetPasswordExpires`, `googleId`, `googleEmail`, `googleName`, `googlePicture`, `authProvider`, `failedLoginAttempts`, `lastFailedLogin`, `lastLogin`, `lastLogout`, `createdAt`, `updatedAt` FROM `users` AS `User` WHERE `User`.`email` = 'muendophilip10@gmail.com';",
+  parameters: {}
+}
+::1 - - [29/Oct/2025:14:05:50 +0000] "POST /api/auth/login HTTP/1.1" 500 43 "http://localhost:8081/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+Login attempt for email: muendophilip10@gmail.com
+Login error: Error
+    at Query.run (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\sequelize\lib\dialects\mysql\query.js:52:25)
+    at C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\sequelize\lib\sequelize.js:315:28
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async MySQLQueryInterface.select (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\sequelize\lib\dialects\abstract\query-interface.js:407:12)
+    at async User.findAll (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\sequelize\lib\model.js:1140:21)
+    at async User.findOne (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\sequelize\lib\model.js:1240:12)
+    at async login (file:///C:/Users/ADMIN/Desktop/BLOOMTECH/bloomtech-hub-ecommerce-store/backend/controllers/authController.js:228:18) {
+  name: 'SequelizeDatabaseError',
+  parent: Error: Unknown column 'failedLoginAttempts' in 'field list'
+      at Packet.asError (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\packets\packet.js:740:17)
+      at Query.execute (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\commands\command.js:29:26)
+      at Connection.handlePacket (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\base\connection.js:475:34)
+      at PacketParser.onPacket (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\base\connection.js:93:12)
+      at PacketParser.executeStart (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\packet_parser.js:75:16)
+      at Socket.<anonymous> (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\base\connection.js:100:25)
+      at Socket.emit (node:events:518:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5) {
+    code: 'ER_BAD_FIELD_ERROR',
+    errno: 1054,
+    sqlState: '42S22',
+    sqlMessage: "Unknown column 'failedLoginAttempts' in 'field list'",
+    sql: "SELECT `id`, `name`, `email`, `phone`, `password`, `role`, `status`, `isAdmin`, `verified`, `verificationToken`, `verificationTokenExpires`, `resetPasswordToken`, `resetPasswordExpires`, `googleId`, `googleEmail`, `googleName`, `googlePicture`, `authProvider`, `failedLoginAttempts`, `lastFailedLogin`, `lastLogin`, `lastLogout`, `createdAt`, `updatedAt` FROM `users` AS `User` WHERE `User`.`email` = 'muendophilip10@gmail.com';",
+    parameters: undefined
+  },
+  original: Error: Unknown column 'failedLoginAttempts' in 'field list'
+      at Packet.asError (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\packets\packet.js:740:17)
+      at Query.execute (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\commands\command.js:29:26)
+      at Connection.handlePacket (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\base\connection.js:475:34)
+      at PacketParser.onPacket (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\base\connection.js:93:12)
+      at PacketParser.executeStart (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\packet_parser.js:75:16)
+      at Socket.<anonymous> (C:\Users\ADMIN\Desktop\BLOOMTECH\bloomtech-hub-ecommerce-store\backend\node_modules\mysql2\lib\base\connection.js:100:25)
+      at Socket.emit (node:events:518:28)
+      at addChunk (node:internal/streams/readable:561:12)
+      at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+      at Readable.push (node:internal/streams/readable:392:5) {
+    code: 'ER_BAD_FIELD_ERROR',
+    errno: 1054,
+    sqlState: '42S22',
+    sqlMessage: "Unknown column 'failedLoginAttempts' in 'field list'",
+    sql: "SELECT `id`, `name`, `email`, `phone`, `password`, `role`, `status`, `isAdmin`, `verified`, `verificationToken`, `verificationTokenExpires`, `resetPasswordToken`, `resetPasswordExpires`, `googleId`, `googleEmail`, `googleName`, `googlePicture`, `authProvider`, `failedLoginAttempts`, `lastFailedLogin`, `lastLogin`, `lastLogout`, `createdAt`, `updatedAt` FROM `users` AS `User` WHERE `User`.`email` = 'muendophilip10@gmail.com';",
+    parameters: undefined
+  },
+  sql: "SELECT `id`, `name`, `email`, `phone`, `password`, `role`, `status`, `isAdmin`, `verified`, `verificationToken`, `verificationTokenExpires`, `resetPasswordToken`, `resetPasswordExpires`, `googleId`, `googleEmail`, `googleName`, `googlePicture`, `authProvider`, `failedLoginAttempts`, `lastFailedLogin`, `lastLogin`, `lastLogout`, `createdAt`, `updatedAt` FROM `users` AS `User` WHERE `User`.`email` = 'muendophilip10@gmail.com';",
+  parameters: {}
+}
+::1 - - [29/Oct/2025:14:06:12 +0000] "POST /api/auth/login HTTP/1.1" 500 43 "http://localhost:8081/login" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+                {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+                  <>
+                    <div className="relative my-6">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-gray-300" />
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-4 bg-white text-gray-500 font-medium">
+                          Or continue with
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <GoogleLoginButton />
+                  </>
+                )}
               </form>
 
               <div className="mt-8 text-center">

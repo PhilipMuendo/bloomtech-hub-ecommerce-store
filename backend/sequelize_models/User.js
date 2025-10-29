@@ -110,6 +110,24 @@ export default (sequelize) => {
       type: DataTypes.ENUM('local', 'google'),
       defaultValue: 'local',
     },
+    // Account lockout fields
+    failedLoginAttempts: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+      allowNull: false,
+    },
+    lastFailedLogin: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    lastLogin: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    lastLogout: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   }, {
     sequelize,
     modelName: 'User',

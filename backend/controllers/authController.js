@@ -5,11 +5,19 @@ import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
+import { checkAccountLockout, updateFailedLoginAttempts } from '../middleware/enhancedAuth.js';
 
 const { User } = db;
 
-// Initialize Google OAuth client
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+// Initialize Google OAuth client (only if configured)
+let googleClient = null;
+if (process.env.GOOGLE_CLIENT_ID) {
+  try {
+    googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  } catch (error) {
+    console.error('Failed to initialize Google OAuth client:', error);
+  }
+}
 
 // Configure nodemailer for SMTP
 const createTransporter = () => {
@@ -216,18 +224,43 @@ export const login = async (req, res, next) => {
     const { email, password } = req.body;
     console.log('Login attempt for email:', email);
     
+    // Get user and check account lockout
     const user = await User.findOne({ where: { email } });
+    
+    if (user && (user.failedLoginAttempts || 0) >= 5) {
+      const lockoutTime = 15 * 60 * 1000; // 15 minutes
+      if (user.lastFailedLogin) {
+        const timeSinceLastAttempt = Date.now() - new Date(user.lastFailedLogin).getTime();
+        
+        if (timeSinceLastAttempt < lockoutTime) {
+          const remainingTime = Math.ceil((lockoutTime - timeSinceLastAttempt) / 1000 / 60);
+          return res.status(429).json({
+            error: 'Account temporarily locked',
+            message: `Too many failed login attempts. Try again in ${remainingTime} minutes.`
+          });
+        } else {
+          // Reset failed attempts after lockout period
+          user.failedLoginAttempts = 0;
+          await user.save();
+        }
+      }
+    }
     
     if (!user) {
       console.log('User not found:', email);
+      await updateFailedLoginAttempts(email, false);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
     const isPasswordValid = await user.matchPassword(password);
     if (!isPasswordValid) {
       console.log('Invalid password for user:', email);
+      await updateFailedLoginAttempts(email, false);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+    
+    // Successful login - reset failed attempts
+    await updateFailedLoginAttempts(email, true);
     
     console.log('User found:', { id: user.id, email: user.email, role: user.role, verified: user.verified, status: user.status });
     
@@ -284,8 +317,13 @@ export const login = async (req, res, next) => {
 export const forgotPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
+    // Always return success to prevent user enumeration
     const user = await User.findOne({ where: { email } });
-    if (!user) return res.status(404).json({ error: 'User not found.' });
+    if (!user) {
+      // Still return success, but log internally
+      console.log(`Password reset requested for non-existent email: ${email}`);
+      return res.json({ message: 'If an account with that email exists, a password reset email has been sent.' });
+    }
     user.resetPasswordToken = generateVerificationToken();
     user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
     await user.save();
@@ -305,7 +343,7 @@ export const forgotPassword = async (req, res, next) => {
       subject: 'Reset your password',
       html: `<h2>Reset your password</h2><p>Click the link below to reset your password:</p><a href="${resetUrl}">${resetUrl}</a>`
     });
-    res.json({ message: 'Password reset email sent.' });
+    res.json({ message: 'If an account with that email exists, a password reset email has been sent.' });
   } catch (error) {
     next(error);
   }
@@ -422,11 +460,14 @@ export const changePassword = async (req, res, next) => {
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
     
-    // Hash new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // Check if new password is same as current password
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({ error: 'New password must be different from current password' });
+    }
     
-    // Update password
-    await user.update({ password: hashedPassword });
+    // Update password (model hook will handle hashing)
+    await user.update({ password: newPassword });
     
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
@@ -444,14 +485,43 @@ export const googleAuth = async (req, res, next) => {
       return res.status(400).json({ error: 'ID token is required' });
     }
     
+    if (!googleClient || !process.env.GOOGLE_CLIENT_ID) {
+      console.error('Google OAuth not configured: Missing GOOGLE_CLIENT_ID');
+      return res.status(500).json({ error: 'Google authentication is not configured' });
+    }
+    
     // Verify the Google ID token
-    const ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
+    let ticket;
+    try {
+      ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID
+      });
+    } catch (verifyError) {
+      console.error('Google ID token verification failed:', verifyError);
+      if (verifyError.message?.includes('Token used too early')) {
+        return res.status(400).json({ error: 'Invalid Google token: Token used too early' });
+      }
+      if (verifyError.message?.includes('Token expired')) {
+        return res.status(400).json({ error: 'Invalid Google token: Token has expired' });
+      }
+      if (verifyError.message?.includes('Invalid token signature')) {
+        return res.status(400).json({ error: 'Invalid Google token: Token signature verification failed' });
+      }
+      return res.status(400).json({ error: 'Invalid Google token. Please try again.' });
+    }
     
     const payload = ticket.getPayload();
+    if (!payload) {
+      return res.status(400).json({ error: 'Invalid Google token payload' });
+    }
+    
     const { sub: googleId, email, name, picture } = payload;
+    
+    // Validate email exists
+    if (!email) {
+      return res.status(400).json({ error: 'Google account email is required' });
+    }
     
     // Check if user already exists
     let user = await User.findOne({
@@ -464,6 +534,19 @@ export const googleAuth = async (req, res, next) => {
     });
     
     if (user) {
+      // Check if account is suspended
+      if (user.status !== 'active') {
+        let errorMessage = '';
+        if (user.status === 'suspended') {
+          errorMessage = 'Your account has been suspended. Please contact our support team at support@bloomtechhub.com for assistance.';
+        } else {
+          errorMessage = `Your account is currently '${user.status}'. Please contact support if you believe this is a mistake.`;
+        }
+        return res.status(403).json({
+          error: errorMessage
+        });
+      }
+      
       // Update existing user with Google info if needed
       if (!user.googleId) {
         await user.update({
@@ -474,48 +557,70 @@ export const googleAuth = async (req, res, next) => {
           authProvider: 'google',
           verified: true // Google users are automatically verified
         });
+        // Reload user to get updated data
+        user = await User.findByPk(user.id);
+      } else if (user.googlePicture !== picture || user.googleName !== name) {
+        // Update profile picture and name if they changed
+        await user.update({
+          googleName: name,
+          googlePicture: picture
+        });
+        user = await User.findByPk(user.id);
       }
     } else {
       // Create new user
       user = await User.create({
-        name,
+        name: name || email.split('@')[0], // Use email prefix if name not provided
         email,
         googleId,
         googleEmail: email,
-        googleName: name,
-        googlePicture: picture,
+        googleName: name || null,
+        googlePicture: picture || null,
         authProvider: 'google',
         verified: true, // Google users are automatically verified
-        status: 'active'
+        status: 'active',
+        role: 'user'
       });
     }
     
     // Generate JWT token
     const token = generateToken(user.id, user.role);
     
+    // Return response in same format as regular login for consistency
     res.json({
-      message: 'Google authentication successful',
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      verified: user.verified,
       token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        verified: user.verified,
-        authProvider: user.authProvider,
-        googlePicture: user.googlePicture
-      }
+      authProvider: user.authProvider,
+      googlePicture: user.googlePicture
     });
   } catch (error) {
     console.error('Google auth error:', error);
+    
+    // Provide more specific error messages
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ error: 'An account with this email already exists. Please use email/password login.' });
+    }
+    
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({ error: 'User data validation failed' });
+    }
+    
     res.status(500).json({ error: 'Google authentication failed. Please try again.' });
   }
 };
 
-// Get Google OAuth URL for frontend
+// Get Google OAuth URL for frontend (Note: Currently unused as frontend uses Google Identity Services directly)
 export const getGoogleAuthUrl = async (req, res, next) => {
   try {
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res.status(500).json({ error: 'Google authentication is not configured' });
+    }
+    
     const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${req.protocol}://${req.get('host')}/api/auth/google/callback`;
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile`;
     
