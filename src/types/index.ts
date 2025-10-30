@@ -121,3 +121,18 @@ export interface Review {
   User?: User;
   Product?: Product;
 } 
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  excerpt?: string;
+  coverImage?: string;
+  authorName?: string;
+  category?: string;
+  tags?: string[];
+  featured?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}

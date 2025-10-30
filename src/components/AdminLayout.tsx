@@ -18,7 +18,8 @@ import {
   CreditCard,
   Globe,
   MessageCircle,
-  Building2
+  Building2,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
@@ -134,6 +135,7 @@ const AdminLayout = () => {
     { path: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
     { path: '/admin/bank-transfer-orders', icon: Building2, label: 'Bank Transfer Orders' },
     { path: '/admin/quotes', icon: Bell, label: 'Quotes' },
+    { path: '/admin/blog', icon: FileText, label: 'Blog' },
     { path: '/admin/users', icon: Users, label: 'Users' },
     { path: '/admin/reviews', icon: MessageSquare, label: 'Reviews' },
     { path: '/admin/contact-messages', icon: MessageCircle, label: 'Contact Messages' },

@@ -25,6 +25,8 @@ const About = lazy(() => import("./pages/About"));
 const Contact = lazy(() => import("./pages/Contact"));
 const FAQs = lazy(() => import("./pages/FAQs"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const Blog = lazy(() => import('./pages/Blog'));
+const BlogPost = lazy(() => import('./pages/BlogPost'));
 const Wishlist = lazy(() => import("./pages/Wishlist"));
 const Orders = lazy(() => import("./pages/Orders"));
 const Login = lazy(() => import("./pages/Login"));
@@ -51,6 +53,7 @@ const Newsletter = lazy(() => import("./pages/admin/Newsletter"));
 const LowStockProducts = lazy(() => import('./pages/admin/LowStockProducts'));
 const Quotes = lazy(() => import("./pages/admin/Quotes"));
 const ContactMessages = lazy(() => import("./pages/admin/ContactMessages"));
+const AdminBlogManage = lazy(() => import('./pages/admin/BlogManage'));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const BankTransferOrders = lazy(() => import("./pages/admin/BankTransferOrders"));
 
@@ -82,6 +85,16 @@ const AnimatedRoutes = () => {
           >
             <Home />
           </motion.div>
+          </Suspense>
+        } />
+        <Route path="/blog" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <Blog />
+          </Suspense>
+        } />
+        <Route path="/blog/:slug" element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <BlogPost />
           </Suspense>
         } />
         <Route path="/shop" element={
@@ -329,6 +342,11 @@ const AnimatedRoutes = () => {
           <Route path="newsletter" element={
             <Suspense fallback={<LoadingSpinner />}>
               <Newsletter />
+            </Suspense>
+          } />
+          <Route path="blog" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AdminBlogManage />
             </Suspense>
           } />
 

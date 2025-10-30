@@ -87,6 +87,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'BLOOMTECH Hub API is running' });
 });
 // TODO: Add route imports here
+import blogRoutes from './routes/blogRoutes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -106,6 +107,7 @@ app.use('/api/audit', auditRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/subcategories', subcategoryRoutes);
 app.use('/api/bank-transfer', bankTransferRoutes);
+app.use('/api/blog', blogRoutes);
 
 // 404 handler (should be before error handler)
 app.use(notFoundHandler);

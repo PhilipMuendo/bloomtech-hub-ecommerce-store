@@ -494,9 +494,9 @@ export const googleAuth = async (req, res, next) => {
     let ticket;
     try {
       ticket = await googleClient.verifyIdToken({
-        idToken,
-        audience: process.env.GOOGLE_CLIENT_ID
-      });
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
     } catch (verifyError) {
       console.error('Google ID token verification failed:', verifyError);
       if (verifyError.message?.includes('Token used too early')) {
@@ -588,15 +588,15 @@ export const googleAuth = async (req, res, next) => {
     
     // Return response in same format as regular login for consistency
     res.json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      verified: user.verified,
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        verified: user.verified,
       token,
-      authProvider: user.authProvider,
-      googlePicture: user.googlePicture
+        authProvider: user.authProvider,
+        googlePicture: user.googlePicture
     });
   } catch (error) {
     console.error('Google auth error:', error);
