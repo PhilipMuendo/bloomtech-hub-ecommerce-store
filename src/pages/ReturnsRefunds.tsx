@@ -22,7 +22,7 @@ const ReturnsRefunds = () => (
     <ul className="list-disc ml-6 mb-4">
       <li>Clearance items, opened software, or custom orders</li>
     </ul>
-    <p className="mt-6">To initiate a return, contact: <a href="mailto:returns@bloomtechhub.com" className="text-blue-600 underline">returns@bloomtechhub.com</a></p>
+    <p className="mt-6">To initiate a return, contact: <a href="mailto:returns@bloomtechub.com" className="text-blue-600 underline">returns@bloomtechub.com</a></p>
   </div>
 );
 

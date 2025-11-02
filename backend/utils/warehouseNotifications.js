@@ -120,7 +120,7 @@ export const notifyCustomerOfNewOrder = async (order, orderItems) => {
             
             <h3>📞 Need Help?</h3>
             <p>If you have any questions about your order, please don't hesitate to contact us:</p>
-            <p>📧 Email: support@bloomtechhub.com<br>
+            <p>📧 Email: support@bloomtechub.com<br>
             📱 Phone: +254 700 000 000<br>
             🕒 Hours: Monday - Friday, 8:00 AM - 6:00 PM</p>
             
@@ -142,7 +142,7 @@ export const notifyCustomerOfNewOrder = async (order, orderItems) => {
     // Send email to customer
     if (order.User?.email) {
       await transporter.sendMail({
-        from: process.env.SMTP_USER || 'noreply@bloomtechhub.com',
+        from: process.env.SMTP_USER || 'noreply@bloomtechub.com',
         to: order.User.email,
         subject: `🎉 Order Confirmed! #${order.id} - BloomTech Hub`,
         html: emailContent

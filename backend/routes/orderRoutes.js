@@ -9,7 +9,8 @@ import {
   getUserNotifications,
   markUserOrdersAsViewed,
   exportOrders,
-  getOrderByTrackingNumber
+  getOrderByTrackingNumber,
+  sendOrderConfirmationEmail
 } from '../controllers/orderController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireAdmin, requireWarehouse } from '../middleware/roleAuth.js';
@@ -37,6 +38,9 @@ router.get('/user/notifications', getUserNotifications);
 
 // GET /api/orders/:id - Get specific order details
 router.get('/:id', getOrderById);
+
+// POST /api/orders/:id/send-confirmation - Send order confirmation email
+router.post('/:id/send-confirmation', sendOrderConfirmationEmail);
 
 // POST /api/orders - Create new order
 router.post('/', createOrder);

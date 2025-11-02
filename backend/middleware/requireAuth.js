@@ -23,7 +23,7 @@ const requireAuth = async (req, res, next) => {
     if (user.status !== 'active') {
       let errorMessage = '';
       if (user.status === 'suspended') {
-        errorMessage = 'Your account has been suspended. Please contact our support team at support@bloomtechhub.com or call +254-XXX-XXX-XXX for assistance.';
+        errorMessage = 'Your account has been suspended. Please contact our support team at support@bloomtechub.com or call +254-XXX-XXX-XXX for assistance.';
       } else {
         errorMessage = `Your account is currently '${user.status}'. Please contact support if you believe this is a mistake.`;
       }

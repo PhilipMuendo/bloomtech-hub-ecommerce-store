@@ -13,7 +13,7 @@ export async function generateInvoicePdf({ order, invoiceNumber, company = {} })
       // Header
       const companyName = company.name || 'BLOOMTECH HUB LIMITED';
       const companyAddress = company.address || 'Nairobi, Kenya';
-      const companyEmail = company.email || 'support@bloomtechhub.com';
+      const companyEmail = company.email || 'support@bloomtechub.com';
       const companyPhone = company.phone || '+254-700-000-000';
 
       doc

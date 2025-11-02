@@ -57,23 +57,282 @@ export const submitContactForm = async (req, res) => {
       // Don't fail the request if email fails
     }
 
-    // Send confirmation email to customer
+    // Send confirmation email to customer with beautiful template
     const customerEmailContent = `
-      <h2>Thank you for contacting us!</h2>
-      <p>Dear ${name},</p>
-      <p>We have received your message and will get back to you as soon as possible.</p>
-      <p><strong>Your message:</strong></p>
-      <p><strong>Subject:</strong> ${subject}</p>
-      <p><strong>Message:</strong></p>
-      <p>${message.replace(/\n/g, '<br>')}</p>
-      <p>We typically respond within 24 hours during business days.</p>
-      <p>Best regards,<br>Bloomtechub Team</p>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Thank You for Contacting Us - Bloomtech Hub</title>
+        <style>
+          body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6; 
+            color: #333; 
+            margin: 0; 
+            padding: 0;
+            background-color: #f5f5f5;
+          }
+          .email-wrapper {
+            background-color: #f5f5f5;
+            padding: 20px;
+          }
+          .email-container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+          }
+          .header { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            padding: 40px 30px; 
+            text-align: center;
+          }
+          .header h1 { 
+            margin: 0; 
+            font-size: 28px; 
+            font-weight: 600;
+          }
+          .header p {
+            margin: 10px 0 0 0;
+            font-size: 16px;
+            opacity: 0.95;
+          }
+          .content { 
+            padding: 40px 30px;
+          }
+          .greeting {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 500;
+          }
+          .message-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+          }
+          .message-box h3 {
+            margin: 0 0 15px 0;
+            color: #667eea;
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+          }
+          .message-item {
+            margin-bottom: 15px;
+          }
+          .message-item strong {
+            display: block;
+            color: #666;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+          }
+          .message-item-content {
+            color: #333;
+            font-size: 15px;
+            line-height: 1.6;
+            background: #ffffff;
+            padding: 12px 15px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+          }
+          .info-box {
+            background: #fff8e1;
+            border: 1px solid #ffd54f;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+          }
+          .info-box p {
+            margin: 0;
+            color: #f57f17;
+            font-size: 14px;
+            line-height: 1.6;
+          }
+          .info-box .icon {
+            display: inline-block;
+            margin-right: 8px;
+            font-size: 18px;
+          }
+          .next-steps {
+            background: #e8f5e9;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+          }
+          .next-steps h3 {
+            margin: 0 0 15px 0;
+            color: #2e7d32;
+            font-size: 16px;
+            font-weight: 600;
+          }
+          .next-steps ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #424242;
+          }
+          .next-steps li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+          }
+          .contact-info {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+          }
+          .contact-info h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 16px;
+            font-weight: 600;
+          }
+          .contact-info p {
+            margin: 8px 0;
+            color: #666;
+            font-size: 14px;
+          }
+          .contact-info a {
+            color: #667eea;
+            text-decoration: none;
+          }
+          .contact-info a:hover {
+            text-decoration: underline;
+          }
+          .footer { 
+            background: #f8f9fa; 
+            padding: 30px; 
+            text-align: center;
+            border-top: 1px solid #e0e0e0;
+          }
+          .footer p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 13px;
+          }
+          .social-links {
+            margin: 20px 0 10px 0;
+          }
+          .social-links a {
+            display: inline-block;
+            margin: 0 8px;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+          }
+          @media only screen and (max-width: 600px) {
+            .email-wrapper {
+              padding: 10px;
+            }
+            .header {
+              padding: 30px 20px;
+            }
+            .header h1 {
+              font-size: 24px;
+            }
+            .content {
+              padding: 30px 20px;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="email-wrapper">
+          <div class="email-container">
+            <div class="header">
+              <h1>✉️ Message Received!</h1>
+              <p>Thank you for reaching out to Bloomtech Hub</p>
+            </div>
+            
+            <div class="content">
+              <p class="greeting">Dear ${name},</p>
+              
+              <p style="color: #555; font-size: 15px; line-height: 1.7; margin-bottom: 20px;">
+                We have successfully received your message and wanted to let you know that we're on it! 
+                Our team will review your inquiry and get back to you as soon as possible.
+              </p>
+              
+              <div class="message-box">
+                <h3>📝 Your Message Details</h3>
+                <div class="message-item">
+                  <strong>Subject</strong>
+                  <div class="message-item-content">${subject}</div>
+                </div>
+                <div class="message-item">
+                  <strong>Message</strong>
+                  <div class="message-item-content">${message.replace(/\n/g, '<br>')}</div>
+                </div>
+              </div>
+              
+              <div class="info-box">
+                <p>
+                  <span class="icon">⏱️</span>
+                  <strong>Response Time:</strong> We typically respond within 24 hours during business days 
+                  (Monday - Friday, 8:00 AM - 6:00 PM EAT). For urgent matters, please call us directly.
+                </p>
+              </div>
+              
+              <div class="next-steps">
+                <h3>What Happens Next?</h3>
+                <ul>
+                  <li>Our support team will review your message</li>
+                  <li>You'll receive a detailed response via email</li>
+                  <li>If needed, we may reach out for additional information</li>
+                  <li>Keep an eye on your inbox and spam folder</li>
+                </ul>
+              </div>
+              
+              <div class="contact-info">
+                <h3>Need Immediate Assistance?</h3>
+                <p>📧 Email: <a href="mailto:support@bloomtechub.com">support@bloomtechub.com</a></p>
+                <p>📱 Phone: +254 700 000 000</p>
+                <p>🕒 Hours: Monday - Friday, 8:00 AM - 6:00 PM EAT</p>
+              </div>
+              
+              <p style="color: #555; font-size: 15px; margin-top: 30px;">
+                Thank you for choosing Bloomtech Hub. We appreciate your interest and look forward to assisting you!
+              </p>
+              
+              <p style="color: #333; font-size: 15px; margin-top: 25px; font-weight: 500;">
+                Best regards,<br>
+                <span style="color: #667eea; font-weight: 600;">The Bloomtech Hub Team</span>
+              </p>
+            </div>
+            
+            <div class="footer">
+              <div class="social-links">
+                <a href="https://www.facebook.com/bloomtechhub" target="_blank">Facebook</a> | 
+                <a href="https://twitter.com/bloomtechhub" target="_blank">Twitter</a> | 
+                <a href="https://www.instagram.com/bloomtechhub" target="_blank">Instagram</a> | 
+                <a href="https://www.linkedin.com/company/bloomtechhub" target="_blank">LinkedIn</a>
+              </div>
+              <p>© ${new Date().getFullYear()} Bloomtech Hub. All rights reserved.</p>
+              <p style="margin-top: 10px;">
+                <a href="${process.env.FRONTEND_URL || 'http://localhost:8081'}" style="color: #667eea; text-decoration: none;">Visit Our Website</a>
+              </p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
     `;
 
     try {
       await sendEmail({
         to: email,
-        subject: 'We received your message - Keensell Ventures',
+        subject: 'We received your message - Bloomtech Hub',
         html: customerEmailContent
       });
     } catch (emailError) {

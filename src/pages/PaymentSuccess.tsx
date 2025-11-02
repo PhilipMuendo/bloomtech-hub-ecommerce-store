@@ -32,6 +32,21 @@ const PaymentSuccess = () => {
         if (response.ok) {
           const data = await response.json();
           setOrderDetails(data);
+          
+          // Send confirmation email after successfully fetching order details
+          // Only send if payment is completed
+          if (status === 'completed') {
+            try {
+              await fetch(`/api/orders/${orderId}/send-confirmation`, {
+                method: 'POST',
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+              });
+              console.log('Confirmation email sent successfully');
+            } catch (emailError) {
+              console.error('Error sending confirmation email:', emailError);
+              // Don't fail the page load if email fails
+            }
+          }
         }
       } catch (error) {
         console.error('Error fetching order details:', error);
@@ -41,7 +56,7 @@ const PaymentSuccess = () => {
     };
 
     fetchOrderDetails();
-  }, [orderId, user]);
+  }, [orderId, user, status]);
 
   if (loading) {
     return (
@@ -216,8 +231,8 @@ const PaymentSuccess = () => {
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-500">
             Need help? Contact us at{' '}
-            <a href="mailto:support@bloomtechhub.com" className="text-blue-600 hover:underline">
-              support@bloomtechhub.com
+            <a href="mailto:support@bloomtechub.com" className="text-blue-600 hover:underline">
+              support@bloomtechub.com
             </a>
           </p>
         </div>

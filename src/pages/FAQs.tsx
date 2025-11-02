@@ -76,7 +76,7 @@ const FAQs = () => {
           </div>
           <div className="flex items-center space-x-2">
             <span className="font-medium">Email:</span>
-            <span>info@keensellventures.com</span>
+            <span>info@bloomtechub.com</span>
           </div>
         </div>
       </div>

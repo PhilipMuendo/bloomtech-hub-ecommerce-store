@@ -2,7 +2,7 @@ import db, { sequelize } from '../sequelize_models/index.js';
 import { Op } from 'sequelize';
 import AuditService from '../services/auditService.js';
 import { Parser } from 'json2csv';
-import { notifyOrderStatusChange } from '../utils/warehouseNotifications.js';
+import { notifyOrderStatusChange, notifyCustomerOfNewOrder } from '../utils/warehouseNotifications.js';
 import { sendTemplatedEmail } from '../utils/emailService.js';
 import { generateInvoicePdf } from '../utils/pdfUtils.js';
 import { generateInvoiceNumber } from '../utils/idUtils.js';
@@ -92,7 +92,22 @@ export const getOrderById = async (req, res, next) => {
       ]
     });
     if (!order) return res.status(404).json({ error: 'Order not found' });
-    res.json(order);
+    
+    // Transform the data to match frontend expectations
+    const orderJson = order.toJSON();
+    const transformedOrder = {
+      ...orderJson,
+      customerName: orderJson.User?.name || 'N/A',
+      items: orderJson.OrderItems?.map(item => ({
+        id: item.id,
+        productId: item.productId,
+        productName: item.Product?.name || 'N/A',
+        price: item.Product?.price || 0,
+        quantity: item.quantity,
+      })) || [],
+    };
+    
+    res.json(transformedOrder);
   } catch (err) {
     console.error('Error in getOrderById:', err);
     next(err);
@@ -580,6 +595,46 @@ export const markUserOrdersAsViewed = async (req, res, next) => {
   } catch (err) {
     console.error('Error in markUserOrdersAsViewed:', err);
     next(err);
+  }
+};
+
+// Send order confirmation email
+export const sendOrderConfirmationEmail = async (req, res, next) => {
+  try {
+    const where = { id: req.params.id };
+    
+    // If not admin/superadmin/warehouse, only allow user's own orders
+    if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'superadmin' && req.user.role !== 'warehouse')) {
+      where.userId = req.user.id;
+    }
+    
+    const order = await Order.findOne({ 
+      where,
+      include: [
+        { model: User, attributes: ['name', 'email', 'phone'] },
+        { 
+          model: OrderItem, 
+          include: [{ model: Product, attributes: ['name', 'price'] }]
+        }
+      ]
+    });
+    
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    // Send the confirmation email
+    await notifyCustomerOfNewOrder(order, order.OrderItems);
+    
+    res.json({ success: true, message: 'Confirmation email sent successfully' });
+  } catch (err) {
+    console.error('Error sending order confirmation email:', err);
+    // Don't fail the request if email fails
+    res.status(200).json({ 
+      success: false, 
+      message: 'Failed to send confirmation email, but order is confirmed',
+      error: err.message 
+    });
   }
 };
 

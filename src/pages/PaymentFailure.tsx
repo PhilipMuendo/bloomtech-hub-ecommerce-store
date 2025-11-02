@@ -143,8 +143,8 @@ const PaymentFailure = () => {
         <div className="mt-8 text-center">
           <p className="text-sm text-gray-500">
             Still having issues? Contact us at{' '}
-            <a href="mailto:support@bloomtechhub.com" className="text-blue-600 hover:underline">
-              support@bloomtechhub.com
+            <a href="mailto:support@bloomtechub.com" className="text-blue-600 hover:underline">
+              support@bloomtechub.com
             </a>
           </p>
         </div>

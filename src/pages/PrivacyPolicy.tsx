@@ -23,7 +23,7 @@ const PrivacyPolicy = () => (
       <li>Access restrictions</li>
       <li>Never sold or shared with third parties</li>
     </ul>
-    <p className="mt-6">For any privacy-related inquiries, contact: <a href="mailto:support@bloomtechhub.com" className="text-blue-600 underline">support@bloomtechhub.com</a></p>
+    <p className="mt-6">For any privacy-related inquiries, contact: <a href="mailto:support@bloomtechub.com" className="text-blue-600 underline">support@bloomtechub.com</a></p>
   </div>
 );
 
