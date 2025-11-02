@@ -62,7 +62,7 @@ export const sendEmail = async (options) => {
     }
     
     const mailOptions = {
-      from: options.from || process.env.EMAIL_FROM || 'noreply@bloomtechub.com',
+      from: options.from || process.env.EMAIL_FROM || 'BLOOMTECH HUB <noreply@bloomtechub.com>',
       to: options.to,
       subject: options.subject,
       html: options.html,

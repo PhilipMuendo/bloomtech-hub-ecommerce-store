@@ -31,7 +31,7 @@ const config = {
       user: process.env.SMTP_USER || process.env.EMAIL_USER,
       pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
     },
-    from: process.env.EMAIL_FROM || 'noreply@bloomtechub.com',
+    from: process.env.EMAIL_FROM || 'BLOOMTECH HUB <noreply@bloomtechub.com>',
     adminEmail: process.env.ADMIN_EMAIL || 'admin@bloomtechub.com',
   },
 

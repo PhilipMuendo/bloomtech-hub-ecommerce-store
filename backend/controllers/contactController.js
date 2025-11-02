@@ -48,6 +48,7 @@ export const submitContactForm = async (req, res) => {
 
     try {
       await sendEmail({
+        from: 'BLOOMTECH HUB <noreply@bloomtechub.com>',
         to: process.env.ADMIN_EMAIL || 'admin@bloomtechub.com',
         subject: `New Contact Form: ${subject}`,
         html: adminEmailContent
@@ -331,6 +332,7 @@ export const submitContactForm = async (req, res) => {
 
     try {
       await sendEmail({
+        from: 'BLOOMTECH HUB <noreply@bloomtechub.com>',
         to: email,
         subject: 'We received your message - Bloomtech Hub',
         html: customerEmailContent

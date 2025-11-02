@@ -142,7 +142,7 @@ export const notifyCustomerOfNewOrder = async (order, orderItems) => {
     // Send email to customer
     if (order.User?.email) {
       await transporter.sendMail({
-        from: process.env.SMTP_USER || 'noreply@bloomtechub.com',
+        from: 'BLOOMTECH HUB <noreply@bloomtechub.com>',
         to: order.User.email,
         subject: `🎉 Order Confirmed! #${order.id} - BloomTech Hub`,
         html: emailContent
@@ -188,7 +188,7 @@ export const notifyOrderStatusChange = async (order, previousStatus, newStatus, 
     // Send to customer
     if (order.User?.email) {
       await transporter.sendMail({
-        from: process.env.SMTP_USER || 'admin@example.com',
+        from: 'BLOOMTECH HUB <noreply@bloomtechub.com>',
         to: order.User.email,
         subject: `📦 Order #${order.id} Status Updated to ${newStatus}`,
         html: emailContent
