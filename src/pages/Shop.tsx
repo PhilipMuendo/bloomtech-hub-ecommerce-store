@@ -60,12 +60,13 @@ const Shop = () => {
       setLoading(true);
       setError(null);
       try {
-        // Build query params for pagination, filtering, sorting
+        // Build query params for pagination, filtering, sorting, and searching
         const params = new URLSearchParams();
         params.set('page', String(page));
         params.set('limit', '12');
         if (categoryFilter && categoryFilter !== 'all') params.set('category', categoryFilter);
         if (subcategoryFilter && subcategoryFilter !== 'all') params.set('subcategory', subcategoryFilter);
+        if (searchQuery) params.set('search', searchQuery); // Add search query to API call
         if (sortBy) {
           if (sortBy === 'price-low') params.set('sort', 'price');
           else if (sortBy === 'price-high') params.set('sort', '-price');
@@ -102,26 +103,12 @@ const Shop = () => {
     };
     fetchProducts();
     // eslint-disable-next-line
-  }, [page, categoryFilter, subcategoryFilter, sortBy]);
+  }, [page, categoryFilter, subcategoryFilter, sortBy, searchQuery]);
 
   useEffect(() => {
     let result = [...products];
-    // Apply search filter
-    if (searchQuery) {
-      result = result.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-    // Apply category filter
-    if (categoryFilter && categoryFilter !== 'all') {
-      result = result.filter(product => product.category === categoryFilter);
-    }
-    // Apply subcategory filter
-    if (subcategoryFilter && subcategoryFilter !== 'all') {
-      result = result.filter(product => product.subcategory === subcategoryFilter);
-    }
-    // Apply price range filter
+    // Note: Search, category, and subcategory are now handled by the API
+    // Only apply client-side price range filter
     if (priceRange !== 'all') {
       switch (priceRange) {
         case 'under-5000':
@@ -138,7 +125,7 @@ const Shop = () => {
           break;
       }
     }
-    // Apply sorting
+    // Sorting is also handled by API, but we keep this for price range filtered results
     result.sort((a, b) => {
       switch (sortBy) {
         case 'price-low':
@@ -151,13 +138,14 @@ const Shop = () => {
       }
     });
     setFilteredProducts(result);
-  }, [products, searchQuery, categoryFilter, subcategoryFilter, priceRange, sortBy]);
+  }, [products, priceRange, sortBy]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setPage(1); // Reset to first page when searching
     const params = new URLSearchParams(searchParams);
-    if (searchQuery) {
-      params.set('search', searchQuery);
+    if (query) {
+      params.set('search', query);
     } else {
       params.delete('search');
     }
@@ -204,16 +192,16 @@ const Shop = () => {
       <div className="bg-white p-3 sm:p-6 rounded-lg shadow-sm border mb-6 sm:mb-8 max-w-full">
         <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-5 max-w-full">
           {/* Search */}
-          <form onSubmit={handleSearch} className="relative">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               type="text"
               placeholder="Search products..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="pl-10 text-base sm:text-lg"
             />
-          </form>
+          </div>
           {/* Category Filter */}
           <Select value={categoryFilter} onValueChange={handleCategoryChange}>
             <SelectTrigger className="text-base sm:text-lg">

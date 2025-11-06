@@ -1,15 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import BlogCard from '@/components/BlogCard';
 import { BlogPost } from '@/types';
-import { Link } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/button';
 
 const Blog: React.FC = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
 
   useEffect(() => {
     const load = async () => {
@@ -29,13 +25,8 @@ const Blog: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold">Blog</h1>
-        {user && (user.role === 'admin' || user.role === 'superadmin') && (
-          <Button asChild>
-            <Link to="/admin/blog">Create Post</Link>
-          </Button>
-        )}
       </div>
       {loading ? (
         <div>Loading...</div>

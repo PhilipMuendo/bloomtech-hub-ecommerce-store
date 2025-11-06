@@ -35,8 +35,8 @@ const fixImageUrl = (imageUrl, req) => {
 // GET /api/products
 export const getAllProducts = async (req, res, next) => {
   try {
-    // Pagination, filtering, and sorting with input validation
-    const { page = 1, limit = 20, category, subcategory, sort = 'name' } = req.query;
+    // Pagination, filtering, sorting, and searching with input validation
+    const { page = 1, limit = 20, category, subcategory, sort = 'name', search } = req.query;
     
     // Validate and sanitize inputs
     const validatedPage = Math.max(1, parseInt(page) || 1);
@@ -53,6 +53,15 @@ export const getAllProducts = async (req, res, next) => {
     const sortDirection = sort.startsWith('-') ? 'DESC' : 'ASC';
     
     const where = {};
+    
+    // Add search filter
+    if (search && typeof search === 'string' && search.trim().length > 0) {
+      const searchTerm = search.trim();
+      where[Op.or] = [
+        { name: { [Op.like]: `%${searchTerm}%` } },
+        { description: { [Op.like]: `%${searchTerm}%` } }
+      ];
+    }
     
     // Add category filter
     if (validatedCategory) {
