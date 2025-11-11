@@ -41,6 +41,7 @@ interface BankTransferOrder {
       price: number;
     };
   }>;
+  contactPhone?: string;
 }
 
 const BankTransferOrders = () => {
@@ -323,7 +324,7 @@ const BankTransferOrders = () => {
                         <div>
                           <p className="font-medium">{order.User.name}</p>
                           <p className="text-sm text-muted-foreground">{order.User.email}</p>
-                          <p className="text-sm text-muted-foreground">{order.User.phone}</p>
+                          <p className="text-sm text-muted-foreground">{order.contactPhone || order.User?.phone || 'N/A'}</p>
                         </div>
                       </div>
                       <div>
@@ -492,7 +493,7 @@ const BankTransferOrders = () => {
                     <p><strong>Email:</strong> {selectedOrder.User.email}</p>
                   </div>
                   <div>
-                    <p><strong>Phone:</strong> {selectedOrder.User.phone}</p>
+                    <p><strong>Phone:</strong> {selectedOrder.contactPhone || selectedOrder.User?.phone || 'N/A'}</p>
                   </div>
                 </div>
               </div>

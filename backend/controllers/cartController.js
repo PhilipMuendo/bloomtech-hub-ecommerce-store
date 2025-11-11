@@ -122,13 +122,15 @@ export const checkout = async (req, res, next) => {
     }
     
     const shippingAddress = req.body.shippingAddress || '';
+    const contactPhone = req.body.contactPhone || req.user?.phone || null;
     
     // Create order and order items in a transaction
     const result = await db.sequelize.transaction(async (t) => {
       const order = await Order.create({ 
         userId: req.user.id, 
         total, 
-        shippingAddress 
+        shippingAddress,
+        contactPhone
       }, { transaction: t });
       
       // Create order items

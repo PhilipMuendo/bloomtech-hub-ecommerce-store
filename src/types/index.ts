@@ -126,13 +126,23 @@ export interface BlogPost {
   id: string;
   title: string;
   slug: string;
-  content: string;
+  content?: string;
   excerpt?: string;
-  coverImage?: string;
-  authorName?: string;
-  category?: string;
+  coverImage?: string | null;
+  authorName?: string | null;
+  category?: string | null;
   tags?: string[];
   featured?: boolean;
+  priority?: number | null;
+  status?: 'draft' | 'scheduled' | 'published' | 'archived';
+  readingTime?: number | null;
+  views?: number | null;
+  likes?: number | null;
+  publishedAt?: string | null;
+  scheduledAt?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  metaKeywords?: string | null;
   createdAt: string;
   updatedAt: string;
 }

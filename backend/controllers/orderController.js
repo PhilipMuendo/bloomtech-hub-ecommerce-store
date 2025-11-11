@@ -98,6 +98,7 @@ export const getOrderById = async (req, res, next) => {
     const transformedOrder = {
       ...orderJson,
       customerName: orderJson.User?.name || 'N/A',
+      customerPhone: orderJson.contactPhone || orderJson.User?.phone || null,
       items: orderJson.OrderItems?.map(item => ({
         id: item.id,
         productId: item.productId,
@@ -121,9 +122,9 @@ export const createOrder = async (req, res, next) => {
     console.log('Request body:', JSON.stringify(req.body, null, 2));
     console.log('User:', req.user ? { id: req.user.id, email: req.user.email } : 'No user');
     
-    const { items, total, shippingAddress } = req.body;
+    const { items, total, shippingAddress, contactPhone } = req.body;
     
-    console.log('Extracted data:', { items, total, shippingAddress });
+    console.log('Extracted data:', { items, total, shippingAddress, contactPhone });
     
     // Validate items array
     if (!items) {
@@ -208,7 +209,8 @@ export const createOrder = async (req, res, next) => {
       const orderData = {
         userId: req.user.id, 
         total: calculatedTotal, 
-        shippingAddress: shippingAddress || ''
+        shippingAddress: shippingAddress || '',
+        contactPhone: contactPhone || req.user?.phone || null
       };
       
       // Set payment method based on order total
@@ -754,6 +756,7 @@ export const exportOrders = async (req, res, next) => {
     // Transform data for CSV export
     const csvData = filteredOrders.map(order => {
       const orderData = order.toJSON();
+      const resolvedPhone = orderData.contactPhone || orderData.User?.phone;
       const items = orderData.OrderItems || [];
       const itemNames = items.map(item => item.Product?.name || 'N/A').join('; ');
       const itemQuantities = items.map(item => item.quantity).join('; ');
@@ -763,7 +766,7 @@ export const exportOrders = async (req, res, next) => {
         'Order ID': orderData.id,
         'Customer Name': orderData.User?.name || 'N/A',
         'Customer Email': orderData.User?.email || 'N/A',
-        'Customer Phone': formatPhoneNumber(orderData.User?.phone),
+        'Customer Phone': formatPhoneNumber(resolvedPhone),
         'Order Date': new Date(orderData.createdAt).toLocaleDateString('en-KE'),
         'Status': orderData.status,
         'Total Amount (KES)': formatCurrency(orderData.total),

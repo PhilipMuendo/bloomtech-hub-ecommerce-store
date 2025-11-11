@@ -29,6 +29,10 @@ export default (sequelize) => {
       type: DataTypes.STRING,
       defaultValue: ''
     },
+    contactPhone: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
     trackingNumber: {
       type: DataTypes.STRING,
       unique: true

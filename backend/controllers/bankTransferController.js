@@ -37,11 +37,13 @@ export const generateProformaInvoice = async (req, res, next) => {
       // Create the actual order
       const { generateTrackingNumber } = await import('../utils/idUtils.js');
       const trackingNumber = generateTrackingNumber();
-      
+      const contactPhone = pendingOrderData?.contactPhone || req.body.contactPhone || req.user?.phone || null;
+
       console.log('📝 Creating order with data:', {
         userId: req.user.id,
         total: pendingOrderData.total,
         shippingAddress: pendingOrderData.shippingAddress || '',
+        contactPhone,
         trackingNumber
       });
       
@@ -49,6 +51,7 @@ export const generateProformaInvoice = async (req, res, next) => {
         userId: req.user.id,
         total: pendingOrderData.total,
         shippingAddress: pendingOrderData.shippingAddress || '',
+        contactPhone,
         paymentMethod: 'bank_transfer',
         status: 'pending',
         trackingNumber

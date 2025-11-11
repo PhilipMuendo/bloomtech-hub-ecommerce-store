@@ -78,9 +78,23 @@ const BankTransferPaymentModal: React.FC<BankTransferPaymentModalProps> = ({
 
     setIsLoading(true);
     try {
-      // Get pending order data from localStorage if this is a temporary order
-      const pendingOrderData = orderId.startsWith('TEMP_') ? 
-        JSON.parse(localStorage.getItem('pendingOrderData') || '{}') : null;
+      let pendingOrderData: any = null;
+      if (orderId.startsWith('TEMP_')) {
+        const rawPending = localStorage.getItem('pendingOrderData') || '{}';
+        try {
+          pendingOrderData = JSON.parse(rawPending);
+        } catch (parseErr) {
+          pendingOrderData = {};
+        }
+      }
+
+      if (pendingOrderData) {
+        pendingOrderData = {
+          ...pendingOrderData,
+          contactPhone: pendingOrderData.contactPhone || user?.phone || null
+        };
+        localStorage.setItem('pendingOrderData', JSON.stringify(pendingOrderData));
+      }
       
       const response = await fetch(`/api/bank-transfer/generate-invoice/${orderId}`, {
         method: 'POST',

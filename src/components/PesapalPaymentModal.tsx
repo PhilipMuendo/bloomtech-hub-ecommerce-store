@@ -84,6 +84,21 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
     setIsProcessing(true);
     setPaymentStatus('pending');
     try {
+      const pendingOrderDataRaw = localStorage.getItem('pendingOrderData') || '{}';
+      let pendingOrderData: any;
+      try {
+        pendingOrderData = JSON.parse(pendingOrderDataRaw);
+      } catch (parseErr) {
+        pendingOrderData = {};
+      }
+
+      const enrichedOrderData = {
+        ...pendingOrderData,
+        contactPhone: normalizedPhone
+      };
+
+      localStorage.setItem('pendingOrderData', JSON.stringify(enrichedOrderData));
+
       const response = await fetch('/api/payments/pesapal', {
         method: 'POST',
         headers: {
@@ -97,7 +112,7 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
           email: user?.email || 'customer@example.com',
           firstName: user?.name?.split(' ')[0] || 'Customer',
           lastName: user?.name?.split(' ').slice(1).join(' ') || 'User',
-          orderData: JSON.parse(localStorage.getItem('pendingOrderData') || '{}')
+          orderData: enrichedOrderData
         })
       });
       const data = await response.json();

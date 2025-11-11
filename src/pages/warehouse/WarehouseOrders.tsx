@@ -59,7 +59,7 @@ const WarehouseOrders = () => {
           id: o.id,
           customerName: o.User?.name || o.customerName || 'N/A',
           customerEmail: o.User?.email || o.customerEmail || 'N/A',
-          customerPhone: o.User?.phone || 'N/A',
+          customerPhone: o.contactPhone || o.User?.phone || 'N/A',
           date: o.createdAt,
           status: o.status || 'pending', // Default to pending if status is null/undefined
           total: o.total,

@@ -65,7 +65,7 @@ const AdminOrders = () => {
         id: o.id,
         customerName: o.User?.name || o.customerName || 'N/A',
         customerEmail: o.User?.email || o.customerEmail || 'N/A',
-        customerPhone: o.User?.phone || 'N/A',
+        customerPhone: o.contactPhone || o.User?.phone || 'N/A',
         date: o.createdAt,
         status: o.status as 'pending' | 'processing' | 'delivered' | 'cancelled',
         total: o.total,

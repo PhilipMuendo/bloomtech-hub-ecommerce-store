@@ -462,10 +462,13 @@ export const handlePesapalCallback = async (req, res) => {
         
                   const result = await sequelize.transaction(async (t) => {
             // Create the order
+            const contactPhone = transaction.phoneNumber || orderData?.contactPhone || null;
+
             const order = await Order.create({ 
               userId: transaction.userId, 
               total: transaction.amount, 
               shippingAddress: orderData.shippingAddress || '',
+              contactPhone,
               status: 'pending',
               paymentMethod: 'pesapal'
             }, { transaction: t });
@@ -515,7 +518,11 @@ export const handlePesapalCallback = async (req, res) => {
           // Update existing order status
           const order = await Order.findByPk(transaction.orderId);
           if (order) {
-            await order.update({ status: 'pending' });
+            const updateData = { status: 'pending' };
+            if (!order.contactPhone && transaction.phoneNumber) {
+              updateData.contactPhone = transaction.phoneNumber;
+            }
+            await order.update(updateData);
             console.log('✅ Order status updated to: pending');
           }
         }
@@ -524,7 +531,11 @@ export const handlePesapalCallback = async (req, res) => {
       if (!isTemporaryOrder) {
         const order = await Order.findByPk(transaction.orderId);
         if (order) {
-          await order.update({ status: 'payment_failed' });
+          const updateData = { status: 'payment_failed' };
+          if (!order.contactPhone && transaction.phoneNumber) {
+            updateData.contactPhone = transaction.phoneNumber;
+          }
+          await order.update(updateData);
           console.log('✅ Order status updated to: payment_failed');
         }
       }
@@ -533,7 +544,11 @@ export const handlePesapalCallback = async (req, res) => {
       if (!isTemporaryOrder) {
         const order = await Order.findByPk(transaction.orderId);
         if (order) {
-          await order.update({ status: 'payment_pending' });
+          const updateData = { status: 'payment_pending' };
+          if (!order.contactPhone && transaction.phoneNumber) {
+            updateData.contactPhone = transaction.phoneNumber;
+          }
+          await order.update(updateData);
           console.log('✅ Order status updated to: payment_pending');
         }
       }

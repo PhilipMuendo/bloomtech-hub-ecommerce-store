@@ -398,7 +398,8 @@ export const createOrderFromQuote = async (req, res) => {
         userId: orderUserId,
         total: finalPrice,
         status: 'pending',
-        shippingAddress: quote.email // Use email as shipping address for now
+        shippingAddress: quote.email, // Use email as shipping address for now
+        contactPhone: quote.phone || null
       }, { transaction: t });
       
       console.log('Order created:', order.id);
