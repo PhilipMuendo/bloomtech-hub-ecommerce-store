@@ -9,6 +9,53 @@ import { checkAccountLockout, updateFailedLoginAttempts } from '../middleware/en
 
 const { User } = db;
 
+const stripTrailingSlash = (value = '') => value.replace(/\/+$/, '');
+
+const maskEmail = (email = '') => {
+  if (!email) return '';
+  const [local, domain] = email.split('@');
+  if (!domain) return '***';
+  if (local.length <= 1) return `*@${domain}`;
+  if (local.length === 2) return `${local[0]}*@${domain}`;
+  return `${local[0]}***${local.slice(-1)}@${domain}`;
+};
+
+const resolveBaseUrl = (keys = [], req) => {
+  for (const key of keys) {
+    const value = process.env[key];
+    if (value && typeof value === 'string') {
+      return stripTrailingSlash(value.trim());
+    }
+  }
+
+  const forwardedHost = req.get('x-forwarded-host');
+  const forwardedProto = req.get('x-forwarded-proto');
+  const host = forwardedHost || req.get('host');
+  const protocol = forwardedProto || req.protocol || 'https';
+  if (host) {
+    return `${protocol}://${host}`.replace(/\/+$/, '');
+  }
+  return 'http://localhost:5000';
+};
+
+const buildAbsoluteUrl = (base, path) => {
+  try {
+    return new URL(path, `${base}/`).toString();
+  } catch (err) {
+    return `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  }
+};
+
+const buildBackendUrl = (req, path) => {
+  const base = resolveBaseUrl(['BACKEND_URL', 'APP_BACKEND_URL'], req);
+  return buildAbsoluteUrl(base, path);
+};
+
+const buildFrontendUrl = (req, path) => {
+  const base = resolveBaseUrl(['FRONTEND_URL', 'APP_BASE_URL'], req);
+  return buildAbsoluteUrl(base, path);
+};
+
 // Initialize Google OAuth client (only if configured)
 let googleClient = null;
 if (process.env.GOOGLE_CLIENT_ID) {
@@ -42,7 +89,7 @@ export const generateToken = (id, role) => {
 
 export const sendVerificationEmail = async (user, req) => {
   try {
-    const verifyUrl = `${req.protocol}://${req.get('host')}/api/auth/verify-email?token=${user.verificationToken}`;
+    const verifyUrl = buildBackendUrl(req, `/api/auth/verify-email?token=${user.verificationToken}`);
     const transporter = createTransporter();
     
     const mailOptions = {
@@ -113,8 +160,6 @@ export const register = async (req, res, next) => {
   try {
     const { name, email, password, phone } = req.body;
     
-    console.log('Registration attempt for:', { name, email, phone: phone ? 'provided' : 'not provided' });
-    
     // Validate input
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
@@ -123,7 +168,7 @@ export const register = async (req, res, next) => {
     // Check if user already exists
     const userExists = await User.findOne({ where: { email } });
     if (userExists) {
-      console.log('Registration failed - user already exists:', email);
+      console.warn('Registration failed - user already exists:', email);
       return res.status(400).json({ error: 'User already exists with this email' });
     }
     
@@ -133,7 +178,6 @@ export const register = async (req, res, next) => {
     
     // In development mode, auto-verify users to avoid email issues
     const isDevelopment = process.env.NODE_ENV === 'development';
-    console.log('Registration environment:', { NODE_ENV: process.env.NODE_ENV, isDevelopment });
     
     // Create user
     const user = await User.create({
@@ -148,13 +192,10 @@ export const register = async (req, res, next) => {
       status: 'active'
     });
     
-    console.log('User created successfully:', { id: user.id, email: user.email, verified: user.verified });
-    
     // Try to send verification email, but don't fail registration if email fails
     if (!isDevelopment) {
       try {
         await sendVerificationEmail(user, req);
-        console.log(`Verification email sent successfully to ${user.email}`);
       } catch (emailError) {
         console.error('Failed to send verification email:', emailError);
         // Don't delete the user, just log the error
@@ -222,7 +263,7 @@ export const resendVerification = async (req, res, next) => {
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    console.log('Login attempt for email:', email);
+    const maskedEmail = maskEmail(email);
     
     // Get user and check account lockout
     const user = await User.findOne({ where: { email } });
@@ -247,14 +288,14 @@ export const login = async (req, res, next) => {
     }
     
     if (!user) {
-      console.log('User not found:', email);
+      console.warn('Failed login attempt (user not found)', { email: maskedEmail });
       await updateFailedLoginAttempts(email, false);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
     
     const isPasswordValid = await user.matchPassword(password);
     if (!isPasswordValid) {
-      console.log('Invalid password for user:', email);
+      console.warn('Failed login attempt (invalid password)', { email: maskedEmail });
       await updateFailedLoginAttempts(email, false);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -262,11 +303,7 @@ export const login = async (req, res, next) => {
     // Successful login - reset failed attempts
     await updateFailedLoginAttempts(email, true);
     
-    console.log('User found:', { id: user.id, email: user.email, role: user.role, verified: user.verified, status: user.status });
-    
     if (user.status !== 'active') {
-      console.log('User account not active:', user.status);
-      
       let errorMessage = '';
       if (user.status === 'suspended') {
         errorMessage = 'Your account has been suspended. Please contact our support team at support@bloomtechub.com or call +254-XXX-XXX-XXX for assistance.';
@@ -281,10 +318,8 @@ export const login = async (req, res, next) => {
     
     // Check email verification
     const isDevelopment = process.env.NODE_ENV === 'development';
-    console.log('Environment check:', { NODE_ENV: process.env.NODE_ENV, isDevelopment });
     
     if (!user.verified && user.role !== 'superadmin' && !isDevelopment) {
-      console.log('User not verified and not in development mode:', user.email);
       return res.status(403).json({ 
         error: 'Please verify your email before logging in. Check your inbox for a verification link.' 
       });
@@ -292,12 +327,10 @@ export const login = async (req, res, next) => {
     
     // Auto-verify users in development mode
     if (!user.verified && isDevelopment) {
-      console.log('Auto-verifying user in development mode:', user.email);
       await user.update({ verified: true });
     }
     
     const token = generateToken(user.id, user.role);
-    console.log('Login successful for user:', user.email);
     
     res.json({
       id: user.id,
@@ -320,14 +353,14 @@ export const forgotPassword = async (req, res, next) => {
     // Always return success to prevent user enumeration
     const user = await User.findOne({ where: { email } });
     if (!user) {
-      // Still return success, but log internally
-      console.log(`Password reset requested for non-existent email: ${email}`);
+      // Still return success, but log internally in a safe way
+      console.warn('Password reset requested for non-existent email', { email: maskEmail(email) });
       return res.json({ message: 'If an account with that email exists, a password reset email has been sent.' });
     }
     user.resetPasswordToken = generateVerificationToken();
     user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
     await user.save();
-    const resetUrl = `${req.protocol}://${req.get('host')}/reset-password?token=${user.resetPasswordToken}`;
+    const resetUrl = buildFrontendUrl(req, `/reset-password?token=${user.resetPasswordToken}`);
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT,

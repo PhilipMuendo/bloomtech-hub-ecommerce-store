@@ -411,9 +411,16 @@ const Products = () => {
     setLoading(true);
     setError(null);
     try {
+      if (!currentUser?.token) {
+        throw new Error('You must be logged in to upload images');
+      }
+
       const res = await fetch('/api/upload', {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${currentUser.token}`,
+        },
       });
       if (!res.ok) throw new Error('Image upload failed');
       const data = await res.json();
@@ -482,9 +489,17 @@ const Products = () => {
       setValue('imageUrl', '');
       setValue('imageUrl', 'uploading');
       try {
-        const formData = new FormData();
-        formData.append('image', file);
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (!currentUser?.token) {
+          throw new Error('You must be logged in to upload images');
+        }
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            Authorization: `Bearer ${currentUser.token}`,
+          },
+        });
         if (!res.ok) throw new Error('Image upload failed');
         const data = await res.json();
         return data.url;

@@ -9,9 +9,9 @@ const router = express.Router();
 router.post('/register', authRateLimiter, register);
 router.post('/login', authRateLimiter, login);
 router.get('/verify-email', verifyEmail);
-router.post('/resend-verification', resendVerification);
-router.post('/forgot-password', forgotPassword);
-router.post('/reset-password', resetPassword);
+router.post('/resend-verification', authRateLimiter, resendVerification);
+router.post('/forgot-password', authRateLimiter, forgotPassword);
+router.post('/reset-password', authRateLimiter, resetPassword);
 
 // Google OAuth routes
 router.post('/google', googleAuth);

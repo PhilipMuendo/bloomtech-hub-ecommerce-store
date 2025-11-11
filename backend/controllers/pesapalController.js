@@ -174,25 +174,19 @@ export const initiatePayment = async (req, res) => {
     // Validate order data
     console.log('📦 Validating order data:', JSON.stringify(orderData, null, 2));
     
-    if (!orderData || !orderData.items || !Array.isArray(orderData.items) || orderData.items.length === 0) {
-      console.log('❌ Invalid order data structure');
-      return res.status(400).json({
-        error: 'Invalid order data',
-        message: 'Order data with items is required'
-      });
-    }
+    let calculatedTotal = 0;
+    let normalizedItems = [];
 
-    // Check if this is a temporary order ID (payment-first flow)
-    const orderIdString = normalizeId(orderId); // Ensure orderId is a string
-    const isTemporaryOrder = isTemporaryOrderId(orderIdString);
-    console.log('📦 Order type:', isTemporaryOrder ? 'Temporary' : 'Existing');
-    console.log('📦 Order ID (string):', orderIdString);
-    
     if (isTemporaryOrder) {
-      // For temporary orders, validate the order data but don't create order yet
       console.log('📦 Validating temporary order data...');
-      
-      // Validate and check stock for all items
+
+      if (!orderData || !Array.isArray(orderData.items) || orderData.items.length === 0) {
+        return res.status(400).json({
+          error: 'Invalid order data',
+          message: 'Order items are required for temporary orders'
+        });
+      }
+
       for (const item of orderData.items) {
         if (!item.productId || !item.quantity || item.quantity <= 0) {
           return res.status(400).json({
@@ -200,7 +194,7 @@ export const initiatePayment = async (req, res) => {
             message: 'Each item must have valid productId and quantity'
           });
         }
-        
+
         const product = await Product.findByPk(item.productId);
         if (!product) {
           return res.status(400).json({
@@ -208,40 +202,91 @@ export const initiatePayment = async (req, res) => {
             message: `Product with ID ${item.productId} not found`
           });
         }
-        
+
         if (product.stock < item.quantity) {
           return res.status(400).json({
             error: 'Insufficient stock',
             message: `Insufficient stock for ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}`
           });
         }
+
+        const lineTotal = Number(product.price) * item.quantity;
+        calculatedTotal += lineTotal;
+        normalizedItems.push({
+          productId: product.id,
+          quantity: item.quantity,
+          unitPrice: Number(product.price),
+          name: product.name,
+        });
       }
-      
+
       console.log('✅ Temporary order validation passed');
     } else {
-          // For existing orders, find and validate the order
-    const orderIdInt = toIntegerId(orderIdString);
-    if (!orderIdInt) {
+      const orderIdInt = toIntegerId(orderIdString);
+      if (!orderIdInt) {
+        return res.status(400).json({
+          error: 'Invalid order ID format',
+          message: 'Order ID must be a valid number'
+        });
+      }
+
+      const order = await Order.findByPk(orderIdInt, {
+        include: [{
+          model: OrderItem,
+          include: [{ model: Product, attributes: ['id', 'name', 'price'] }]
+        }]
+      });
+
+      if (!order) {
+        return res.status(404).json({
+          error: 'Order not found',
+          message: 'The specified order does not exist'
+        });
+      }
+
+      if (order.userId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({
+          error: 'Access denied',
+          message: 'You can only pay for your own orders'
+        });
+      }
+
+      if (!order.OrderItems || order.OrderItems.length === 0) {
+        return res.status(400).json({
+          error: 'Order has no items',
+          message: 'Cannot process payment for an empty order'
+        });
+      }
+
+      for (const item of order.OrderItems) {
+        const unitPrice = Number(item.Product?.price ?? 0);
+        calculatedTotal += unitPrice * item.quantity;
+        normalizedItems.push({
+          productId: item.productId,
+          quantity: item.quantity,
+          unitPrice,
+          name: item.Product?.name || `Product #${item.productId}`,
+        });
+      }
+
+      console.log('✅ Existing order validated');
+    }
+
+    const clientAmount = Number(amount);
+    if (Number.isNaN(clientAmount) || clientAmount <= 0) {
       return res.status(400).json({
-        error: 'Invalid order ID format',
-        message: 'Order ID must be a valid number'
+        error: 'Invalid payment amount',
+        message: 'Amount must be a positive number'
       });
     }
-    const order = await Order.findByPk(orderIdInt);
-      if (!order) {
-        return res.status(404).json({ 
-          error: 'Order not found',
-          message: 'The specified order does not exist' 
-        });
-      }
-      
-      // Verify order belongs to user
-      if (order.userId !== req.user.id && req.user.role !== 'admin') {
-        return res.status(403).json({ 
-          error: 'Access denied',
-          message: 'You can only pay for your own orders' 
-        });
-      }
+
+    const roundedCalculatedTotal = Number(calculatedTotal.toFixed(2));
+    if (Math.abs(roundedCalculatedTotal - clientAmount) > 0.5) {
+      console.log('❌ Amount mismatch detected', { roundedCalculatedTotal, clientAmount });
+      return res.status(400).json({
+        error: 'Amount mismatch',
+        message: `Calculated total ${roundedCalculatedTotal} does not match requested amount ${clientAmount}`
+      });
     }
     
     console.log('📦 Preparing payment request...');
@@ -273,7 +318,7 @@ export const initiatePayment = async (req, res) => {
     const pesapalOrderData = {
       id: orderIdString,
       currency: "KES",
-      amount: parseFloat(amount).toFixed(2),
+      amount: roundedCalculatedTotal.toFixed(2),
       description: `Payment for Order #${orderIdString}`,
       callback_url: cleanCallbackUrl,
       redirect_url: `${backendUrl}/api/payments/pesapal/redirect?orderId=${orderIdString}`,
@@ -317,16 +362,27 @@ export const initiatePayment = async (req, res) => {
       orderId: orderIdString,
       userId: toIntegerId(req.user.id),
           phoneNumber: phoneNumber,
-          amount: parseFloat(amount),
+          amount: roundedCalculatedTotal,
           paymentMethod: 'pesapal',
           status: 'pending',
           transactionId: response.data.order_tracking_id || `PESAPAL_${Date.now()}`,
           metadata: {
             pesapalOrderId: response.data.order_tracking_id,
             redirectUrl: response.data.redirect_url,
-            notificationId: notificationId,
-            orderData: orderData, // Store the order data for later creation
-            isTemporaryOrder: isTemporaryOrder
+            notificationId,
+            orderData: isTemporaryOrder ? {
+              items: normalizedItems,
+              shippingAddress: orderData.shippingAddress || '',
+              contactPhone: orderData.contactPhone || phoneNumber,
+              total: roundedCalculatedTotal,
+            } : null,
+            summary: {
+              items: normalizedItems,
+              expectedTotal: roundedCalculatedTotal,
+              shippingAddress: isTemporaryOrder ? (orderData.shippingAddress || '') : undefined,
+              contactPhone: isTemporaryOrder ? (orderData.contactPhone || phoneNumber) : undefined,
+            },
+            isTemporaryOrder
           }
         });
 
@@ -454,8 +510,28 @@ export const handlePesapalCallback = async (req, res) => {
     // Handle order creation/update based on payment status
     const isTemporaryOrder = transaction.metadata?.isTemporaryOrder;
     const orderData = transaction.metadata?.orderData;
+    const summary = transaction.metadata?.summary;
     
     if (paymentStatus.status === 'COMPLETED' || paymentStatus.status === 'Completed') {
+      if (summary && typeof summary.expectedTotal === 'number') {
+        const expected = Number(summary.expectedTotal.toFixed(2));
+        const paid = Number(transaction.amount?.toFixed?.(2) ?? transaction.amount);
+        if (Number.isFinite(paid) && Math.abs(expected - paid) > 0.5) {
+          console.error('❌ Payment amount mismatch detected during callback', { expected, paid, orderId: transaction.orderId });
+          await transaction.update({
+            status: 'AmountMismatch',
+            metadata: {
+              ...transaction.metadata,
+              reconciliationError: {
+                expected,
+                paid,
+                detectedAt: new Date().toISOString(),
+              }
+            }
+          });
+          return res.status(400).json({ error: 'Payment amount mismatch detected. Escalated for manual review.' });
+        }
+      }
       if (isTemporaryOrder && orderData) {
         // Create the actual order for temporary orders
         console.log('🏗️ Creating actual order from temporary order data...');
@@ -464,10 +540,10 @@ export const handlePesapalCallback = async (req, res) => {
             // Create the order
             const contactPhone = transaction.phoneNumber || orderData?.contactPhone || null;
 
-            const order = await Order.create({ 
-              userId: transaction.userId, 
-              total: transaction.amount, 
-              shippingAddress: orderData.shippingAddress || '',
+            const order = await Order.create({
+              userId: transaction.userId,
+              total: transaction.amount,
+              shippingAddress: orderData.shippingAddress || summary?.shippingAddress || '',
               contactPhone,
               status: 'pending',
               paymentMethod: 'pesapal'
@@ -476,7 +552,11 @@ export const handlePesapalCallback = async (req, res) => {
             console.log('✅ Order created:', order.id);
             
             // Create order items
-            const orderItems = orderData.items.map(item => ({
+            const itemsSource = Array.isArray(orderData.items) && orderData.items.length > 0 ? orderData.items : (summary?.items ?? []);
+            if (!itemsSource || itemsSource.length === 0) {
+              throw new Error('No order items available in metadata to create order');
+            }
+            const orderItems = itemsSource.map(item => ({
               orderId: order.id,
               productId: item.productId,
               quantity: item.quantity
@@ -486,7 +566,7 @@ export const handlePesapalCallback = async (req, res) => {
             console.log('✅ Order items created');
             
             // Decrement stock for each product
-            for (const item of orderData.items) {
+            for (const item of itemsSource) {
               await Product.decrement('stock', {
                 by: item.quantity,
                 where: { id: item.productId },
@@ -521,6 +601,17 @@ export const handlePesapalCallback = async (req, res) => {
             const updateData = { status: 'pending' };
             if (!order.contactPhone && transaction.phoneNumber) {
               updateData.contactPhone = transaction.phoneNumber;
+            }
+            if (summary?.items && summary.items.length > 0) {
+              const items = summary.items;
+              await sequelize.transaction(async (t) => {
+                await OrderItem.destroy({ where: { orderId: order.id }, transaction: t });
+                await OrderItem.bulkCreate(items.map(item => ({
+                  orderId: order.id,
+                  productId: item.productId,
+                  quantity: item.quantity,
+                })), { transaction: t });
+              });
             }
             await order.update(updateData);
             console.log('✅ Order status updated to: pending');

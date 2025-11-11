@@ -80,7 +80,15 @@ const AdminBlogManage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/blog?includeDrafts=true&limit=100');
+      if (!user?.token) {
+        throw new Error('You must be logged in to manage blog posts');
+      }
+
+      const res = await fetch('/api/blog/admin?limit=100', {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
+      });
       if (!res.ok) throw new Error('Failed to load posts');
       const data = await res.json();
       setPosts(data.items || []);
@@ -122,9 +130,16 @@ const AdminBlogManage: React.FC = () => {
     setError(null);
 
     try {
+      if (!user?.token) {
+        throw new Error('You must be logged in to upload images');
+      }
+
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
       });
 
       if (!res.ok) {
@@ -286,7 +301,15 @@ const AdminBlogManage: React.FC = () => {
       setFeedback(null);
       setError(null);
 
-      const res = await fetch(`/api/blog/${post.slug}?preview=true`);
+      if (!user?.token) {
+        throw new Error('You must be logged in to edit blog posts');
+      }
+
+      const res = await fetch(`/api/blog/admin/${post.slug}`, {
+        headers: {
+          Authorization: `Bearer ${user.token}`,
+        },
+      });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Failed to load post content');

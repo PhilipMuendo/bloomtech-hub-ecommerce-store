@@ -29,52 +29,89 @@ export const generateProformaInvoice = async (req, res, next) => {
     if (orderId.startsWith('TEMP_')) {
       // For temporary orders, we need to create the actual order first
       const pendingOrderData = req.body.pendingOrderData;
-      
-      if (!pendingOrderData || !pendingOrderData.items || !pendingOrderData.total) {
+
+      if (!pendingOrderData || !Array.isArray(pendingOrderData.items) || pendingOrderData.items.length === 0) {
         return res.status(400).json({ error: 'Valid pending order data is required for temporary orders' });
       }
-      
-      // Create the actual order
+
+      const normalizedItems = [];
+      let calculatedTotal = 0;
+
+      for (const item of pendingOrderData.items) {
+        if (!item.productId || !item.quantity || item.quantity <= 0) {
+          return res.status(400).json({ error: 'Each item must include a valid productId and quantity' });
+        }
+
+        const product = await Product.findByPk(item.productId);
+        if (!product) {
+          return res.status(400).json({ error: `Product with ID ${item.productId} not found` });
+        }
+
+        const unitPrice = Number(product.price);
+        const lineTotal = unitPrice * item.quantity;
+        calculatedTotal += lineTotal;
+        normalizedItems.push({
+          productId: product.id,
+          quantity: item.quantity,
+          unitPrice,
+          name: product.name,
+        });
+
+        if (product.stock < item.quantity) {
+          return res.status(400).json({
+            error: 'Insufficient stock',
+            message: `${product.name} only has ${product.stock} units remaining`
+          });
+        }
+      }
+
+      if (pendingOrderData.total) {
+        const clientTotal = Number(pendingOrderData.total);
+        if (!Number.isNaN(clientTotal) && Math.abs(clientTotal - calculatedTotal) > 0.5) {
+          return res.status(400).json({
+            error: 'Amount mismatch',
+            message: `Calculated total ${calculatedTotal} does not match client supplied total ${clientTotal}`
+          });
+        }
+      }
+
       const { generateTrackingNumber } = await import('../utils/idUtils.js');
       const trackingNumber = generateTrackingNumber();
       const contactPhone = pendingOrderData?.contactPhone || req.body.contactPhone || req.user?.phone || null;
 
-      console.log('📝 Creating order with data:', {
+      console.log('📝 Creating order with validated data:', {
         userId: req.user.id,
-        total: pendingOrderData.total,
+        total: calculatedTotal,
         shippingAddress: pendingOrderData.shippingAddress || '',
         contactPhone,
         trackingNumber
       });
-      
+
       order = await Order.create({
         userId: req.user.id,
-        total: pendingOrderData.total,
+        total: calculatedTotal,
         shippingAddress: pendingOrderData.shippingAddress || '',
         contactPhone,
         paymentMethod: 'bank_transfer',
         status: 'pending',
         trackingNumber
       });
-      
-      console.log('✅ Order created with ID:', order.id);
-      
-      // Create order items
-      for (const item of pendingOrderData.items) {
+
+      for (const item of normalizedItems) {
         await OrderItem.create({
           orderId: order.id,
           productId: item.productId,
           quantity: item.quantity
         });
       }
-      
-      // Fetch the complete order with associations
+
+      // Refresh order with associations
       order = await Order.findOne({
         where: { id: order.id },
         include: [
           { model: User, attributes: ['name', 'email', 'phone'] },
-          { 
-            model: OrderItem, 
+          {
+            model: OrderItem,
             include: [{ model: Product, attributes: ['name', 'price'] }]
           }
         ]
@@ -96,7 +133,6 @@ export const generateProformaInvoice = async (req, res, next) => {
         return res.status(404).json({ error: 'Order not found' });
       }
 
-      // Check if user is authorized to view this order
       if (req.user.role !== 'admin' && req.user.role !== 'superadmin' && order.userId !== req.user.id) {
         return res.status(403).json({ error: 'Unauthorized' });
       }

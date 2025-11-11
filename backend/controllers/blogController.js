@@ -1,5 +1,6 @@
 import db from '../sequelize_models/index.js';
 import { Op } from 'sequelize';
+import sanitizeHtml from 'sanitize-html';
 
 const { Blog, BlogComment } = db;
 
@@ -12,10 +13,31 @@ const trimString = (value) => (typeof value === 'string' ? value.trim() : value)
 
 const stripHtml = (html = '') => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
+const SAFE_HTML_CONFIG = {
+  allowedTags: [
+    'p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'a', 'img', 'table', 'thead', 'tbody', 'tr', 'td',
+    'th', 'hr', 'span'
+  ],
+  allowedAttributes: {
+    a: ['href', 'name', 'target', 'rel'],
+    img: ['src', 'alt', 'title', 'width', 'height'],
+    '*': ['class']
+  },
+  allowedSchemes: ['http', 'https', 'mailto'],
+  transformTags: {
+    a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer' })
+  },
+  allowProtocolRelative: false
+};
+
+const sanitizeRichText = (html = '') => sanitizeHtml(html, SAFE_HTML_CONFIG);
+const sanitizePlain = (text = '') => sanitizeHtml(text, { allowedTags: [], allowedAttributes: {} });
+
 const generateExcerpt = (content = '', explicit) => {
   const provided = trimString(explicit);
   if (provided) {
-    return provided.slice(0, 300);
+    return stripHtml(provided).slice(0, 300);
   }
   const text = stripHtml(content);
   if (!text) return '';
@@ -75,12 +97,12 @@ const pickBlogFields = (input = {}) => {
       case 'metaDescription':
       case 'metaKeywords':
       case 'coverImage':
-      case 'excerpt':
-        value = trimString(value) || null;
+        value = sanitizePlain(trimString(value) || '');
+        value = value ? value : null;
         break;
       case 'content':
         // ensure content is a string
-        value = typeof value === 'string' ? value : '';
+        value = typeof value === 'string' ? sanitizeRichText(value) : '';
         break;
       case 'status':
         value = trimString(value);
@@ -140,13 +162,15 @@ const buildWhere = (query, { includeDrafts = false } = {}) => {
 
 const serializeBlogForList = (blogInstance) => {
   const json = blogInstance.toJSON();
-  const excerpt = generateExcerpt(json.content || '', json.excerpt);
+  const sanitizedContent = sanitizeRichText(json.content || '');
+  const excerpt = generateExcerpt(sanitizedContent, json.excerpt);
   const readingTime = json.readingTime || calculateReadingTime(json.content || '');
   const tags = Array.isArray(json.tags) ? json.tags : normalizeTags(json.tags) || [];
 
   delete json.content;
   return {
     ...json,
+    coverImage: json.coverImage ? sanitizePlain(json.coverImage) : null,
     excerpt,
     readingTime,
     tags,
@@ -158,9 +182,7 @@ export const listBlogs = async (req, res) => {
     const page = Math.max(parseInt(req.query.page || '1', 10), 1);
     const limit = Math.min(Math.max(parseInt(req.query.limit || '10', 10), 1), 50);
     const offset = (page - 1) * limit;
-    const includeDrafts = req.query.includeDrafts === 'true';
-
-    const where = buildWhere(req.query, { includeDrafts });
+    const where = buildWhere(req.query, { includeDrafts: false });
 
     const { rows, count } = await Blog.findAndCountAll({
       where,
@@ -186,10 +208,8 @@ export const listBlogs = async (req, res) => {
 export const getBlogBySlug = async (req, res) => {
   try {
     const { slug } = req.params;
-    const preview = req.query.preview === 'true';
-
     const where = { slug };
-    if (Blog.rawAttributes.status && !preview) {
+    if (Blog.rawAttributes.status) {
       where.status = 'published';
     }
 
@@ -204,6 +224,8 @@ export const getBlogBySlug = async (req, res) => {
 
     const json = blog.toJSON();
     json.tags = Array.isArray(json.tags) ? json.tags : normalizeTags(json.tags) || [];
+    json.coverImage = json.coverImage ? sanitizePlain(json.coverImage) : null;
+    json.content = sanitizeRichText(json.content || '');
     json.excerpt = generateExcerpt(json.content || '', json.excerpt);
     if (Blog.rawAttributes.readingTime && !json.readingTime) {
       json.readingTime = calculateReadingTime(json.content || '');
@@ -230,11 +252,11 @@ export const createBlog = async (req, res) => {
     const exists = await Blog.findOne({ where: { slug } });
     if (exists) return res.status(400).json({ error: 'Slug already exists' });
 
-    const payload = pickBlogFields({ ...data, title, content });
+    const payload = pickBlogFields({ ...data, title: sanitizePlain(title), content });
     payload.slug = slug;
-    payload.title = title;
-    payload.content = content;
-    payload.excerpt = generateExcerpt(content, payload.excerpt);
+    payload.title = sanitizePlain(title);
+    payload.content = sanitizeRichText(content);
+    payload.excerpt = generateExcerpt(payload.content, payload.excerpt);
 
     if (payload.tags === undefined) {
       payload.tags = [];
@@ -300,7 +322,7 @@ export const updateBlog = async (req, res) => {
     }
 
     if (updates.content !== undefined) {
-      updates.content = typeof updates.content === 'string' ? updates.content : '';
+      updates.content = sanitizeRichText(updates.content || '');
       if (data.excerpt === undefined) {
         updates.excerpt = generateExcerpt(updates.content, blog.excerpt);
       }
@@ -314,17 +336,17 @@ export const updateBlog = async (req, res) => {
     }
 
     if (updates.category !== undefined) {
-      updates.category = trimString(updates.category) || null;
+      updates.category = sanitizePlain(updates.category || '') || null;
     }
 
     if (updates.authorName !== undefined) {
-      updates.authorName = trimString(updates.authorName) || null;
+      updates.authorName = sanitizePlain(updates.authorName || '') || null;
     }
 
-    if (updates.metaTitle !== undefined) updates.metaTitle = trimString(updates.metaTitle) || null;
-    if (updates.metaDescription !== undefined) updates.metaDescription = trimString(updates.metaDescription) || null;
-    if (updates.metaKeywords !== undefined) updates.metaKeywords = trimString(updates.metaKeywords) || null;
-    if (updates.coverImage !== undefined) updates.coverImage = trimString(updates.coverImage) || null;
+    if (updates.metaTitle !== undefined) updates.metaTitle = sanitizePlain(updates.metaTitle || '') || null;
+    if (updates.metaDescription !== undefined) updates.metaDescription = sanitizePlain(updates.metaDescription || '') || null;
+    if (updates.metaKeywords !== undefined) updates.metaKeywords = sanitizePlain(updates.metaKeywords || '') || null;
+    if (updates.coverImage !== undefined) updates.coverImage = sanitizePlain(updates.coverImage || '') || null;
 
     await blog.update(updates);
     const refreshed = await Blog.findByPk(blog.id);
@@ -379,6 +401,57 @@ export const deleteBlog = async (req, res) => {
   } catch (e) {
     console.error('Delete blog error', e);
     res.status(500).json({ error: 'Failed to delete blog' });
+  }
+};
+
+export const listBlogsAdmin = async (req, res) => {
+  try {
+    const page = Math.max(parseInt(req.query.page || '1', 10), 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit || '20', 10), 1), 100);
+    const offset = (page - 1) * limit;
+
+    const where = buildWhere(req.query, { includeDrafts: true });
+
+    const { rows, count } = await Blog.findAndCountAll({
+      where,
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset,
+    });
+
+    res.json({
+      items: rows.map(serializeBlogForList),
+      page,
+      total: count,
+      pageCount: Math.ceil(count / limit),
+    });
+  } catch (e) {
+    console.error('List blogs admin error', e);
+    res.status(500).json({ error: 'Failed to load blogs' });
+  }
+};
+
+export const getBlogBySlugAdmin = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const blog = await Blog.findOne({ where: { slug } });
+    if (!blog) {
+      return res.status(404).json({ error: 'Blog not found' });
+    }
+
+    const json = blog.toJSON();
+    json.tags = Array.isArray(json.tags) ? json.tags : normalizeTags(json.tags) || [];
+    json.coverImage = json.coverImage ? sanitizePlain(json.coverImage) : null;
+    json.content = sanitizeRichText(json.content || '');
+    json.excerpt = generateExcerpt(json.content || '', json.excerpt);
+    if (Blog.rawAttributes.readingTime && !json.readingTime) {
+      json.readingTime = calculateReadingTime(json.content || '');
+    }
+
+    res.json(json);
+  } catch (e) {
+    console.error('Get blog admin error', e);
+    res.status(500).json({ error: 'Failed to load blog' });
   }
 };
 

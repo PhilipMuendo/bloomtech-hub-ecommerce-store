@@ -1,5 +1,5 @@
 import express from 'express';
-import { listBlogs, getBlogBySlug, createBlog, updateBlog, publishBlog, deleteBlog } from '../controllers/blogController.js';
+import { listBlogs, getBlogBySlug, createBlog, updateBlog, publishBlog, deleteBlog, listBlogsAdmin, getBlogBySlugAdmin } from '../controllers/blogController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireRole } from '../middleware/roleAuth.js';
 
@@ -7,6 +7,8 @@ const router = express.Router();
 
 // Public
 router.get('/', listBlogs);
+router.get('/admin', requireAuth, requireRole(['admin', 'superadmin']), listBlogsAdmin);
+router.get('/admin/:slug', requireAuth, requireRole(['admin', 'superadmin']), getBlogBySlugAdmin);
 router.get('/:slug', getBlogBySlug);
 
 // Admin
