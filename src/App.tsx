@@ -56,6 +56,7 @@ const ContactMessages = lazy(() => import("./pages/admin/ContactMessages"));
 const AdminBlogManage = lazy(() => import('./pages/admin/BlogManage'));
 const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const BankTransferOrders = lazy(() => import("./pages/admin/BankTransferOrders"));
+const AdminSettings = lazy(() => import("./pages/admin/Settings"));
 
 const PesapalTransactions = lazy(() => import("./pages/admin/PesapalTransactions"));
 const WarehouseOrders = lazy(() => import("./pages/warehouse/WarehouseOrders"));
@@ -347,6 +348,11 @@ const AnimatedRoutes = () => {
           <Route path="blog" element={
             <Suspense fallback={<LoadingSpinner />}>
               <AdminBlogManage />
+            </Suspense>
+          } />
+          <Route path="settings" element={
+            <Suspense fallback={<LoadingSpinner />}>
+              <AdminSettings />
             </Suspense>
           } />
 

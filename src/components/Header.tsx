@@ -13,6 +13,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import { branding, isImageLogo } from '@/config/branding';
+import { useSettings } from '@/context/SettingsContext';
 
 
 
@@ -147,6 +149,15 @@ const Header = () => {
   const location = useLocation();
   const { cartItems } = useCart();
   const { user } = useAuth();
+  const { settings } = useSettings();
+
+  // Merge settings with fallback branding
+  const logoType = settings?.logoType || branding.logo.type;
+  const logoSrc = settings?.logoImageSrc || branding.logo.image.src;
+  const logoIconSrc = settings?.logoIconSrc || branding.logo.image.iconSrc;
+  const companyName = settings?.companyName || branding.company.name;
+  const companyTagline = settings?.companyTagline || branding.company.tagline;
+  const initials = settings?.logoTextInitials || branding.logo.text.initials;
 
 
 
@@ -204,31 +215,51 @@ const Header = () => {
           <div className="flex items-center justify-between py-4">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
-              <motion.div 
-                className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center"
-                initial={isHomePage ? { scale: 0 } : { scale: 1 }}
-                animate={isHomePage ? { scale: 1 } : { scale: 1 }}
-                transition={isHomePage ? { 
-                  type: "spring", 
-                  stiffness: 260, 
-                  damping: 20,
-                  duration: 0.8 
-                } : { duration: 0 }}
-              >
-                <span className="text-white font-bold text-lg">BT</span>
-              </motion.div>
-              <motion.div
-                initial={isHomePage ? { opacity: 0, x: -20 } : { opacity: 1, x: 0 }}
-                animate={isHomePage ? { opacity: 1, x: 0 } : { opacity: 1, x: 0 }}
-                transition={isHomePage ? { 
-                  delay: 0.3, 
-                  duration: 0.6,
-                  ease: "easeOut"
-                } : { duration: 0 }}
-              >
-                <h1 className="text-2xl font-bold text-primary">BLOOMTECH</h1>
-                <p className="text-sm text-accent -mt-1">Hub</p>
-              </motion.div>
+              {logoType === 'image' ? (
+                // Image-based logo
+                <motion.img
+                  src={logoSrc}
+                  alt={branding.logo.image.alt}
+                  className="h-10 w-auto object-contain"
+                  initial={isHomePage ? { scale: 0 } : { scale: 1 }}
+                  animate={{ scale: 1 }}
+                  transition={isHomePage ? { 
+                    type: "spring", 
+                    stiffness: 260, 
+                    damping: 20,
+                    duration: 0.8 
+                  } : { duration: 0 }}
+                />
+              ) : (
+                // Text-based logo (default)
+                <>
+                  <motion.div 
+                    className={`w-10 h-10 bg-gradient-to-br ${branding.logo.text.gradientFrom} ${branding.logo.text.gradientTo} rounded-lg flex items-center justify-center`}
+                    initial={isHomePage ? { scale: 0 } : { scale: 1 }}
+                    animate={{ scale: 1 }}
+                    transition={isHomePage ? { 
+                      type: "spring", 
+                      stiffness: 260, 
+                      damping: 20,
+                      duration: 0.8 
+                    } : { duration: 0 }}
+                  >
+                    <span className="text-white font-bold text-lg">{initials}</span>
+                  </motion.div>
+                  <motion.div
+                    initial={isHomePage ? { opacity: 0, x: -20 } : { opacity: 1, x: 0 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={isHomePage ? { 
+                      delay: 0.3, 
+                      duration: 0.6,
+                      ease: "easeOut"
+                    } : { duration: 0 }}
+                  >
+                    <h1 className="text-2xl font-bold text-primary">{companyName}</h1>
+                    <p className="text-sm text-accent -mt-1">{companyTagline}</p>
+                  </motion.div>
+                </>
+              )}
             </Link>
 
             {/* Search Bar (Desktop) */}

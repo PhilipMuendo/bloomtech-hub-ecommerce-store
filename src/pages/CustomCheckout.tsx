@@ -61,7 +61,7 @@ const CustomCheckout = () => {
     setShowPaymentSelector(false);
   };
 
-  const handlePaymentSuccess = () => {
+  const handlePaymentSuccess = (realOrderId?: string) => {
     toast({ 
       title: "Payment successful!", 
       description: "Your order has been processed successfully." 

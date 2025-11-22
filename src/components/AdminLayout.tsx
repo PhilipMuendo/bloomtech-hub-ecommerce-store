@@ -19,11 +19,13 @@ import {
   Globe,
   MessageCircle,
   Building2,
-  FileText
+  FileText,
+  Settings
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import ReactDOM from 'react-dom';
+import { branding } from '@/config/branding';
 
 export async function fetchLowStockProducts(token) {
   try {
@@ -139,6 +141,7 @@ const AdminLayout = () => {
     { path: '/admin/users', icon: Users, label: 'Users' },
     { path: '/admin/reviews', icon: MessageSquare, label: 'Reviews' },
     { path: '/admin/contact-messages', icon: MessageCircle, label: 'Contact Messages' },
+    { path: '/admin/settings', icon: Settings, label: 'Settings' },
     { path: '/admin/newsletter', icon: Mail, label: 'Newsletter' },
   
     // Superadmin only items
@@ -197,7 +200,7 @@ const AdminLayout = () => {
               </div>
               <div>
                 <h2 className="font-bold text-lg">Admin Panel</h2>
-                <p className="text-sm text-muted-foreground">BLOOMTECH Hub</p>
+                <p className="text-sm text-muted-foreground">{branding.company.fullName}</p>
               </div>
             </div>
             {/* User info with badge */}

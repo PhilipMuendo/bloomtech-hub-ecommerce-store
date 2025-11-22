@@ -46,6 +46,56 @@ function getConfig() {
   };
 }
 
+const PESAPAL_COMPLETED_STATUSES = new Set([
+  'COMPLETED',
+  'COMPLETED_SUCCESS',
+  'PAID',
+  'SUCCESS',
+  'PROCESSED'
+]);
+
+const PESAPAL_CANCELLED_STATUSES = new Set([
+  'CANCELLED',
+  'VOIDED'
+]);
+
+const PESAPAL_FAILED_STATUSES = new Set([
+  'FAILED',
+  'INVALID',
+  'DECLINED',
+  'REJECTED',
+  'TIMEDOUT',
+  'TIMEOUT',
+  'EXPIRED',
+  'ERROR'
+]);
+
+function normalizeTransactionStatus(status) {
+  if (!status && status !== 0) {
+    return 'pending';
+  }
+
+  const normalized = String(status).trim().toUpperCase();
+  if (!normalized) {
+    return 'pending';
+  }
+
+  if (PESAPAL_COMPLETED_STATUSES.has(normalized)) {
+    return 'completed';
+  }
+
+  if (PESAPAL_CANCELLED_STATUSES.has(normalized)) {
+    return 'cancelled';
+  }
+
+  if (PESAPAL_FAILED_STATUSES.has(normalized)) {
+    return 'failed';
+  }
+
+  // Default to pending for unknown statuses to keep polling
+  return 'pending';
+}
+
 // Get Bearer token for v3 API
 async function getBearerToken() {
   try {
@@ -136,6 +186,17 @@ export const initiatePayment = async (req, res) => {
     
     const { orderId, amount, phoneNumber, email, firstName, lastName, orderData } = req.body;
 
+    const orderIdString = normalizeId(orderId);
+    if (!orderIdString) {
+      return res.status(400).json({
+        error: 'Invalid order ID',
+        message: 'A valid orderId is required'
+      });
+    }
+
+    const isTemporaryOrder = isTemporaryOrderId(orderIdString);
+    let existingOrder = null;
+
     // Validate required fields
     if (!orderId || !amount || !email) {
       return res.status(400).json({
@@ -176,10 +237,10 @@ export const initiatePayment = async (req, res) => {
     
     let calculatedTotal = 0;
     let normalizedItems = [];
-
+    
     if (isTemporaryOrder) {
       console.log('📦 Validating temporary order data...');
-
+      
       if (!orderData || !Array.isArray(orderData.items) || orderData.items.length === 0) {
         return res.status(400).json({
           error: 'Invalid order data',
@@ -194,7 +255,7 @@ export const initiatePayment = async (req, res) => {
             message: 'Each item must have valid productId and quantity'
           });
         }
-
+        
         const product = await Product.findByPk(item.productId);
         if (!product) {
           return res.status(400).json({
@@ -202,7 +263,7 @@ export const initiatePayment = async (req, res) => {
             message: `Product with ID ${item.productId} not found`
           });
         }
-
+        
         if (product.stock < item.quantity) {
           return res.status(400).json({
             error: 'Insufficient stock',
@@ -219,7 +280,7 @@ export const initiatePayment = async (req, res) => {
           name: product.name,
         });
       }
-
+      
       console.log('✅ Temporary order validation passed');
     } else {
       const orderIdInt = toIntegerId(orderIdString);
@@ -230,35 +291,35 @@ export const initiatePayment = async (req, res) => {
         });
       }
 
-      const order = await Order.findByPk(orderIdInt, {
+      existingOrder = await Order.findByPk(orderIdInt, {
         include: [{
           model: OrderItem,
           include: [{ model: Product, attributes: ['id', 'name', 'price'] }]
         }]
       });
 
-      if (!order) {
-        return res.status(404).json({
+      if (!existingOrder) {
+        return res.status(404).json({ 
           error: 'Order not found',
-          message: 'The specified order does not exist'
+          message: 'The specified order does not exist' 
         });
       }
-
-      if (order.userId !== req.user.id && req.user.role !== 'admin') {
-        return res.status(403).json({
+      
+      if (existingOrder.userId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ 
           error: 'Access denied',
-          message: 'You can only pay for your own orders'
+          message: 'You can only pay for your own orders' 
         });
       }
 
-      if (!order.OrderItems || order.OrderItems.length === 0) {
+      if (!existingOrder.OrderItems || existingOrder.OrderItems.length === 0) {
         return res.status(400).json({
           error: 'Order has no items',
           message: 'Cannot process payment for an empty order'
         });
       }
 
-      for (const item of order.OrderItems) {
+      for (const item of existingOrder.OrderItems) {
         const unitPrice = Number(item.Product?.price ?? 0);
         calculatedTotal += unitPrice * item.quantity;
         normalizedItems.push({
@@ -389,8 +450,8 @@ export const initiatePayment = async (req, res) => {
         console.log('✅ Transaction record created:', transaction.id);
 
         // Only update order status if it's an existing order
-        if (!isTemporaryOrder) {
-          await order.update({
+        if (!isTemporaryOrder && existingOrder) {
+          await existingOrder.update({
             status: 'payment_pending',
             paymentMethod: 'pesapal'
           });
@@ -460,89 +521,96 @@ export const handlePesapalCallback = async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Find the transaction
     console.log('🔍 Looking for transaction with:');
     console.log('   orderId (pesapalMerchantReference):', pesapalMerchantReference);
-    console.log('   pesapalOrderId (pesapalTransactionTrackingId):', pesapalTransactionTrackingId);
-    
-    // First try to find by pesapalOrderId in metadata (this is the most reliable)
-    let transaction = null;
-    const allTransactions = await Transaction.findAll();
-    transaction = allTransactions.find(t => 
-      t.metadata?.pesapalOrderId === pesapalTransactionTrackingId
-    );
-    
-    if (!transaction) {
-      console.log('❌ Transaction not found by pesapalOrderId. Trying by orderId...');
-      
-      // Try to find by orderId
-      transaction = allTransactions.find(t => t.orderId === pesapalMerchantReference);
-      
-      if (!transaction) {
-        console.log('❌ No transaction found with any lookup method');
-        console.log('   Available transactions:');
-        allTransactions.forEach((t, index) => {
-          console.log(`     ${index + 1}. ID: ${t.id}, OrderID: ${t.orderId}, TrackingID: ${t.metadata?.pesapalOrderId || 'None'}`);
-        });
-        return res.status(404).json({ error: 'Transaction not found' });
-      }
-      
-      console.log('✅ Found transaction with orderId lookup');
-    } else {
-      console.log('✅ Found transaction with pesapalOrderId lookup');
+    console.log('   trackingId (pesapalTransactionTrackingId):', pesapalTransactionTrackingId);
+
+    let transaction = await Transaction.findOne({
+      where: { transactionId: pesapalTransactionTrackingId }
+    });
+
+    if (!transaction && pesapalMerchantReference) {
+      transaction = await Transaction.findOne({
+        where: { orderId: pesapalMerchantReference }
+      });
     }
+
+    if (!transaction) {
+      console.log('❌ No matching transaction found for callback');
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+
+    console.log('✅ Transaction located:', {
+      id: transaction.id,
+      orderId: transaction.orderId,
+      transactionId: transaction.transactionId
+    });
+
+    // Snapshot metadata before we mutate anything
+    const existingMetadata = transaction.metadata || {};
+    const summary = existingMetadata.summary;
 
     // Get payment status from Pesapal
     const paymentStatus = await getPaymentStatus(pesapalTransactionTrackingId);
     
     console.log('📊 Payment status:', paymentStatus);
 
-    // Update transaction status
-      await transaction.update({
-      status: paymentStatus.status,
-      metadata: {
-        ...transaction.metadata,
-        lastUpdate: new Date().toISOString(),
-        paymentStatus: paymentStatus
+    let newStatus = paymentStatus.status;
+    const updatedMetadataBase = {
+      ...existingMetadata,
+      lastUpdate: new Date().toISOString(),
+      paymentStatus: {
+        status: paymentStatus.status,
+        rawStatus: paymentStatus.rawStatus,
+        message: paymentStatus.message,
+        details: paymentStatus.details
       }
+    };
+
+    if (paymentStatus.status === 'completed' && summary && typeof summary.expectedTotal === 'number') {
+      const expected = Number(Number(summary.expectedTotal).toFixed(2));
+      const paid = Number(Number(transaction.amount).toFixed(2));
+      if (Number.isFinite(expected) && Number.isFinite(paid) && Math.abs(expected - paid) > 0.5) {
+        console.error('❌ Payment amount mismatch detected during callback', { expected, paid, orderId: transaction.orderId });
+        const mismatchMetadata = {
+          ...updatedMetadataBase,
+          reconciliationError: {
+            expected,
+            paid,
+            detectedAt: new Date().toISOString()
+          }
+        };
+        transaction = await transaction.update({
+          status: 'failed',
+          metadata: mismatchMetadata
+        });
+        return res.status(400).json({ error: 'Payment amount mismatch detected. Escalated for manual review.' });
+      }
+    }
+
+    transaction = await transaction.update({
+      status: newStatus,
+      metadata: updatedMetadataBase
     });
 
     // Handle order creation/update based on payment status
-    const isTemporaryOrder = transaction.metadata?.isTemporaryOrder;
-    const orderData = transaction.metadata?.orderData;
-    const summary = transaction.metadata?.summary;
+    const metadataAfterUpdate = transaction.metadata || {};
+    const isTemporaryOrder = Boolean(metadataAfterUpdate.isTemporaryOrder);
+    const orderData = metadataAfterUpdate.orderData;
+    const updatedSummary = metadataAfterUpdate.summary || summary;
     
-    if (paymentStatus.status === 'COMPLETED' || paymentStatus.status === 'Completed') {
-      if (summary && typeof summary.expectedTotal === 'number') {
-        const expected = Number(summary.expectedTotal.toFixed(2));
-        const paid = Number(transaction.amount?.toFixed?.(2) ?? transaction.amount);
-        if (Number.isFinite(paid) && Math.abs(expected - paid) > 0.5) {
-          console.error('❌ Payment amount mismatch detected during callback', { expected, paid, orderId: transaction.orderId });
-          await transaction.update({
-            status: 'AmountMismatch',
-            metadata: {
-              ...transaction.metadata,
-              reconciliationError: {
-                expected,
-                paid,
-                detectedAt: new Date().toISOString(),
-              }
-            }
-          });
-          return res.status(400).json({ error: 'Payment amount mismatch detected. Escalated for manual review.' });
-        }
-      }
+    if (transaction.status === 'completed') {
       if (isTemporaryOrder && orderData) {
         // Create the actual order for temporary orders
         console.log('🏗️ Creating actual order from temporary order data...');
         
-                  const result = await sequelize.transaction(async (t) => {
+        const result = await sequelize.transaction(async (t) => {
             // Create the order
             const contactPhone = transaction.phoneNumber || orderData?.contactPhone || null;
 
-            const order = await Order.create({
-              userId: transaction.userId,
-              total: transaction.amount,
+            const order = await Order.create({ 
+              userId: transaction.userId, 
+              total: transaction.amount, 
               shippingAddress: orderData.shippingAddress || summary?.shippingAddress || '',
               contactPhone,
               status: 'pending',
@@ -574,10 +642,7 @@ export const handlePesapalCallback = async (req, res) => {
               });
               console.log(`✅ Stock updated for product ${item.productId}`);
             }
-            
-            // Update transaction with the real order ID
             await transaction.update({
-              orderId: order.id,
               metadata: {
                 ...transaction.metadata,
                 realOrderId: order.id,
@@ -594,7 +659,7 @@ export const handlePesapalCallback = async (req, res) => {
           setTimeout(() => {
             notifyCustomerOfNewOrder(result.order, result.orderItems);
           }, 1000);
-              } else {
+      } else {
           // Update existing order status
           const order = await Order.findByPk(transaction.orderId);
           if (order) {
@@ -602,8 +667,8 @@ export const handlePesapalCallback = async (req, res) => {
             if (!order.contactPhone && transaction.phoneNumber) {
               updateData.contactPhone = transaction.phoneNumber;
             }
-            if (summary?.items && summary.items.length > 0) {
-              const items = summary.items;
+            if (updatedSummary?.items && updatedSummary.items.length > 0) {
+              const items = updatedSummary.items;
               await sequelize.transaction(async (t) => {
                 await OrderItem.destroy({ where: { orderId: order.id }, transaction: t });
                 await OrderItem.bulkCreate(items.map(item => ({
@@ -617,7 +682,7 @@ export const handlePesapalCallback = async (req, res) => {
             console.log('✅ Order status updated to: pending');
           }
         }
-    } else if (paymentStatus.status === 'FAILED') {
+    } else if (transaction.status === 'failed' || transaction.status === 'cancelled') {
       // For failed payments, only update existing orders
       if (!isTemporaryOrder) {
         const order = await Order.findByPk(transaction.orderId);
@@ -663,10 +728,13 @@ export const handlePesapalCallback = async (req, res) => {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
       let redirectUrl;
       
-      if (paymentStatus.status === 'COMPLETED' || paymentStatus.status === 'Completed') {
+      const redirectStatus = transaction.status;
+      const redirectMessage = transaction.metadata?.paymentStatus?.message || paymentStatus.message || 'Processing payment';
+
+      if (redirectStatus === 'completed') {
         redirectUrl = `${frontendUrl}/payment-success?orderId=${realOrderId}&status=completed&trackingId=${pesapalTransactionTrackingId}`;
-      } else if (paymentStatus.status === 'FAILED') {
-        redirectUrl = `${frontendUrl}/payment-failure?orderId=${orderId}&status=failed&reason=${encodeURIComponent(paymentStatus.message)}`;
+      } else if (redirectStatus === 'failed' || redirectStatus === 'cancelled') {
+        redirectUrl = `${frontendUrl}/payment-failure?orderId=${orderId}&status=${redirectStatus}&reason=${encodeURIComponent(redirectMessage)}`;
       } else {
         redirectUrl = `${frontendUrl}/payment-success?orderId=${realOrderId}&status=pending&trackingId=${pesapalTransactionTrackingId}`;
       }
@@ -700,18 +768,40 @@ export const handleCustomerRedirect = async (req, res) => {
 
     const { orderId, status, trackingId } = req.query;
     
-          if (!orderId) {
+    if (!orderId && !trackingId) {
         return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-failure?reason=No order ID provided`);
       }
 
-    // Find the transaction
-    const transaction = await Transaction.findOne({
-      where: { orderId: orderId }
-    });
+    let transaction = null;
+    if (orderId) {
+      transaction = await Transaction.findOne({
+        where: { orderId: orderId }
+      });
+    }
 
-          if (!transaction) {
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-failure?orderId=${orderId}&reason=Transaction not found`);
+    if (!transaction && trackingId) {
+      transaction = await Transaction.findOne({
+        where: { transactionId: trackingId }
+      });
+    }
+
+    if (!transaction && orderId) {
+      try {
+        transaction = await Transaction.findOne({
+          where: sequelize.where(
+            sequelize.json('metadata.realOrderId'),
+            orderId
+          )
+        });
+      } catch (lookupError) {
+        console.warn('JSON lookup for realOrderId failed:', lookupError.message);
       }
+    }
+
+    if (!transaction) {
+      const redirectOrderId = orderId || trackingId || 'unknown';
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-failure?orderId=${redirectOrderId}&reason=Transaction not found`);
+    }
 
     // Check payment status
     const paymentStatus = await getPaymentStatus(transaction.metadata?.pesapalOrderId);
@@ -719,16 +809,18 @@ export const handleCustomerRedirect = async (req, res) => {
     // Get the real order ID if it exists
     const realOrderId = transaction.metadata?.realOrderId || orderId;
     
-          if (paymentStatus.status === 'COMPLETED' || paymentStatus.status === 'Completed') {
-        // Redirect to success page with real order ID
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-success?orderId=${realOrderId}&status=completed&trackingId=${transaction.metadata?.pesapalOrderId}`);
-      } else if (paymentStatus.status === 'FAILED') {
-        // Redirect to failure page
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-failure?orderId=${orderId}&status=failed&reason=${encodeURIComponent(paymentStatus.message)}`);
-      } else {
-        // Redirect to pending page
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-success?orderId=${realOrderId}&status=pending&trackingId=${transaction.metadata?.pesapalOrderId}`);
-      }
+    const finalStatus = paymentStatus.status;
+    const redirectOrderId = realOrderId || orderId || transaction.orderId;
+    const redirectTrackingId = transaction.metadata?.pesapalOrderId || trackingId || '';
+    const message = transaction.metadata?.paymentStatus?.message || paymentStatus.message || 'Processing payment';
+
+    if (finalStatus === 'completed') {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-success?orderId=${redirectOrderId}&status=completed&trackingId=${redirectTrackingId}`);
+    } else if (finalStatus === 'failed' || finalStatus === 'cancelled') {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-failure?orderId=${redirectOrderId}&status=${finalStatus}&reason=${encodeURIComponent(message)}`);
+    } else {
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-success?orderId=${redirectOrderId}&status=pending&trackingId=${redirectTrackingId}`);
+    }
 
       } catch (error) {
       console.error('❌ Error handling customer redirect:', error.message);
@@ -759,8 +851,10 @@ const getPaymentStatus = async (transactionTrackingId) => {
     console.log('📊 Status response:', response.data);
     
     if (response.data.status === '200') {
+      const rawStatus = response.data.payment_status_description || 'PENDING';
       return {
-        status: response.data.payment_status_description || 'PENDING',
+        status: normalizeTransactionStatus(rawStatus),
+        rawStatus,
         message: response.data.message,
         details: response.data
       };
@@ -770,7 +864,8 @@ const getPaymentStatus = async (transactionTrackingId) => {
   } catch (error) {
     console.error('❌ Error getting payment status:', error.message);
     return {
-      status: 'UNKNOWN',
+      status: 'pending',
+      rawStatus: 'UNKNOWN',
       message: error.message
     };
   }
@@ -790,10 +885,28 @@ export const checkPaymentStatus = async (req, res) => {
       });
     }
 
-    // Find the transaction
-    const transaction = await Transaction.findOne({
+    let transaction = await Transaction.findOne({
       where: { orderId: orderId }
     });
+    
+    if (!transaction) {
+      try {
+        transaction = await Transaction.findOne({
+          where: sequelize.where(
+            sequelize.json('metadata.realOrderId'),
+            orderId
+          )
+        });
+      } catch (lookupError) {
+        console.warn('JSON lookup for metadata.realOrderId failed:', lookupError.message);
+      }
+    }
+
+    if (!transaction) {
+      transaction = await Transaction.findOne({
+        where: { transactionId: orderId }
+      });
+    }
     
     if (!transaction) {
       return res.status(404).json({ 
@@ -803,7 +916,7 @@ export const checkPaymentStatus = async (req, res) => {
     }
 
     // Get status from Pesapal
-    const pesapalOrderId = transaction.metadata?.pesapalOrderId;
+    const pesapalOrderId = transaction.metadata?.pesapalOrderId || transaction.transactionId;
     if (!pesapalOrderId) {
       return res.status(400).json({
         error: 'Invalid transaction',
@@ -813,14 +926,38 @@ export const checkPaymentStatus = async (req, res) => {
 
     const paymentStatus = await getPaymentStatus(pesapalOrderId);
 
+    const updatedMetadata = {
+      ...(transaction.metadata || {}),
+      lastUpdate: new Date().toISOString(),
+      paymentStatus: {
+        status: paymentStatus.status,
+        rawStatus: paymentStatus.rawStatus,
+        message: paymentStatus.message,
+        details: paymentStatus.details
+      }
+    };
+
+    if (
+      transaction.status !== paymentStatus.status ||
+      (transaction.metadata?.paymentStatus?.rawStatus !== paymentStatus.rawStatus)
+    ) {
+      transaction = await transaction.update({
+        status: paymentStatus.status,
+        metadata: updatedMetadata
+      });
+    } else {
+      transaction.metadata = updatedMetadata;
+    }
+
     return res.status(200).json({
       success: true,
-      data: {
-        orderId: orderId,
-        status: paymentStatus.status,
-        message: paymentStatus.message,
-        transaction: transaction
-      }
+      status: paymentStatus.status,
+      rawStatus: paymentStatus.rawStatus,
+      message: paymentStatus.message,
+      orderId: transaction.orderId,
+      realOrderId: transaction.metadata?.realOrderId || null,
+      trackingId: pesapalOrderId,
+      transaction
     });
 
   } catch (error) {

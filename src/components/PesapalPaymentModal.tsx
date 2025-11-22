@@ -12,7 +12,7 @@ interface PesapalPaymentModalProps {
   onClose: () => void;
   orderId: string;
   amount: number;
-  onSuccess: () => void;
+  onSuccess: (realOrderId?: string) => void;
 }
 
 const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
@@ -56,6 +56,15 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
     }
     
     return cleaned; // Return as is if no pattern matches
+  };
+
+  const normalizeStatus = (status?: string | null) => {
+    if (!status) return 'pending';
+    const normalized = status.toLowerCase();
+    if (['completed', 'failed', 'cancelled', 'pending'].includes(normalized)) {
+      return normalized as 'completed' | 'failed' | 'cancelled' | 'pending';
+    }
+    return 'pending';
   };
 
   const initiatePesapalPayment = async () => {
@@ -155,8 +164,17 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
             'Authorization': `Bearer ${user?.token}`
           }
         });
-        const data = await response.json();
-        if (data.status === 'Paid') {
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload?.message || `HTTP ${response.status}`);
+        }
+
+        const status = normalizeStatus(payload?.status || payload?.data?.status);
+        const realOrderId = payload?.realOrderId || payload?.transaction?.metadata?.realOrderId;
+        const message = payload?.message || payload?.transaction?.metadata?.paymentStatus?.message;
+
+        if (status === 'completed') {
           setPaymentStatus('completed');
           setResultMessage('Payment successful!');
           toast({
@@ -165,32 +183,36 @@ const PesapalPaymentModal: React.FC<PesapalPaymentModalProps> = ({
             duration: 2000,
           });
           setTimeout(() => {
-            onSuccess();
+            onSuccess(realOrderId || undefined);
             onClose();
           }, 2000);
           return;
-        } else if (data.status === 'Pending' || data.status === 'Awaiting Payment') {
-          // Continue polling
-        } else {
+        }
+
+        if (status === 'failed' || status === 'cancelled') {
           setPaymentStatus('failed');
-          setResultMessage('Payment failed or cancelled.');
+          setResultMessage(message || 'Payment failed or cancelled.');
           toast({
             title: "Payment Failed",
-            description: "Payment failed or cancelled.",
+            description: message || "Payment failed or was cancelled.",
             variant: "destructive",
             duration: 2000,
           });
           return;
         }
+
+        // Still pending - update message and continue polling
+        setResultMessage(message || 'Waiting for payment confirmation...');
       } catch (error) {
-        // Ignore errors and retry
+        console.error('Error checking payment status', error);
       }
+
       attempts++;
       if (attempts < maxAttempts) {
         setTimeout(checkStatus, 5000);
       } else {
         setPaymentStatus('failed');
-        setResultMessage('Payment timeout. Please try again.');
+        setResultMessage('Payment verification timed out. Please try again.');
         toast({
           title: "Payment Timeout",
           description: "Payment verification timed out.",

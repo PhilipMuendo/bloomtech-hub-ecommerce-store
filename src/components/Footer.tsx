@@ -3,8 +3,23 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Clock, Mail, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 import { categories } from '@/data/categories';
+import { branding, isImageLogo } from '@/config/branding';
+import { useSettings } from '@/context/SettingsContext';
 
 const Footer = () => {
+  const { settings } = useSettings();
+
+  // Merge settings with fallback branding
+  const logoType = settings?.logoType || branding.logo.type;
+  const logoIconSrc = settings?.logoIconSrc || settings?.logoImageSrc || branding.logo.image.iconSrc;
+  const companyFullName = settings?.companyFullName || branding.company.fullName;
+  const initials = settings?.logoTextInitials || branding.logo.text.initials;
+  
+  // Social media links (use settings if available, fall back to hardcoded)
+  const facebookUrl = settings?.facebookUrl || 'https://www.facebook.com/keensellventures/';
+  const twitterUrl = settings?.twitterUrl || 'https://x.com/Keensell';
+  const instagramUrl = settings?.instagramUrl || 'https://www.instagram.com/keensellventures/?hl=en';
+  const linkedinUrl = settings?.linkedinUrl || 'https://ke.linkedin.com/company/keensell-ventures';
   return (
     <footer className="bg-primary text-primary-foreground">
       <div className="container mx-auto px-4 py-12">
@@ -12,12 +27,22 @@ const Footer = () => {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold">BT</span>
-              </div>
-              <div>
-                <h3 className="text-lg font-bold">BLOOMTECH Hub</h3>
-              </div>
+              {logoType === 'image' ? (
+                <img
+                  src={logoIconSrc}
+                  alt={branding.logo.image.alt}
+                  className="h-8 w-auto object-contain"
+                />
+              ) : (
+                <>
+                  <div className={`w-8 h-8 bg-gradient-to-br ${branding.logo.text.gradientFrom} ${branding.logo.text.gradientTo} rounded-lg flex items-center justify-center`}>
+                    <span className="text-white font-bold">{initials}</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">{companyFullName}</h3>
+                  </div>
+                </>
+              )}
             </div>
             <p className="text-sm opacity-80">
               Your trusted supplier of quality ICT equipment and electrical materials. 
@@ -91,7 +116,7 @@ const Footer = () => {
 
         <div className="border-t border-primary-foreground/20 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-sm opacity-80">
-            © 2024 BLOOMTECH Hub. All rights reserved.
+            © {new Date().getFullYear()} {companyFullName}. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link to="/privacy-policy" className="text-sm opacity-80 hover:opacity-100 transition-opacity">
@@ -106,18 +131,26 @@ const Footer = () => {
           </div>
           {/* Social Media Icons */}
           <div className="flex space-x-4 mt-4 md:mt-0">
-            <a href="https://www.facebook.com/keensellventures/" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
-              <Facebook className="w-6 h-6 text-accent hover:text-blue-600 transition-colors" />
-            </a>
-            <a href="https://x.com/Keensell" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
-              <Twitter className="w-6 h-6 text-accent hover:text-blue-400 transition-colors" />
-            </a>
-            <a href="https://www.instagram.com/keensellventures/?hl=en" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-              <Instagram className="w-6 h-6 text-accent hover:text-pink-500 transition-colors" />
-            </a>
-            <a href="https://ke.linkedin.com/company/keensell-ventures" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-              <Linkedin className="w-6 h-6 text-accent hover:text-blue-700 transition-colors" />
-            </a>
+            {facebookUrl && (
+              <a href={facebookUrl} target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+                <Facebook className="w-6 h-6 text-accent hover:text-blue-600 transition-colors" />
+              </a>
+            )}
+            {twitterUrl && (
+              <a href={twitterUrl} target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+                <Twitter className="w-6 h-6 text-accent hover:text-blue-400 transition-colors" />
+              </a>
+            )}
+            {instagramUrl && (
+              <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                <Instagram className="w-6 h-6 text-accent hover:text-pink-500 transition-colors" />
+              </a>
+            )}
+            {linkedinUrl && (
+              <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                <Linkedin className="w-6 h-6 text-accent hover:text-blue-700 transition-colors" />
+              </a>
+            )}
           </div>
         </div>
       </div>

@@ -162,13 +162,6 @@ EXIT;
   EMAIL_USER=your_email@gmail.com
   EMAIL_PASS=your_email_app_password
   
-  # M-Pesa Configuration
-  MPESA_CONSUMER_KEY=your_mpesa_consumer_key
-  MPESA_CONSUMER_SECRET=your_mpesa_consumer_secret
-  MPESA_SHORTCODE=your_mpesa_shortcode
-  MPESA_PASSKEY=your_mpesa_passkey
-  MPESA_CALLBACK_URL=https://your-domain.com/api/payments/mpesa/callback
-  
   # Pesapal Configuration
   PESAPAL_CONSUMER_KEY=your_pesapal_consumer_key
   PESAPAL_CONSUMER_SECRET=your_pesapal_consumer_secret
