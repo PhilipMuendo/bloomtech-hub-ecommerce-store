@@ -16,6 +16,7 @@ BloomTech Hub Ecommerce Store is a modern, full-featured ecommerce platform with
 | [DEPLOYMENT-VPS.md](DEPLOYMENT-VPS.md) | **Self-hosted VPS deployment plan** (TLS, backups, updates) |
 | [SCALING.md](SCALING.md) | Roadmap for growth (Redis, DB pool, object storage, queues) |
 | [SECURITY.md](SECURITY.md) | Security posture and pre-launch checklist |
+| [EMAIL.md](EMAIL.md) | Professional email / SMTP setup and deliverability (SPF/DKIM/DMARC) |
 
 > **Deployment:** the canonical path is Docker Compose on a VPS
 > ([DEPLOYMENT-VPS.md](DEPLOYMENT-VPS.md)). The "Vercel/Netlify/Render" notes
