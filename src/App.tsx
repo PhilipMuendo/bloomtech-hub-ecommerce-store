@@ -78,322 +78,90 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// Wrapper to provide location context
+// Uniform page transition for public-facing pages: one consistent fade/slide
+// plus the lazy-loading Suspense boundary, applied to every page the same way.
+const PageTransition = ({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={<LoadingSpinner />}>
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -16 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+    >
+      {children}
+    </motion.div>
+  </Suspense>
+);
+
+// Suspense-only boundary for admin/warehouse pages, which render inside a
+// persistent layout and should not re-animate on every sub-navigation.
+const Lazy = ({ children }: { children: React.ReactNode }) => (
+  <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>
+);
+
 const AnimatedRoutes = () => {
   const location = useLocation();
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Home />
-          </motion.div>
-          </Suspense>
-        } />
-        <Route path="/blog" element={
-          <Suspense fallback={<LoadingSpinner />}>
-            <Blog />
-          </Suspense>
-        } />
-        <Route path="/blog/:slug" element={
-          <Suspense fallback={<LoadingSpinner />}>
-            <BlogPost />
-          </Suspense>
-        } />
-        <Route path="/shop" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Shop />
-          </motion.div>
-          </Suspense>
-        } />
-        <Route path="/product/:id" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <ProductDetail />
-          </motion.div>
-          </Suspense>
-        } />
-        <Route path="/cart" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Cart />
-          </motion.div>
-          </Suspense>
-        } />
-        <Route path="/about" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <About />
-          </motion.div>
-          </Suspense>
-        } />
-        <Route path="/contact" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Contact />
-          </motion.div>
-          </Suspense>
-        } />
-        <Route path="/faqs" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <FAQs />
-          </motion.div>
-          </Suspense>
-        } />
-
-        <Route path="/wishlist" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Wishlist />
-          </motion.div>
-          </Suspense>
-        } />
+        <Route path="/" element={<PageTransition><Home /></PageTransition>} />
+        <Route path="/blog" element={<PageTransition><Blog /></PageTransition>} />
+        <Route path="/blog/:slug" element={<PageTransition><BlogPost /></PageTransition>} />
+        <Route path="/shop" element={<PageTransition><Shop /></PageTransition>} />
+        <Route path="/product/:id" element={<PageTransition><ProductDetail /></PageTransition>} />
+        <Route path="/cart" element={<PageTransition><Cart /></PageTransition>} />
+        <Route path="/about" element={<PageTransition><About /></PageTransition>} />
+        <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
+        <Route path="/faqs" element={<PageTransition><FAQs /></PageTransition>} />
+        <Route path="/wishlist" element={<PageTransition><Wishlist /></PageTransition>} />
         <Route path="/orders" element={
           <ProtectedRoute>
-            <Suspense fallback={<LoadingSpinner />}>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Orders />
-            </motion.div>
-            </Suspense>
+            <PageTransition><Orders /></PageTransition>
           </ProtectedRoute>
         } />
-        <Route path="/login" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Login />
-          </motion.div>
-          </Suspense>
-        } />
-        <Route path="/register" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Register />
-          </motion.div>
-          </Suspense>
-        } />
-        <Route path="/account" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Account />
-          </motion.div>
-          </Suspense>
-        } />
-        <Route path="/my-quotes" element={
-          <Suspense fallback={<LoadingSpinner />}>
-            <MyQuotes />
-          </Suspense>
-        } />
-        <Route path="/privacy-policy" element={
-          <Suspense fallback={<LoadingSpinner />}>
-            <PrivacyPolicy />
-          </Suspense>
-        } />
-        <Route path="/terms-of-service" element={
-          <Suspense fallback={<LoadingSpinner />}>
-            <TermsOfService />
-          </Suspense>
-        } />
-        <Route path="/returns-refunds" element={
-          <Suspense fallback={<LoadingSpinner />}>
-            <ReturnsRefunds />
-          </Suspense>
-        } />
-        <Route path="/shipping" element={
-          <Suspense fallback={<LoadingSpinner />}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Shipping />
-          </motion.div>
-          </Suspense>
-        } />
-        <Route path="/checkout/:orderId" element={
-          <Suspense fallback={<LoadingSpinner />}>
-            <CustomCheckout />
-          </Suspense>
-        } />
-        <Route path="/payment-success" element={
-          <Suspense fallback={<LoadingSpinner />}>
-            <PaymentSuccess />
-          </Suspense>
-        } />
-                    <Route path="/payment-failure" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <PaymentFailure />
-              </Suspense>
-            } />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/verify-email" element={<Suspense fallback={<div>Loading...</div>}><VerifyEmail /></Suspense>} />
-        <Route path="/resend-verification" element={<Suspense fallback={<div>Loading...</div>}><ResendVerification /></Suspense>} />
+        <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+        <Route path="/register" element={<PageTransition><Register /></PageTransition>} />
+        <Route path="/account" element={<PageTransition><Account /></PageTransition>} />
+        <Route path="/my-quotes" element={<PageTransition><MyQuotes /></PageTransition>} />
+        <Route path="/privacy-policy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
+        <Route path="/terms-of-service" element={<PageTransition><TermsOfService /></PageTransition>} />
+        <Route path="/returns-refunds" element={<PageTransition><ReturnsRefunds /></PageTransition>} />
+        <Route path="/shipping" element={<PageTransition><Shipping /></PageTransition>} />
+        <Route path="/checkout/:orderId" element={<PageTransition><CustomCheckout /></PageTransition>} />
+        <Route path="/payment-success" element={<PageTransition><PaymentSuccess /></PageTransition>} />
+        <Route path="/payment-failure" element={<PageTransition><PaymentFailure /></PageTransition>} />
+        <Route path="/reset-password" element={<PageTransition><ResetPassword /></PageTransition>} />
+        <Route path="/verify-email" element={<PageTransition><VerifyEmail /></PageTransition>} />
+        <Route path="/resend-verification" element={<PageTransition><ResendVerification /></PageTransition>} />
         <Route path="/admin" element={
           <ProtectedRoute requireAdmin>
-            <Suspense fallback={<LoadingSpinner />}>
-            <AdminLayout />
-            </Suspense>
+            <Lazy><AdminLayout /></Lazy>
           </ProtectedRoute>
         }>
-          <Route index element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <Dashboard />
-            </Suspense>
-          } />
-          <Route path="products" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <Products />
-            </Suspense>
-          } />
-          <Route path="subcategories" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <Subcategories />
-            </Suspense>
-          } />
-          <Route path="orders" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <AdminOrders />
-            </Suspense>
-          } />
-          <Route path="bank-transfer-orders" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <BankTransferOrders />
-            </Suspense>
-          } />
-          <Route path="quotes" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <Quotes />
-            </Suspense>
-          } />
-          <Route path="users" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <Users />
-            </Suspense>
-          } />
-          <Route path="reviews" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <Reviews />
-            </Suspense>
-          } />
-          <Route path="contact-messages" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <ContactMessages />
-            </Suspense>
-          } />
-          <Route path="newsletter" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <Newsletter />
-            </Suspense>
-          } />
-          <Route path="blog" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <AdminBlogManage />
-            </Suspense>
-          } />
-          <Route path="settings" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <AdminSettings />
-            </Suspense>
-          } />
-
-          <Route path="low-stock" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <LowStockProducts />
-            </Suspense>
-          } />
-          <Route path="audit-logs" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <AuditLogs />
-            </Suspense>
-          } />
-
-          <Route path="pesapal-transactions" element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <PesapalTransactions />
-            </Suspense>
-          } />
+          <Route index element={<Lazy><Dashboard /></Lazy>} />
+          <Route path="products" element={<Lazy><Products /></Lazy>} />
+          <Route path="subcategories" element={<Lazy><Subcategories /></Lazy>} />
+          <Route path="orders" element={<Lazy><AdminOrders /></Lazy>} />
+          <Route path="bank-transfer-orders" element={<Lazy><BankTransferOrders /></Lazy>} />
+          <Route path="quotes" element={<Lazy><Quotes /></Lazy>} />
+          <Route path="users" element={<Lazy><Users /></Lazy>} />
+          <Route path="reviews" element={<Lazy><Reviews /></Lazy>} />
+          <Route path="contact-messages" element={<Lazy><ContactMessages /></Lazy>} />
+          <Route path="newsletter" element={<Lazy><Newsletter /></Lazy>} />
+          <Route path="blog" element={<Lazy><AdminBlogManage /></Lazy>} />
+          <Route path="settings" element={<Lazy><AdminSettings /></Lazy>} />
+          <Route path="low-stock" element={<Lazy><LowStockProducts /></Lazy>} />
+          <Route path="audit-logs" element={<Lazy><AuditLogs /></Lazy>} />
+          <Route path="pesapal-transactions" element={<Lazy><PesapalTransactions /></Lazy>} />
         </Route>
         <Route path="/warehouse" element={
           <ProtectedRoute allowedRoles={['warehouse', 'admin', 'superadmin']}>
-            <Suspense fallback={<LoadingSpinner />}>
-              <WarehouseLayout />
-            </Suspense>
+            <Lazy><WarehouseLayout /></Lazy>
           </ProtectedRoute>
         }>
-          <Route index element={
-            <Suspense fallback={<LoadingSpinner />}>
-              <WarehouseOrders />
-            </Suspense>
-          } />
+          <Route index element={<Lazy><WarehouseOrders /></Lazy>} />
         </Route>
-        <Route path="*" element={
-          <Suspense fallback={<LoadingSpinner />}>
-            <NotFound />
-          </Suspense>
-        } />
+        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>
   );

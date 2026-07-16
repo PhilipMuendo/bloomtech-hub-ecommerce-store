@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProductCard from '@/components/ProductCard';
+import ProductCardSkeleton from '@/components/ProductCardSkeleton';
 import { Search } from 'lucide-react';
 import { categories, categoryDisplayMap, fetchSubcategories, Subcategory } from '@/data/categories';
 import { useToast } from '@/hooks/use-toast';
@@ -94,6 +95,7 @@ const Shop = () => {
     data,
     isLoading: loading,
     error: queryError,
+    refetch,
   } = useQuery({
     queryKey: ['products', { page, categoryFilter, subcategoryFilter, sortBy, search: debouncedSearch }],
     queryFn: ({ signal }) =>
@@ -270,9 +272,19 @@ const Shop = () => {
       </div>
       {/* Products Grid */}
       {loading ? (
-        <div className="text-center py-12 sm:py-16">Loading products...</div>
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 max-w-full">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <ProductCardSkeleton key={i} />
+          ))}
+        </div>
       ) : error ? (
-        <div className="text-center py-12 sm:py-16 text-red-500">{error}</div>
+        <div className="text-center py-12 sm:py-16">
+          <h3 className="text-lg sm:text-xl font-semibold mb-2">We couldn't load products</h3>
+          <p className="text-muted-foreground mb-4 text-sm sm:text-base">
+            Something went wrong on our end. Please check your connection and try again.
+          </p>
+          <Button variant="outline" onClick={() => refetch()} className="px-5 py-2">Retry</Button>
+        </div>
       ) : products.length > 0 ? (
         <>
           <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 max-w-full">

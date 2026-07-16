@@ -2,12 +2,10 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Heart, ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Check } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { useWishlist } from '@/hooks/useWishlist';
 import { Badge } from '@/components/ui/badge';
 import WishlistButton from './WishlistButton';
-import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 interface Product {
@@ -26,20 +24,13 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const { addToCart } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
-  const { user } = useAuth();
   const { toast } = useToast();
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
 
-  const handleAddToCart = async () => {
-    if (!user) {
-      toast({ title: 'Please log in to add items to your cart.' });
-      return;
-    }
-    setAdding(true);
+  const handleAddToCart = () => {
+    // Guests can build a cart (persisted locally); we prompt for login at checkout.
     const alreadyInCart = addToCart({
       id: product.id,
       name: product.name,
@@ -47,16 +38,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       imageUrl: product.imageUrl,
       category: product.category
     });
-    setAdding(false);
     if (alreadyInCart) {
       toast({
-        title: 'Product is already in your cart.',
-        description: 'You can adjust the quantity in your cart.',
-        duration: 1500 // 1.5 seconds
+        title: 'Already in your cart',
+        description: 'You can adjust the quantity from the cart.',
+        duration: 1500
       });
     } else {
+      // Real confirmation: the item was actually added.
       setAdded(true);
-      setTimeout(() => setAdded(false), 1200);
+      setTimeout(() => setAdded(false), 1500);
     }
   };
 
@@ -119,13 +110,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             <Button
               size="sm"
               onClick={handleAddToCart}
-              disabled={!product.inStock || adding}
+              disabled={!product.inStock}
               className="flex items-center gap-1 w-full xs:w-auto"
             >
-              {adding ? (
-                <span className="flex items-center"><svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /></svg>Adding...</span>
-              ) : added ? (
-                <span className="flex items-center text-green-600"><svg className="h-4 w-4 mr-1" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="3" fill="none" /></svg>Added!</span>
+              {added ? (
+                <span className="flex items-center gap-1 text-green-600">
+                  <Check className="h-4 w-4" />
+                  Added
+                </span>
               ) : (
                 <>
                   <ShoppingCart className="h-4 w-4" />
