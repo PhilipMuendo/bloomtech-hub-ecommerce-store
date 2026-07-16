@@ -52,10 +52,20 @@ export default (sequelize) => {
       type: DataTypes.STRING,
       allowNull: true, // Allow null for OAuth users
       validate: {
-        len: [6, 100],
-        notSimple(value) {
-          if (value && ["123456", "password", "qwerty"].includes(value)) {
-            throw new Error('Password is too simple.');
+        len: [8, 100],
+        isStrongPassword(value) {
+          if (!value) return; // Allow null for OAuth users
+
+          // At least 8 chars, 1 uppercase, 1 lowercase, 1 number
+          const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+          if (!strongPasswordRegex.test(value)) {
+            throw new Error('Password must be at least 8 characters and contain uppercase, lowercase, and numbers');
+          }
+
+          // Check for common weak passwords
+          const weakPasswords = ['12345678', 'password', 'qwerty123', 'admin123', 'password123'];
+          if (weakPasswords.includes(value.toLowerCase())) {
+            throw new Error('Password is too common. Please choose a stronger password.');
           }
         }
       }
@@ -143,4 +153,4 @@ export default (sequelize) => {
   });
 
   return User;
-}; 
+};

@@ -2,7 +2,6 @@ import axios from 'axios';
 import crypto from 'crypto';
 import db, { sequelize } from '../sequelize_models/index.js';
 const { Order, Transaction, User, OrderItem, Product } = db;
-import dotenv from 'dotenv';
 import { notifyCustomerOfNewOrder } from '../utils/warehouseNotifications.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,10 +10,8 @@ import { generateTrackingNumber, normalizeId, toIntegerId, isTemporaryOrderId } 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables
-dotenv.config();
-dotenv.config({ path: path.join(__dirname, 'pesapal.env') });
-
+// Environment variables are loaded via PM2 (node_args: "-r dotenv/config") or server.js
+// All Pesapal configuration is in the main .env file
 const {
   PESAPAL_CONSUMER_KEY,
   PESAPAL_CONSUMER_SECRET,
@@ -34,10 +31,10 @@ console.log('   Environment:', isProduction ? 'Production' : 'Development');
 
 // Get configuration based on environment
 function getConfig() {
-  const baseUrl = isProduction 
+  const baseUrl = isProduction
     ? 'https://pay.pesapal.com/v3/api'
     : 'https://cybqa.pesapal.com/pesapalv3/api';
-    
+
   return {
     authUrl: `${baseUrl}/Auth/RequestToken`,
     submitOrderUrl: `${baseUrl}/Transactions/SubmitOrderRequest`,
@@ -103,7 +100,7 @@ async function getBearerToken() {
     console.log('   Auth URL:', getConfig().authUrl);
     console.log('   Consumer Key:', PESAPAL_CONSUMER_KEY ? 'Set' : 'NOT SET');
     console.log('   Consumer Secret:', PESAPAL_CONSUMER_SECRET ? 'Set' : 'NOT SET');
-    
+
     const config = getConfig();
     const authData = {
       consumer_key: PESAPAL_CONSUMER_KEY,
@@ -143,14 +140,14 @@ async function getBearerToken() {
 async function registerIPN() {
   try {
     console.log('🔔 Registering IPN URL...');
-    
+
     const token = await getBearerToken();
     const config = getConfig();
-    
+
     // Clean the callback URL to ensure proper format
     const cleanCallbackUrl = PESAPAL_CALLBACK_URL.replace(/"/g, '').trim();
     const ipnUrl = cleanCallbackUrl.replace('/callback', '/ipn');
-    
+
     const ipnData = {
       url: ipnUrl,
       ipn_notification_type: "GET"
@@ -183,7 +180,7 @@ export const initiatePayment = async (req, res) => {
   try {
     console.log('🚀 Initiating Pesapal payment...');
     console.log('📦 Request body:', JSON.stringify(req.body, null, 2));
-    
+
     const { orderId, amount, phoneNumber, email, firstName, lastName, orderData } = req.body;
 
     const orderIdString = normalizeId(orderId);
@@ -234,13 +231,13 @@ export const initiatePayment = async (req, res) => {
 
     // Validate order data
     console.log('📦 Validating order data:', JSON.stringify(orderData, null, 2));
-    
+
     let calculatedTotal = 0;
     let normalizedItems = [];
-    
+
     if (isTemporaryOrder) {
       console.log('📦 Validating temporary order data...');
-      
+
       if (!orderData || !Array.isArray(orderData.items) || orderData.items.length === 0) {
         return res.status(400).json({
           error: 'Invalid order data',
@@ -255,7 +252,7 @@ export const initiatePayment = async (req, res) => {
             message: 'Each item must have valid productId and quantity'
           });
         }
-        
+
         const product = await Product.findByPk(item.productId);
         if (!product) {
           return res.status(400).json({
@@ -263,7 +260,7 @@ export const initiatePayment = async (req, res) => {
             message: `Product with ID ${item.productId} not found`
           });
         }
-        
+
         if (product.stock < item.quantity) {
           return res.status(400).json({
             error: 'Insufficient stock',
@@ -280,7 +277,7 @@ export const initiatePayment = async (req, res) => {
           name: product.name,
         });
       }
-      
+
       console.log('✅ Temporary order validation passed');
     } else {
       const orderIdInt = toIntegerId(orderIdString);
@@ -299,16 +296,16 @@ export const initiatePayment = async (req, res) => {
       });
 
       if (!existingOrder) {
-        return res.status(404).json({ 
+        return res.status(404).json({
           error: 'Order not found',
-          message: 'The specified order does not exist' 
+          message: 'The specified order does not exist'
         });
       }
-      
+
       if (existingOrder.userId !== req.user.id && req.user.role !== 'admin') {
-        return res.status(403).json({ 
+        return res.status(403).json({
           error: 'Access denied',
-          message: 'You can only pay for your own orders' 
+          message: 'You can only pay for your own orders'
         });
       }
 
@@ -349,7 +346,7 @@ export const initiatePayment = async (req, res) => {
         message: `Calculated total ${roundedCalculatedTotal} does not match requested amount ${clientAmount}`
       });
     }
-    
+
     console.log('📦 Preparing payment request...');
 
     let token, notificationId;
@@ -357,7 +354,7 @@ export const initiatePayment = async (req, res) => {
       // Get Bearer token
       token = await getBearerToken();
       console.log('✅ Bearer token obtained');
-      
+
       // Register IPN URL (one-time setup)
       notificationId = await registerIPN();
       console.log('✅ IPN registration completed');
@@ -371,10 +368,10 @@ export const initiatePayment = async (req, res) => {
 
     // Get the backend URL for redirects
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-    
+
     // Clean the callback URL to ensure proper format
     const cleanCallbackUrl = PESAPAL_CALLBACK_URL.replace(/"/g, '').trim();
-    
+
     // Prepare order data for Pesapal v3
     const pesapalOrderData = {
       id: orderIdString,
@@ -417,11 +414,11 @@ export const initiatePayment = async (req, res) => {
 
     if (response.data.status === '200' && response.data.redirect_url) {
       try {
-            // Create transaction record
-    console.log('📝 Creating transaction record with userId:', req.user.id);
-    const transaction = await Transaction.create({
-      orderId: orderIdString,
-      userId: toIntegerId(req.user.id),
+        // Create transaction record
+        console.log('📝 Creating transaction record with userId:', req.user.id);
+        const transaction = await Transaction.create({
+          orderId: orderIdString,
+          userId: toIntegerId(req.user.id),
           phoneNumber: phoneNumber,
           amount: roundedCalculatedTotal,
           paymentMethod: 'pesapal',
@@ -458,7 +455,7 @@ export const initiatePayment = async (req, res) => {
         }
 
         console.log('✅ Payment initiated successfully');
-        
+
         return res.status(200).json({
           success: true,
           message: 'Payment initiated successfully',
@@ -471,7 +468,7 @@ export const initiatePayment = async (req, res) => {
       } catch (dbError) {
         console.error('❌ Database error:', dbError.message);
         console.error('📋 Database error details:', dbError);
-        
+
         // Check if it's a foreign key constraint error
         if (dbError.name === 'SequelizeForeignKeyConstraintError') {
           return res.status(500).json({
@@ -479,7 +476,7 @@ export const initiatePayment = async (req, res) => {
             message: 'User account validation failed. Please log in again.'
           });
         }
-        
+
         return res.status(500).json({
           error: 'Database error',
           message: 'Failed to create transaction record'
@@ -490,7 +487,7 @@ export const initiatePayment = async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Payment initiation error:', error.message);
-    
+
     return res.status(500).json({
       error: 'Payment initiation failed',
       message: error.message || 'An error occurred while initiating payment'
@@ -509,7 +506,7 @@ export const handlePesapalCallback = async (req, res) => {
 
     // Handle both POST (body) and GET (query) requests
     const data = req.method === 'GET' ? req.query : req.body;
-    
+
     // Handle different parameter naming conventions
     const pesapalMerchantReference = data.pesapal_merchant_reference || data.OrderMerchantReference;
     const pesapalTransactionTrackingId = data.pesapal_transaction_tracking_id || data.OrderTrackingId;
@@ -552,7 +549,7 @@ export const handlePesapalCallback = async (req, res) => {
 
     // Get payment status from Pesapal
     const paymentStatus = await getPaymentStatus(pesapalTransactionTrackingId);
-    
+
     console.log('📊 Payment status:', paymentStatus);
 
     let newStatus = paymentStatus.status;
@@ -598,90 +595,90 @@ export const handlePesapalCallback = async (req, res) => {
     const isTemporaryOrder = Boolean(metadataAfterUpdate.isTemporaryOrder);
     const orderData = metadataAfterUpdate.orderData;
     const updatedSummary = metadataAfterUpdate.summary || summary;
-    
+
     if (transaction.status === 'completed') {
       if (isTemporaryOrder && orderData) {
         // Create the actual order for temporary orders
         console.log('🏗️ Creating actual order from temporary order data...');
-        
-        const result = await sequelize.transaction(async (t) => {
-            // Create the order
-            const contactPhone = transaction.phoneNumber || orderData?.contactPhone || null;
 
-            const order = await Order.create({ 
-              userId: transaction.userId, 
-              total: transaction.amount, 
-              shippingAddress: orderData.shippingAddress || summary?.shippingAddress || '',
-              contactPhone,
-              status: 'pending',
-              paymentMethod: 'pesapal'
-            }, { transaction: t });
-            
-            console.log('✅ Order created:', order.id);
-            
-            // Create order items
-            const itemsSource = Array.isArray(orderData.items) && orderData.items.length > 0 ? orderData.items : (summary?.items ?? []);
-            if (!itemsSource || itemsSource.length === 0) {
-              throw new Error('No order items available in metadata to create order');
-            }
-            const orderItems = itemsSource.map(item => ({
-              orderId: order.id,
-              productId: item.productId,
-              quantity: item.quantity
-            }));
-            
-            await OrderItem.bulkCreate(orderItems, { transaction: t });
-            console.log('✅ Order items created');
-            
-            // Decrement stock for each product
-            for (const item of itemsSource) {
-              await Product.decrement('stock', {
-                by: item.quantity,
-                where: { id: item.productId },
-                transaction: t
-              });
-              console.log(`✅ Stock updated for product ${item.productId}`);
-            }
-            await transaction.update({
-              metadata: {
-                ...transaction.metadata,
-                realOrderId: order.id,
-                orderCreated: true
-              }
-            }, { transaction: t });
-            
-            return { order, orderItems };
-          });
-          
-          console.log('✅ Actual order created successfully:', result.order.id);
-          
-          // Send customer confirmation email (outside transaction to avoid blocking)
-          setTimeout(() => {
-            notifyCustomerOfNewOrder(result.order, result.orderItems);
-          }, 1000);
-      } else {
-          // Update existing order status
-          const order = await Order.findByPk(transaction.orderId);
-          if (order) {
-            const updateData = { status: 'pending' };
-            if (!order.contactPhone && transaction.phoneNumber) {
-              updateData.contactPhone = transaction.phoneNumber;
-            }
-            if (updatedSummary?.items && updatedSummary.items.length > 0) {
-              const items = updatedSummary.items;
-              await sequelize.transaction(async (t) => {
-                await OrderItem.destroy({ where: { orderId: order.id }, transaction: t });
-                await OrderItem.bulkCreate(items.map(item => ({
-                  orderId: order.id,
-                  productId: item.productId,
-                  quantity: item.quantity,
-                })), { transaction: t });
-              });
-            }
-            await order.update(updateData);
-            console.log('✅ Order status updated to: pending');
+        const result = await sequelize.transaction(async (t) => {
+          // Create the order
+          const contactPhone = transaction.phoneNumber || orderData?.contactPhone || null;
+
+          const order = await Order.create({
+            userId: transaction.userId,
+            total: transaction.amount,
+            shippingAddress: orderData.shippingAddress || summary?.shippingAddress || '',
+            contactPhone,
+            status: 'pending',
+            paymentMethod: 'pesapal'
+          }, { transaction: t });
+
+          console.log('✅ Order created:', order.id);
+
+          // Create order items
+          const itemsSource = Array.isArray(orderData.items) && orderData.items.length > 0 ? orderData.items : (summary?.items ?? []);
+          if (!itemsSource || itemsSource.length === 0) {
+            throw new Error('No order items available in metadata to create order');
           }
+          const orderItems = itemsSource.map(item => ({
+            orderId: order.id,
+            productId: item.productId,
+            quantity: item.quantity
+          }));
+
+          await OrderItem.bulkCreate(orderItems, { transaction: t });
+          console.log('✅ Order items created');
+
+          // Decrement stock for each product
+          for (const item of itemsSource) {
+            await Product.decrement('stock', {
+              by: item.quantity,
+              where: { id: item.productId },
+              transaction: t
+            });
+            console.log(`✅ Stock updated for product ${item.productId}`);
+          }
+          await transaction.update({
+            metadata: {
+              ...transaction.metadata,
+              realOrderId: order.id,
+              orderCreated: true
+            }
+          }, { transaction: t });
+
+          return { order, orderItems };
+        });
+
+        console.log('✅ Actual order created successfully:', result.order.id);
+
+        // Send customer confirmation email (outside transaction to avoid blocking)
+        setTimeout(() => {
+          notifyCustomerOfNewOrder(result.order, result.orderItems);
+        }, 1000);
+      } else {
+        // Update existing order status
+        const order = await Order.findByPk(transaction.orderId);
+        if (order) {
+          const updateData = { status: 'pending' };
+          if (!order.contactPhone && transaction.phoneNumber) {
+            updateData.contactPhone = transaction.phoneNumber;
+          }
+          if (updatedSummary?.items && updatedSummary.items.length > 0) {
+            const items = updatedSummary.items;
+            await sequelize.transaction(async (t) => {
+              await OrderItem.destroy({ where: { orderId: order.id }, transaction: t });
+              await OrderItem.bulkCreate(items.map(item => ({
+                orderId: order.id,
+                productId: item.productId,
+                quantity: item.quantity,
+              })), { transaction: t });
+            });
+          }
+          await order.update(updateData);
+          console.log('✅ Order status updated to: pending');
         }
+      }
     } else if (transaction.status === 'failed' || transaction.status === 'cancelled') {
       // For failed payments, only update existing orders
       if (!isTemporaryOrder) {
@@ -713,21 +710,21 @@ export const handlePesapalCallback = async (req, res) => {
     // Check if this is a customer redirect (browser request) or IPN (server request)
     const userAgent = req.headers['user-agent'] || '';
     const isBrowserRequest = userAgent.includes('Mozilla') || userAgent.includes('Chrome') || userAgent.includes('Safari') || userAgent.includes('Edge') || userAgent.includes('Firefox');
-    
+
     console.log('🌐 User-Agent:', userAgent);
     console.log('🌐 Is browser request:', isBrowserRequest);
-    
+
     if (isBrowserRequest) {
       // This is a customer redirect - redirect them to the appropriate page
       console.log('🌐 Customer browser detected, redirecting to frontend...');
-      
+
       const orderId = pesapalMerchantReference;
       // Get the real order ID if it exists
       const realOrderId = transaction.metadata?.realOrderId || orderId;
-      
+
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
       let redirectUrl;
-      
+
       const redirectStatus = transaction.status;
       const redirectMessage = transaction.metadata?.paymentStatus?.message || paymentStatus.message || 'Processing payment';
 
@@ -738,7 +735,7 @@ export const handlePesapalCallback = async (req, res) => {
       } else {
         redirectUrl = `${frontendUrl}/payment-success?orderId=${realOrderId}&status=pending&trackingId=${pesapalTransactionTrackingId}`;
       }
-      
+
       console.log('🔄 Redirecting to:', redirectUrl);
       return res.redirect(redirectUrl);
     } else {
@@ -767,10 +764,10 @@ export const handleCustomerRedirect = async (req, res) => {
     console.log('📋 Query params:', req.query);
 
     const { orderId, status, trackingId } = req.query;
-    
+
     if (!orderId && !trackingId) {
-        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-failure?reason=No order ID provided`);
-      }
+      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-failure?reason=No order ID provided`);
+    }
 
     let transaction = null;
     if (orderId) {
@@ -808,7 +805,7 @@ export const handleCustomerRedirect = async (req, res) => {
 
     // Get the real order ID if it exists
     const realOrderId = transaction.metadata?.realOrderId || orderId;
-    
+
     const finalStatus = paymentStatus.status;
     const redirectOrderId = realOrderId || orderId || transaction.orderId;
     const redirectTrackingId = transaction.metadata?.pesapalOrderId || trackingId || '';
@@ -822,10 +819,10 @@ export const handleCustomerRedirect = async (req, res) => {
       return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-success?orderId=${redirectOrderId}&status=pending&trackingId=${redirectTrackingId}`);
     }
 
-      } catch (error) {
-      console.error('❌ Error handling customer redirect:', error.message);
-      return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-failure?reason=${encodeURIComponent('Error processing payment')}`);
-    }
+  } catch (error) {
+    console.error('❌ Error handling customer redirect:', error.message);
+    return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:8081'}/payment-failure?reason=${encodeURIComponent('Error processing payment')}`);
+  }
 };
 
 /**
@@ -834,12 +831,12 @@ export const handleCustomerRedirect = async (req, res) => {
 const getPaymentStatus = async (transactionTrackingId) => {
   try {
     console.log('🔍 Getting payment status for:', transactionTrackingId);
-    
+
     const token = await getBearerToken();
     const config = getConfig();
-    
+
     const statusUrl = `${config.getStatusUrl}?orderTrackingId=${transactionTrackingId}`;
-    
+
     const response = await axios.get(statusUrl, {
       headers: {
         'Accept': 'application/json',
@@ -849,7 +846,7 @@ const getPaymentStatus = async (transactionTrackingId) => {
     });
 
     console.log('📊 Status response:', response.data);
-    
+
     if (response.data.status === '200') {
       const rawStatus = response.data.payment_status_description || 'PENDING';
       return {
@@ -877,7 +874,7 @@ const getPaymentStatus = async (transactionTrackingId) => {
 export const checkPaymentStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
-    
+
     if (!orderId) {
       return res.status(400).json({
         error: 'Order ID required',
@@ -888,7 +885,7 @@ export const checkPaymentStatus = async (req, res) => {
     let transaction = await Transaction.findOne({
       where: { orderId: orderId }
     });
-    
+
     if (!transaction) {
       try {
         transaction = await Transaction.findOne({
@@ -907,11 +904,11 @@ export const checkPaymentStatus = async (req, res) => {
         where: { transactionId: orderId }
       });
     }
-    
+
     if (!transaction) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Transaction not found',
-        message: 'No transaction found for this order' 
+        message: 'No transaction found for this order'
       });
     }
 
@@ -962,7 +959,7 @@ export const checkPaymentStatus = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error checking payment status:', error.message);
-    
+
     return res.status(500).json({
       error: 'Status check failed',
       message: error.message
@@ -977,23 +974,23 @@ export const getPesapalTransactions = async (req, res) => {
   try {
     // Check superadmin permissions
     if (req.user.role !== 'superadmin') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Access denied',
         message: 'Superadmin access required'
       });
     }
-    
+
     const transactions = await Transaction.findAll({
       where: { paymentMethod: 'pesapal' },
       include: [
-        { 
-          model: Order, 
+        {
+          model: Order,
           include: [{ model: User, attributes: ['id', 'name', 'email'] }]
         }
       ],
       order: [['createdAt', 'DESC']]
     });
-    
+
     return res.status(200).json({
       success: true,
       data: transactions
@@ -1001,7 +998,7 @@ export const getPesapalTransactions = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error fetching transactions:', error.message);
-    
+
     return res.status(500).json({
       error: 'Failed to fetch transactions',
       message: error.message

@@ -16,9 +16,13 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+*.env.backup
+pesapal.env
 backend/.env
 backend/.env.local
 backend/.env.*.local
+backend/.env.backup
+backend/pesapal.env
 
 # Editor directories and files
 .vscode/*

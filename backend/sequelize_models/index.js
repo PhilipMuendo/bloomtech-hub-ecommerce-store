@@ -3,8 +3,6 @@ import config from './config.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,7 +10,30 @@ const __dirname = path.dirname(__filename);
 const env = process.env.NODE_ENV || 'development';
 const dbConfig = config[env];
 
+// Log database connection details (excluding password)
+console.log('=== Database Configuration ===');
+console.log(`Environment: ${env}`);
+console.log(`Host: ${dbConfig.host}`);
+console.log(`User: ${dbConfig.username}`);
+console.log(`Database: ${dbConfig.database}`);
+console.log(`Port: ${dbConfig.port}`);
+console.log('==============================');
+
 const sequelize = new Sequelize(dbConfig.database, dbConfig.username, dbConfig.password, dbConfig);
+
+// Test database connection
+sequelize.authenticate()
+  .then(() => {
+    console.log('✓ Database connection established successfully');
+  })
+  .catch((err) => {
+    console.error('✗ Database authentication failed:');
+    console.error(`  Error: ${err.message}`);
+    if (err.original) {
+      console.error(`  Details: ${err.original.message}`);
+    }
+    console.error('  Please check your database credentials in .env file');
+  });
 
 const db = {};
 const modelsDir = path.resolve(__dirname);

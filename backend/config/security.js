@@ -1,16 +1,26 @@
+// Ensure JWT secrets are set in production
+if (process.env.NODE_ENV === 'production') {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('FATAL: JWT_SECRET environment variable is not set. Refusing to start in production without it.');
+  }
+  if (!process.env.JWT_REFRESH_SECRET) {
+    throw new Error('FATAL: JWT_REFRESH_SECRET environment variable is not set. Refusing to start in production without it.');
+  }
+}
+
 // Security configuration
 export const securityConfig = {
   // JWT Configuration
   jwt: {
-    secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production',
-    refreshSecret: process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key-change-in-production',
+    secret: process.env.JWT_SECRET || 'dev-only-jwt-secret-DO-NOT-USE-IN-PRODUCTION',
+    refreshSecret: process.env.JWT_REFRESH_SECRET || 'dev-only-refresh-secret-DO-NOT-USE-IN-PRODUCTION',
     expiresIn: '24h',
     refreshExpiresIn: '7d',
     algorithm: 'HS256',
     issuer: 'bloomtech-hub',
     audience: 'bloomtech-users'
   },
-  
+
   // Password Configuration
   password: {
     saltRounds: 12,
@@ -20,7 +30,7 @@ export const securityConfig = {
     requireNumbers: true,
     requireSpecialChars: true
   },
-  
+
   // Rate Limiting Configuration
   rateLimit: {
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -31,7 +41,7 @@ export const securityConfig = {
       message: 'Please try again later'
     }
   },
-  
+
   // CORS Configuration
   cors: {
     allowedOrigins: [
@@ -48,28 +58,28 @@ export const securityConfig = {
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
     maxAge: 86400 // 24 hours
   },
-  
+
   // File Upload Configuration
   fileUpload: {
     maxSize: 10 * 1024 * 1024, // 10MB
     allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
     maxFiles: 5
   },
-  
+
   // Account Security
   account: {
     maxFailedAttempts: 5,
     lockoutDuration: 15 * 60 * 1000, // 15 minutes
     sessionTimeout: 24 * 60 * 60 * 1000 // 24 hours
   },
-  
+
   // Input Validation
   validation: {
     maxStringLength: 1000,
     maxArrayLength: 100,
     maxObjectDepth: 10
   },
-  
+
   // Security Headers
   headers: {
     contentSecurityPolicy: {
@@ -88,7 +98,7 @@ export const securityConfig = {
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" }
   },
-  
+
   // Environment-specific settings
   environment: {
     isDevelopment: process.env.NODE_ENV === 'development',
