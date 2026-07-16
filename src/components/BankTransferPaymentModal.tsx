@@ -343,7 +343,7 @@ const BankTransferPaymentModal: React.FC<BankTransferPaymentModalProps> = ({
               Close
             </Button>
             <Button
-              onClick={onSuccess}
+              onClick={() => onSuccess()}
               className="flex-1"
               disabled={!invoiceGenerated}
             >

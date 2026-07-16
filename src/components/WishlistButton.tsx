@@ -9,17 +9,19 @@ import { useNavigate } from 'react-router-dom';
 interface WishlistButtonProps {
   productId: string;
   className?: string;
+  /** Render as a compact icon-only button (no text label). */
+  iconOnly?: boolean;
 }
 
-const WishlistButton: React.FC<WishlistButtonProps> = ({ productId, className }) => {
+const WishlistButton: React.FC<WishlistButtonProps> = ({ productId, className, iconOnly }) => {
   const { user } = useAuth();
-  const { wishlist, addToWishlist, removeFromWishlist, isInWishlist, loading: wishlistLoading } = useWishlist();
+  const { wishlistItems, addToWishlist, removeFromWishlist, isInWishlist, loading: wishlistLoading } = useWishlist();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
   // Determine if the product is in the wishlist
-  const inWishlist = isInWishlist ? isInWishlist(productId) : wishlist?.some((item: any) => item.productId === productId);
+  const inWishlist = isInWishlist ? isInWishlist(productId) : wishlistItems?.some((item: any) => item.productId === productId);
 
   const handleClick = async () => {
     if (!user) {
@@ -43,8 +45,26 @@ const WishlistButton: React.FC<WishlistButtonProps> = ({ productId, className })
     }
   };
 
+  if (iconOnly) {
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={handleClick}
+        disabled={loading || wishlistLoading}
+        className={className}
+        aria-pressed={inWishlist}
+        aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+      >
+        <Heart className={`w-4 h-4 ${inWishlist ? 'fill-red-500 text-red-500' : ''}`} />
+      </Button>
+    );
+  }
+
   return (
     <Button
+      type="button"
       variant={inWishlist ? 'destructive' : 'outline'}
       onClick={handleClick}
       disabled={loading || wishlistLoading}

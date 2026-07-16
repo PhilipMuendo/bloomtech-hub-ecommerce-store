@@ -493,6 +493,9 @@ const Products = () => {
           throw new Error('You must be logged in to upload images');
         }
 
+        const formData = new FormData();
+        formData.append('image', file);
+
         const res = await fetch('/api/upload', {
           method: 'POST',
           body: formData,
@@ -925,7 +928,8 @@ const Products = () => {
                             className="w-10 h-10 rounded object-cover"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
-                              e.currentTarget.nextElementSibling.style.display = 'flex';
+                              const sibling = e.currentTarget.nextElementSibling as HTMLElement | null;
+                              if (sibling) sibling.style.display = 'flex';
                             }}
                           />
                         ) : null}

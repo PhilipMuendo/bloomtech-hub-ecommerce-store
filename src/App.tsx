@@ -40,7 +40,6 @@ const MyQuotes = lazy(() => import('./pages/MyQuotes'));
 const CustomCheckout = lazy(() => import('./pages/CustomCheckout'));
 const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 const PaymentFailure = lazy(() => import('./pages/PaymentFailure'));
-const TestProductCreation = lazy(() => import('./pages/admin/TestProductCreation'));
 
 // Lazy load admin pages separately for better code splitting
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
@@ -287,11 +286,6 @@ const AnimatedRoutes = () => {
                     <Route path="/payment-failure" element={
               <Suspense fallback={<LoadingSpinner />}>
                 <PaymentFailure />
-              </Suspense>
-            } />
-            <Route path="/test-product-creation" element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <TestProductCreation />
               </Suspense>
             } />
         <Route path="/reset-password" element={<ResetPassword />} />

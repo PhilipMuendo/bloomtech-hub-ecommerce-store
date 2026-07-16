@@ -117,11 +117,11 @@ const Wishlist: React.FC = () => {
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       loading="lazy"
                       onError={(e) => {
-                        console.log('❌ Image failed to load:', productImage);
                         // Fallback to placeholder if image fails to load
                         e.currentTarget.src = '/placeholder.svg';
                         e.currentTarget.style.display = 'none';
-                        e.currentTarget.nextElementSibling.style.display = 'flex';
+                        const sibling = e.currentTarget.nextElementSibling as HTMLElement | null;
+                        if (sibling) sibling.style.display = 'flex';
                       }}
                     />
                   ) : null}
@@ -170,7 +170,7 @@ const Wishlist: React.FC = () => {
                           id: productId,
                           name: productName,
                           price: productPrice,
-                          image: productImage,
+                          imageUrl: productImage,
                           category: product.category,
                         });
                         toast({ title: 'Added to cart!', description: productName });
