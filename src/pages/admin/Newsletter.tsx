@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Mail, Send, Users, TrendingUp, Search, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import * as XLSX from 'xlsx';
 import { useAuth } from '@/context/AuthContext';
 import { useAutoRefreshList, REAL_TIME_EVENTS } from '@/utils/realTimeUpdates';
 
@@ -153,7 +152,9 @@ const Newsletter = () => {
     }
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
+    // Load the ~800KB xlsx library only when an export is actually requested.
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet(filteredSubscribers.map(s => ({
       ID: s.id,
       Email: s.email,

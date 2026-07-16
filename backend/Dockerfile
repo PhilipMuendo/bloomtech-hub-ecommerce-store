@@ -1,0 +1,27 @@
+# Backend API — Express + Sequelize (MySQL)
+FROM node:18-alpine
+
+# dumb-init gives us proper signal handling (graceful shutdown) for PID 1.
+RUN apk add --no-cache dumb-init
+
+WORKDIR /app
+
+# Install production dependencies first for better layer caching.
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy application source.
+COPY . .
+
+# The upload directory is a mounted volume in compose; ensure it exists and is
+# owned by the non-root runtime user so the named volume inherits write access.
+RUN mkdir -p public/lovable-uploads && chown -R node:node public
+
+ENV NODE_ENV=production
+ENV PORT=5000
+EXPOSE 5000
+
+USER node
+
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "server.js"]

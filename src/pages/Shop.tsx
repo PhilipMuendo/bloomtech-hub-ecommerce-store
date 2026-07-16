@@ -1,6 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -8,6 +9,41 @@ import ProductCard from '@/components/ProductCard';
 import { Search } from 'lucide-react';
 import { categories, categoryDisplayMap, fetchSubcategories, Subcategory } from '@/data/categories';
 import { useToast } from '@/hooks/use-toast';
+import { useDebounce } from '@/hooks/useDebounce';
+
+interface ProductsResponse {
+  products: any[];
+  totalPages: number;
+}
+
+async function fetchProducts(params: {
+  page: number;
+  category: string;
+  subcategory: string;
+  sortBy: string;
+  search: string;
+}, signal?: AbortSignal): Promise<ProductsResponse> {
+  const qs = new URLSearchParams();
+  qs.set('page', String(params.page));
+  qs.set('limit', '12');
+  if (params.category && params.category !== 'all') qs.set('category', params.category);
+  if (params.subcategory && params.subcategory !== 'all') qs.set('subcategory', params.subcategory);
+  if (params.search) qs.set('search', params.search);
+  if (params.sortBy === 'price-low') qs.set('sort', 'price');
+  else if (params.sortBy === 'price-high') qs.set('sort', '-price');
+  else qs.set('sort', 'name');
+
+  const res = await fetch(`/api/products?${qs.toString()}`, { signal });
+  if (!res.ok) throw new Error('Failed to fetch products');
+  const data = await res.json();
+  const products = (data.products || []).map((p: any) => ({
+    ...p,
+    id: p.id || p.productId,
+    imageUrl: p.imageUrl || '/placeholder.svg',
+    inStock: typeof p.inStock === 'boolean' ? p.inStock : (typeof p.stock === 'number' ? p.stock > 0 : true),
+  }));
+  return { products, totalPages: data.totalPages || 1 };
+}
 
 const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,15 +52,14 @@ const Shop = () => {
   const [subcategoryFilter, setSubcategoryFilter] = useState(searchParams.get('subcategory') || 'all');
   const [priceRange, setPriceRange] = useState('all');
   const [sortBy, setSortBy] = useState('name');
-  const [products, setProducts] = useState<any[]>([]); // Changed from Product[] to any[] to avoid conflict
-  const [filteredProducts, setFilteredProducts] = useState<any[]>([]); // Changed from Product[] to any[]
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [loadingSubcategories, setLoadingSubcategories] = useState(false);
   const { toast } = useToast();
+
+  // Debounce the search term so we hit the API once the user pauses,
+  // not on every keystroke.
+  const debouncedSearch = useDebounce(searchQuery, 350);
 
   // Fetch subcategories when category changes
   useEffect(() => {
@@ -55,60 +90,34 @@ const Shop = () => {
     loadSubcategories();
   }, [categoryFilter]);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Build query params for pagination, filtering, sorting, and searching
-        const params = new URLSearchParams();
-        params.set('page', String(page));
-        params.set('limit', '12');
-        if (categoryFilter && categoryFilter !== 'all') params.set('category', categoryFilter);
-        if (subcategoryFilter && subcategoryFilter !== 'all') params.set('subcategory', subcategoryFilter);
-        if (searchQuery) params.set('search', searchQuery); // Add search query to API call
-        if (sortBy) {
-          if (sortBy === 'price-low') params.set('sort', 'price');
-          else if (sortBy === 'price-high') params.set('sort', '-price');
-          else params.set('sort', 'name');
-        }
-        const res = await fetch(`/api/products?${params.toString()}`);
-        if (!res.ok) throw new Error('Failed to fetch products');
-        const data = await res.json();
-        // Normalize product data for frontend compatibility
-        const normalized = data.products.map((p: any) => ({
-          ...p,
-          id: p.id || p.productId, // Ensure id is always set (MySQL uses 'id')
-          imageUrl: p.imageUrl || '/placeholder.svg',
-          inStock: typeof p.inStock === 'boolean' ? p.inStock : (typeof p.stock === 'number' ? p.stock > 0 : true),
-        }));
-        setProducts(normalized);
-        setTotalPages(data.totalPages || 1);
-      } catch (err: any) {
-        let errorMsg = 'An unknown error occurred';
-        if (err && err.response && err.response.error) {
-          errorMsg = err.response.error;
-        } else if (err && err.message) {
-          errorMsg = err.message;
-        }
-        setError(errorMsg);
-        toast({
-          title: 'Error',
-          description: errorMsg,
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProducts();
-    // eslint-disable-next-line
-  }, [page, categoryFilter, subcategoryFilter, sortBy, searchQuery]);
+  const {
+    data,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery({
+    queryKey: ['products', { page, categoryFilter, subcategoryFilter, sortBy, search: debouncedSearch }],
+    queryFn: ({ signal }) =>
+      fetchProducts({ page, category: categoryFilter, subcategory: subcategoryFilter, sortBy, search: debouncedSearch }, signal),
+    placeholderData: keepPreviousData, // keep old page visible while the next loads
+  });
+
+  const products = data?.products ?? [];
+  const totalPages = data?.totalPages ?? 1;
+  const error = queryError ? (queryError as Error).message : null;
 
   useEffect(() => {
+    if (queryError) {
+      toast({
+        title: 'Error',
+        description: (queryError as Error).message,
+        variant: 'destructive',
+      });
+    }
+  }, [queryError, toast]);
+
+  // Client-side price-range filter + sort derived from the fetched page.
+  const filteredProducts = useMemo(() => {
     let result = [...products];
-    // Note: Search, category, and subcategory are now handled by the API
-    // Only apply client-side price range filter
     if (priceRange !== 'all') {
       switch (priceRange) {
         case 'under-5000':
@@ -125,7 +134,6 @@ const Shop = () => {
           break;
       }
     }
-    // Sorting is also handled by API, but we keep this for price range filtered results
     result.sort((a, b) => {
       switch (sortBy) {
         case 'price-low':
@@ -137,7 +145,7 @@ const Shop = () => {
           return a.name.localeCompare(b.name);
       }
     });
-    setFilteredProducts(result);
+    return result;
   }, [products, priceRange, sortBy]);
 
   const handleSearch = (query: string) => {
@@ -155,6 +163,7 @@ const Shop = () => {
   const handleCategoryChange = (category: string) => {
     setCategoryFilter(category);
     setSubcategoryFilter('all'); // Reset subcategory when category changes
+    setPage(1); // Reset to first page when the category changes
     const params = new URLSearchParams(searchParams);
     if (category && category !== 'all') {
       params.set('category', category);
@@ -167,6 +176,7 @@ const Shop = () => {
 
   const handleSubcategoryChange = (subcategory: string) => {
     setSubcategoryFilter(subcategory);
+    setPage(1); // Reset to first page when the subcategory changes
     const params = new URLSearchParams(searchParams);
     if (subcategory && subcategory !== 'all') {
       params.set('subcategory', subcategory);

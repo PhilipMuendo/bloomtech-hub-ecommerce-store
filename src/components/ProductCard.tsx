@@ -40,7 +40,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       return;
     }
     setAdding(true);
-    await new Promise(res => setTimeout(res, 600)); // Simulate async
     const alreadyInCart = addToCart({
       id: product.id,
       name: product.name,
@@ -147,4 +146,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   );
 };
 
-export default ProductCard;
+// Memoized: product cards render in a grid, so avoid re-rendering every card
+// when the parent list re-renders for unrelated reasons.
+export default React.memo(ProductCard);

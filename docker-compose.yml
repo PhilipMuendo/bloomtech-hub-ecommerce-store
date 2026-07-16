@@ -1,0 +1,74 @@
+# Full-stack local/VPS deployment: MySQL + backend API + nginx-served frontend.
+#
+#   1. cp .env.docker.example .env   (then fill in secrets)
+#   2. docker compose up -d --build
+#   3. docker compose exec backend npx sequelize-cli db:migrate   (first run)
+#
+# Frontend is exposed on http://<host>:8080 and proxies /api to the backend.
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-bloomtech_db}
+      MYSQL_USER: ${DB_USER:-bloomtech}
+      MYSQL_PASSWORD: ${DB_PASS:-bloomtech123}
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    # Not published to the host by default — only the backend needs it.
+    expose:
+      - "3306"
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-bloomtech_db}
+      DB_USER: ${DB_USER:-bloomtech}
+      DB_PASS: ${DB_PASS:-bloomtech123}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8080}
+      # Optional integrations — pass through if set in .env
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      PESAPAL_CONSUMER_KEY: ${PESAPAL_CONSUMER_KEY:-}
+      PESAPAL_CONSUMER_SECRET: ${PESAPAL_CONSUMER_SECRET:-}
+      PESAPAL_CALLBACK_URL: ${PESAPAL_CALLBACK_URL:-}
+      PESAPAL_API_ENDPOINT: ${PESAPAL_API_ENDPOINT:-}
+    volumes:
+      # Persist uploaded product/blog images across restarts.
+      - uploads:/app/public/lovable-uploads
+    expose:
+      - "5000"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+
+volumes:
+  mysql_data:
+  uploads:

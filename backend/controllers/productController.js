@@ -80,7 +80,7 @@ export const getAllProducts = async (req, res, next) => {
       where,
       order,
       offset,
-      limit: parseInt(limit)
+      limit: validatedLimit // use the capped/validated value, not the raw query param
     });
     
     // Fix image URLs for ngrok access and decode HTML entities

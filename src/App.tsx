@@ -61,7 +61,16 @@ const AdminSettings = lazy(() => import("./pages/admin/Settings"));
 const PesapalTransactions = lazy(() => import("./pages/admin/PesapalTransactions"));
 const WarehouseOrders = lazy(() => import("./pages/warehouse/WarehouseOrders"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000, // 1 min: avoid refetching the same data on quick navigations
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 // Loading component for Suspense fallback
 const LoadingSpinner = () => (

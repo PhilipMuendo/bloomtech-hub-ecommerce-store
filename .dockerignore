@@ -1,0 +1,15 @@
+# Frontend build context (root Dockerfile). Keep it lean and secret-free.
+node_modules
+dist
+backend
+deployment
+docs
+.git
+.gitignore
+*.log
+.env
+.env.*
+!.env.docker.example
+bun.lockb
+scripts
+public/lovable-uploads
