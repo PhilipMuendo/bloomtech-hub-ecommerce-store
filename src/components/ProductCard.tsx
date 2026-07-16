@@ -114,7 +114,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
               className="flex items-center gap-1 w-full xs:w-auto"
             >
               {added ? (
-                <span className="flex items-center gap-1 text-green-600">
+                <span className="flex items-center gap-1 text-success">
                   <Check className="h-4 w-4" />
                   Added
                 </span>

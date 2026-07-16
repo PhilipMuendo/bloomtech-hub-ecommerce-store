@@ -30,6 +30,12 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
+    --success: 158 64% 39%; /* aligns with brand accent green */
+    --success-foreground: 210 40% 98%;
+
+    --warning: 38 92% 50%; /* amber */
+    --warning-foreground: 222.2 47.4% 11.2%;
+
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 217 91% 26%;
@@ -63,6 +69,10 @@
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
+    --success: 158 64% 45%;
+    --success-foreground: 210 40% 98%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 222.2 47.4% 11.2%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
@@ -76,6 +86,40 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/*
+ * Typography scale — use these classes for consistent headings/body text
+ * instead of ad-hoc `text-xl font-bold` combinations. See src/components/ui/typography.tsx
+ * for the <Heading>/<Text> components that wrap them.
+ */
+@layer components {
+  .text-display {
+    @apply text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight;
+  }
+  .text-h1 {
+    @apply text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight;
+  }
+  .text-h2 {
+    @apply text-xl sm:text-2xl font-semibold tracking-tight;
+  }
+  .text-h3 {
+    @apply text-lg sm:text-xl font-semibold;
+  }
+  .text-h4 {
+    @apply text-base sm:text-lg font-semibold;
+  }
+  .text-lead {
+    @apply text-base sm:text-lg text-muted-foreground;
+  }
+  .text-body {
+    @apply text-sm sm:text-base leading-relaxed;
+  }
+  .text-caption {
+    @apply text-xs sm:text-sm text-muted-foreground;
   }
 }
 

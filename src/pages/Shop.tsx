@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProductCard from '@/components/ProductCard';
 import ProductCardSkeleton from '@/components/ProductCardSkeleton';
+import { Heading, Text } from '@/components/ui/typography';
 import { Search } from 'lucide-react';
 import { categories, categoryDisplayMap, fetchSubcategories, Subcategory } from '@/data/categories';
 import { useToast } from '@/hooks/use-toast';
@@ -195,10 +196,10 @@ const Shop = () => {
   return (
     <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8 max-w-full overflow-x-hidden">
       <div className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-4">Shop Our Products</h1>
-        <p className="text-muted-foreground text-base sm:text-lg">
+        <Heading level={1} display className="mb-2 sm:mb-4">Shop Our Products</Heading>
+        <Text variant="lead">
           Discover our complete range of security systems, ICT equipment, electrical materials, and power solutions
-        </p>
+        </Text>
       </div>
       {/* Filters */}
       <div className="bg-white p-3 sm:p-6 rounded-lg shadow-sm border mb-6 sm:mb-8 max-w-full">
