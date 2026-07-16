@@ -6,6 +6,23 @@ BloomTech Hub Ecommerce Store is a modern, full-featured ecommerce platform with
 
 ---
 
+## Documentation
+
+| Doc | What it covers |
+|-----|----------------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | System overview, stack, repo layout, request flow, auth, design system |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Local setup, scripts, conventions, migrations, git workflow |
+| [DOCKER.md](DOCKER.md) | Run the full stack in containers |
+| [DEPLOYMENT-VPS.md](DEPLOYMENT-VPS.md) | **Self-hosted VPS deployment plan** (TLS, backups, updates) |
+| [SCALING.md](SCALING.md) | Roadmap for growth (Redis, DB pool, object storage, queues) |
+| [SECURITY.md](SECURITY.md) | Security posture and pre-launch checklist |
+
+> **Deployment:** the canonical path is Docker Compose on a VPS
+> ([DEPLOYMENT-VPS.md](DEPLOYMENT-VPS.md)). The "Vercel/Netlify/Render" notes
+> further down predate the containerized setup and are kept for reference only.
+
+---
+
 ## Features
 
 ### Customer-Facing

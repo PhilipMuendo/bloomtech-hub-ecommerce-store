@@ -49,13 +49,23 @@ export const createAndSendCampaign = async (req, res) => {
         },
       });
       
-      await transporter.sendMail({
-        from: process.env.SMTP_FROM || process.env.SMTP_USER,
-        to: recipientEmails,
-        subject,
-        html: content,
-      });
-      
+      // Send in BCC batches so recipients never see each other's addresses
+      // (privacy) and no single message carries an unbounded recipient list.
+      // NOTE: for large lists this should move to a background job queue so the
+      // request doesn't block — see SCALING.md.
+      const sender = process.env.SMTP_FROM || process.env.SMTP_USER;
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < recipientEmails.length; i += BATCH_SIZE) {
+        const batch = recipientEmails.slice(i, i + BATCH_SIZE);
+        await transporter.sendMail({
+          from: sender,
+          to: sender,      // visible "to" is the sender itself
+          bcc: batch,      // actual recipients, hidden from one another
+          subject,
+          html: content,
+        });
+      }
+
       res.status(201).json({ message: 'Campaign sent and saved.', campaign });
     } catch (emailError) {
       console.warn('Email sending failed, but campaign was saved:', emailError.message);
