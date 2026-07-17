@@ -53,7 +53,7 @@ const MyQuotes = () => {
     const markSeen = async () => {
       if (!user) return;
       await fetch('/api/quotes/mark-seen', {
-        method: '<|uniquepaddingtoken413|>',
+        method: 'PATCH',
         headers: { Authorization: `Bearer ${user.token}` },
       });
     };
