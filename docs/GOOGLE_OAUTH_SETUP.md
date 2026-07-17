@@ -1,6 +1,6 @@
 # Google OAuth Login Setup Guide
 
-## ✅ What's Been Implemented
+## What's Been Implemented
 
 ### Backend Changes
 1. **Installed Dependencies**: Added `google-auth-library` package
@@ -15,7 +15,7 @@
 2. **Updated Login Page**: Added Google login option with "Or continue with" divider
 3. **AuthContext Integration**: Connected Google login to the authentication system
 
-## 🔧 Setup Instructions
+##  Setup Instructions
 
 ### 1. Google Cloud Console Setup
 

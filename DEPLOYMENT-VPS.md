@@ -7,6 +7,16 @@ The stack (nginx-served frontend + Express API + MySQL + Redis) is defined in
 [`docker-compose.yml`](docker-compose.yml). The frontend container publishes
 port `8080`; a host-level reverse proxy terminates HTTPS in front of it.
 
+> **Current production (bloomtechub.com, since 2026-07-17):** AlmaLinux 10 VPS
+> at 92.205.16.68 with WHM/cPanel. The Docker stack runs from `/opt/bloomtech`;
+> HTTPS is terminated by cPanel's Apache (AutoSSL cert), which reverse-proxies
+> to the frontend container via persistent include files at
+> `/etc/apache2/conf.d/userdata/{std,ssl}/2_4/bloomtech/bloomtechub.com/proxy.conf`
+> (`ProxyPass / http://127.0.0.1:8080/`). Section 5's Caddy setup is the
+> alternative for a plain VPS without cPanel — do not install Caddy on this
+> server; Apache already owns ports 80/443. The backend sits two proxies deep
+> (Apache → nginx), which is why `server.js` sets `trust proxy` to `2`.
+
 ---
 
 ## 0. Prerequisites
@@ -151,24 +161,12 @@ docker stats                            # resource usage
 Recommended additions: an uptime monitor hitting `/health`, log shipping, and
 Sentry (see SCALING.md → Observability).
 
-## 9. Renaming the uploads path (optional, removes the "lovable" URL fingerprint)
+## 9. Uploads path
 
-Deferred from code because existing image URLs are stored in the DB — do it as a
-deliberate, backed-up operation:
-
-1. Back up the DB and the `uploads` volume (step 6).
-2. In `backend/routes/uploadRoutes.js` and `backend/server.js`, change
-   `public/lovable-uploads` → `public/uploads` (upload dir + generated URLs +
-   static dir).
-3. **Keep serving the old path too** for a transition period:
-   `app.use('/public/lovable-uploads', express.static(pathToNewDir))` so
-   existing links don't 404.
-4. Update the compose `uploads` volume mount and the backend Dockerfile `mkdir`
-   to the new path; move existing files into it.
-5. Rewrite stored URLs with a migration:
-   `UPDATE products SET imageUrl = REPLACE(imageUrl,'/lovable-uploads/','/uploads/');`
-   (repeat for any other table storing image URLs, e.g. blogs).
-6. Rebuild, migrate, verify images load, then retire the compatibility alias.
+~~Renaming the uploads path~~ **Done (2026-07-17):** the upload directory is
+`backend/public/uploads`, uploads are re-encoded to WebP (max 1600px) via
+sharp, and stored URLs are relative (`/public/uploads/...`). The rename
+happened while the products table was empty, so no URL migration was needed.
 
 ---
 

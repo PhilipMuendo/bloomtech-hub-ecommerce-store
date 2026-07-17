@@ -7,13 +7,12 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import morgan from 'morgan';
 import logger from './utils/logger.js';
+import { startAbandonedOrderSweep } from './utils/orderCleanup.js';
 import requestIdMiddleware from './middleware/requestId.js';
 import hpp from 'hpp';
 import {
   securityHeaders,
   xssProtection,
-  sqlInjectionProtection,
-  noSqlInjectionProtection,
   requestSizeLimit,
   apiRateLimiter,
   corsOptions,
@@ -54,8 +53,10 @@ const app = express();
 // Request ID tracking (must be first middleware)
 app.use(requestIdMiddleware);
 
-// Trust proxy for ngrok and development
-app.set('trust proxy', 1);
+// Production sits behind two proxies: cPanel Apache (TLS) → docker nginx →
+// this app. Trusting only 1 hop made req.ip resolve to Apache's address for
+// every request, so all clients shared a single rate-limit bucket.
+app.set('trust proxy', 2);
 
 // Security middleware (order matters!)
 app.use(securityHeaders); // Security headers first
@@ -67,10 +68,10 @@ app.use(hpp()); // HTTP Parameter Pollution protection
 app.use(express.json({ limit: '10mb' })); // Limit JSON payload size
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Limit URL-encoded payload size
 
-// Security protection middleware
-app.use(xssProtection); // XSS protection
-app.use(sqlInjectionProtection); // SQL injection protection
-app.use(noSqlInjectionProtection); // NoSQL injection protection
+// Security protection middleware. SQL injection is prevented by Sequelize's
+// parameterized queries — regex request-scanning middleware only added false
+// positives on legitimate content, so it was removed.
+app.use(xssProtection); // strips HTML tags from request payloads
 app.use(requestSizeLimit); // Request size limiting
 
 // Rate limiting
@@ -149,6 +150,7 @@ sequelize.authenticate().then(() => {
     logger.info(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
     logger.info('==============================');
   });
+  startAbandonedOrderSweep();
 }).catch((err) => {
   logger.error('==============================');
   logger.error('✗ Failed to start server');

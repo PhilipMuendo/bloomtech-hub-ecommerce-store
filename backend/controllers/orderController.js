@@ -1,5 +1,7 @@
 import db, { sequelize } from '../sequelize_models/index.js';
 import { Op } from 'sequelize';
+import logger from '../utils/logger.js';
+import { decrementStockOrThrow, restoreStock } from '../utils/inventory.js';
 import AuditService from '../services/auditService.js';
 import { Parser } from 'json2csv';
 import { notifyOrderStatusChange, notifyCustomerOfNewOrder } from '../utils/warehouseNotifications.js';
@@ -118,141 +120,74 @@ export const getOrderById = async (req, res, next) => {
 // Create new order (for admin or direct order creation)
 export const createOrder = async (req, res, next) => {
   try {
-    console.log('=== ORDER CREATION START ===');
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-    console.log('User:', req.user ? { id: req.user.id, email: req.user.email } : 'No user');
-    
     const { items, total, shippingAddress, contactPhone } = req.body;
-    
-    console.log('Extracted data:', { items, total, shippingAddress, contactPhone });
-    
+
     // Validate items array
-    if (!items) {
-      console.log('❌ No items provided');
-      return res.status(400).json({ error: 'Items array is required' });
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'Items must be a non-empty array' });
     }
-    
-    if (!Array.isArray(items)) {
-      console.log('❌ Items is not an array:', typeof items);
-      return res.status(400).json({ error: 'Items must be an array' });
-    }
-    
-    if (items.length === 0) {
-      console.log('❌ Items array is empty');
-      return res.status(400).json({ error: 'Items array cannot be empty' });
-    }
-    
-    // Calculate total from items instead of trusting frontend
-    console.log('Calculating total from items...');
-    let calculatedTotal = 0;
-    
+
     for (const item of items) {
-      const product = await Product.findByPk(item.productId);
-      if (product) {
-        calculatedTotal += Number(product.price) * item.quantity;
-        console.log(`Item: ${product.name} x ${item.quantity} = ${Number(product.price) * item.quantity}`);
-      }
-    }
-    
-    console.log(`Calculated total: ${calculatedTotal}, Frontend total: ${total}`);
-    
-    // Validate that frontend total matches calculated total (with small tolerance for rounding)
-    if (Math.abs(calculatedTotal - total) > 0.01) {
-      console.log('❌ Total mismatch detected');
-      return res.status(400).json({ 
-        error: `Total amount mismatch. Calculated: ${calculatedTotal}, Provided: ${total}` 
-      });
-    }
-    
-    console.log('✅ Basic validation passed');
-    
-    // Validate and check stock for all items first
-    console.log('Validating items...');
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      console.log(`Validating item ${i + 1}:`, item);
-      
       if (!item.productId || isNaN(item.productId)) {
-        console.log(`❌ Invalid productId in item ${i + 1}:`, item.productId);
         return res.status(400).json({ error: `Invalid productId: ${item.productId}` });
       }
-      
       if (!item.quantity || isNaN(item.quantity) || item.quantity <= 0) {
-        console.log(`❌ Invalid quantity in item ${i + 1}:`, item.quantity);
         return res.status(400).json({ error: `Invalid quantity: ${item.quantity}` });
       }
-      
-      console.log(`Checking stock for product ${item.productId}...`);
+    }
+
+    // Calculate total from items instead of trusting frontend
+    let calculatedTotal = 0;
+    for (const item of items) {
       const product = await Product.findByPk(item.productId);
       if (!product) {
-        console.log(`❌ Product not found: ${item.productId}`);
         return res.status(400).json({ error: `Product not found: ${item.productId}` });
       }
-      
-      console.log(`Product found: ${product.name}, Stock: ${product.stock}, Requested: ${item.quantity}`);
-      if (product.stock < item.quantity) {
-        console.log(`❌ Insufficient stock for ${product.name}`);
-        return res.status(400).json({ error: `Insufficient stock for product: ${product.name}. Available: ${product.stock}, Requested: ${item.quantity}` });
-      }
+      calculatedTotal += Number(product.price) * item.quantity;
     }
-    
-    console.log('✅ All items validated');
-    
+
+    // Validate that frontend total matches calculated total (with small tolerance for rounding)
+    if (Math.abs(calculatedTotal - total) > 0.01) {
+      return res.status(400).json({
+        error: `Total amount mismatch. Calculated: ${calculatedTotal}, Provided: ${total}`
+      });
+    }
+
     // Check if order requires bank transfer (KSH 500,000 threshold)
     const BANK_TRANSFER_THRESHOLD = 500000;
     const requiresBankTransfer = calculatedTotal >= BANK_TRANSFER_THRESHOLD;
-    
-    // Create order and order items in a transaction
-    console.log('Starting database transaction...');
+
+    // Create order, order items, and decrement stock atomically. Stock
+    // sufficiency is enforced by the conditional decrement inside the
+    // transaction, so concurrent checkouts can't oversell.
     const result = await sequelize.transaction(async (t) => {
-      console.log('Creating order...');
       const orderData = {
-        userId: req.user.id, 
-        total: calculatedTotal, 
+        userId: req.user.id,
+        total: calculatedTotal,
         shippingAddress: shippingAddress || '',
         contactPhone: contactPhone || req.user?.phone || null
       };
-      
-      // Set payment method based on order total
+
       if (requiresBankTransfer) {
         orderData.paymentMethod = 'bank_transfer';
-        console.log('💰 Order requires bank transfer (amount >= KSH 500,000)');
       }
-      
+
       const order = await Order.create(orderData, { transaction: t });
-      
-      console.log('✅ Order created:', order.id);
-      
-      // Create order items
-      console.log('Creating order items...');
+
       const orderItems = items.map(item => ({
         orderId: order.id,
         productId: item.productId,
         quantity: item.quantity
       }));
-      
-      console.log('Order items to create:', orderItems);
       await OrderItem.bulkCreate(orderItems, { transaction: t });
-      console.log('✅ Order items created');
-      
-      // Decrement stock for each product
-      console.log('Updating product stock...');
-      for (const item of items) {
-        await Product.decrement('stock', {
-          by: item.quantity,
-          where: { id: item.productId },
-          transaction: t
-        });
-        console.log(`✅ Stock updated for product ${item.productId}`);
-      }
-      
+
+      await decrementStockOrThrow(items, t);
+
       return order;
     });
-    
-    console.log('✅ Transaction completed successfully');
-    console.log('Final order:', result.toJSON());
-    console.log('=== ORDER CREATION END ===');
-    
+
+    logger.info('Order created', { orderId: result.id, userId: req.user.id, total: calculatedTotal, requestId: req.id });
+
     // Dispatch real-time event for new order
     if (req.app.locals.io) {
       req.app.locals.io.emit('newOrderCreated', {
@@ -265,13 +200,10 @@ export const createOrder = async (req, res, next) => {
     
     res.status(201).json(result);
   } catch (err) {
-    console.error('❌ Error in createOrder:', err);
-    console.error('Error stack:', err.stack);
-    console.error('Error details:', {
-      name: err.name,
-      message: err.message,
-      code: err.code
-    });
+    if (err.code === 'INSUFFICIENT_STOCK') {
+      return res.status(400).json({ error: `Insufficient stock for product ${err.productId}. Someone may have bought the last units just now.` });
+    }
+    logger.error('Error in createOrder', { error: err.message, requestId: req.id });
     next(err);
   }
 };
@@ -325,7 +257,18 @@ export const updateOrderStatus = async (req, res, next) => {
       trackingNumber: currentOrder.trackingNumber
     };
 
-    await currentOrder.update(updateData);
+    if (status === 'cancelled' && previousValues.status !== 'cancelled') {
+      // Cancelling releases the order's reserved stock atomically with the
+      // status change — every order in the DB has had its stock decremented
+      // at creation (or at payment confirmation for Pesapal orders).
+      const orderItems = await OrderItem.findAll({ where: { orderId: currentOrder.id } });
+      await sequelize.transaction(async (t) => {
+        await currentOrder.update(updateData, { transaction: t });
+        await restoreStock(orderItems, t);
+      });
+    } else {
+      await currentOrder.update(updateData);
+    }
 
     // Log audit event for status change
     if (status && status !== previousValues.status) {

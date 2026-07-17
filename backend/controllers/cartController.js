@@ -1,5 +1,6 @@
 import db from '../sequelize_models/index.js';
 import { Op } from 'sequelize';
+import { decrementStockOrThrow } from '../utils/inventory.js';
 
 const { CartItem, Order, OrderItem, Product } = db;
 
@@ -141,15 +142,10 @@ export const checkout = async (req, res, next) => {
       }));
       await OrderItem.bulkCreate(orderItems, { transaction: t });
       
-      // Decrement stock for each product
-      for (const item of cartItems) {
-        await Product.decrement('stock', {
-          by: item.quantity,
-          where: { id: item.productId },
-          transaction: t
-        });
-      }
-      
+      // Conditional decrement — fails the whole checkout if any line item
+      // no longer has enough stock (concurrent-checkout safe).
+      await decrementStockOrThrow(cartItems, t);
+
       // Clear cart
       await CartItem.destroy({ 
         where: { userId: req.user.id }, 
@@ -161,6 +157,9 @@ export const checkout = async (req, res, next) => {
     
     res.status(201).json(result);
   } catch (err) {
+    if (err.code === 'INSUFFICIENT_STOCK') {
+      return res.status(400).json({ error: `Insufficient stock for product ${err.productId}. Please review your cart.` });
+    }
     next(err);
   }
 }; 

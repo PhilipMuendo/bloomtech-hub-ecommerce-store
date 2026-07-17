@@ -178,8 +178,9 @@ async function registerIPN() {
 // Initiate Pesapal payment
 export const initiatePayment = async (req, res) => {
   try {
+    // Never log the request body here — it carries customer PII
+    // (phone, email, name, shipping address).
     console.log('🚀 Initiating Pesapal payment...');
-    console.log('📦 Request body:', JSON.stringify(req.body, null, 2));
 
     const { orderId, amount, phoneNumber, email, firstName, lastName, orderData } = req.body;
 
@@ -229,8 +230,7 @@ export const initiatePayment = async (req, res) => {
       });
     }
 
-    // Validate order data
-    console.log('📦 Validating order data:', JSON.stringify(orderData, null, 2));
+    // Validate order data (do not log it — contains PII)
 
     let calculatedTotal = 0;
     let normalizedItems = [];
@@ -501,8 +501,6 @@ export const initiatePayment = async (req, res) => {
 export const handlePesapalCallback = async (req, res) => {
   try {
     console.log('🔄 Received Pesapal IPN notification');
-    console.log('📋 IPN Data:', req.body);
-    console.log('🔗 Query params:', req.query);
 
     // Handle both POST (body) and GET (query) requests
     const data = req.method === 'GET' ? req.query : req.body;

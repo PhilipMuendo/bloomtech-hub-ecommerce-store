@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  frontend:
+    name: Frontend typecheck + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+
+  backend:
+    name: Backend syntax + Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Syntax-check every backend source file (catches ESM/CJS mismatches).
+      - name: Syntax check
+        working-directory: backend
+        run: |
+          find . -path ./node_modules -prune -o \( -name '*.js' -o -name '*.cjs' \) -print \
+            | xargs -n1 node --check
+      # Build the production image — catches dependency/platform issues
+      # (e.g. sharp requiring a newer Node than the base image provides).
+      - name: Docker build
+        run: docker build ./backend

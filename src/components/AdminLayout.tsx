@@ -195,9 +195,7 @@ const AdminLayout = () => {
         >
           <div className="p-6 h-full flex flex-col">
             <div className="flex items-center gap-2 mb-8">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <LayoutDashboard className="h-4 w-4 text-primary-foreground" />
-              </div>
+              <img src="/logo-icon.png" alt="Bloom Tech Hub" className="w-8 h-8 object-contain" />
               <div>
                 <h2 className="font-bold text-lg">Admin Panel</h2>
                 <p className="text-sm text-muted-foreground">{branding.company.fullName}</p>

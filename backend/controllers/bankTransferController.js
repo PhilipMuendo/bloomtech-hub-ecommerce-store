@@ -21,7 +21,6 @@ export const generateProformaInvoice = async (req, res, next) => {
   try {
     const { orderId } = req.params;
     console.log('🔄 Generating proforma invoice for orderId:', orderId);
-    console.log('📋 Request body:', req.body);
     
     let order;
     

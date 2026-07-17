@@ -75,12 +75,12 @@ const productSchema = yup.object().shape({
   featured: yup.boolean(),
 });
 
-const BACKEND_HOST = import.meta.env.VITE_BACKEND_HOST || 'http://localhost:5000';
-
+// Uploads return relative /public/... URLs; the frontend proxies /public to
+// the backend on the same origin, so they resolve as-is in every environment.
 const getImageUrl = (url: string) => {
   if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return `${BACKEND_HOST}${url}`;
+  if (url.startsWith('http') || url.startsWith('/')) return url;
+  return `/${url}`;
 };
 
 const Products = () => {
@@ -1039,7 +1039,7 @@ const Products = () => {
             }
           }}
         >
-          <DialogContent className="max-w-2xl h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Product</DialogTitle>
               <DialogDescription>
@@ -1057,7 +1057,7 @@ const Products = () => {
 
       {/* Add Product Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Product</DialogTitle>
             <DialogDescription>

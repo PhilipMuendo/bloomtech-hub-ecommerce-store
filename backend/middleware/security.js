@@ -54,58 +54,6 @@ const sanitizeString = (str) => {
   });
 };
 
-// SQL Injection Protection — only catches actual attack patterns,
-// not common English words. Sequelize's parameterized queries are the
-// primary defense; this is a secondary safeguard.
-export const sqlInjectionProtection = (req, res, next) => {
-  const sqlAttackPatterns = [
-    // Tautology attacks: ' OR 1=1 --, " OR ""="
-    /(['"])\s*(OR|AND)\s+\d+\s*=\s*\d+/i,
-    /(['"])\s*(OR|AND)\s+['"]?\w+['"]\s*=\s*['"]?\w+['"]/i,
-    // UNION-based injection: UNION SELECT ... FROM
-    /UNION\s+(ALL\s+)?SELECT\s+.+\s+FROM\s/i,
-    // Stacked queries: ; DROP TABLE, ; DELETE FROM
-    /;\s*(DROP|DELETE|INSERT|UPDATE|ALTER|CREATE)\s/i,
-    // Comment-based termination: -- , /* */
-    /'\s*;\s*--/i,
-    /'\s*\/\*/i,
-    // Common attack payloads
-    /EXEC(\s+|\()+(SP_|XP_)/i,
-    /INTO\s+(OUT|DUMP)FILE/i,
-    /LOAD_FILE\s*\(/i,
-    /BENCHMARK\s*\(/i,
-    /SLEEP\s*\(/i,
-  ];
-
-  const checkForSQLInjection = (obj) => {
-    if (typeof obj === 'string') {
-      for (const pattern of sqlAttackPatterns) {
-        if (pattern.test(obj)) {
-          return true;
-        }
-      }
-    } else if (typeof obj === 'object' && obj !== null) {
-      for (const value of Object.values(obj)) {
-        if (checkForSQLInjection(value)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  };
-
-  if (checkForSQLInjection(req.body) ||
-    checkForSQLInjection(req.query) ||
-    checkForSQLInjection(req.params)) {
-    return res.status(400).json({
-      error: 'Invalid input detected',
-      message: 'Request contains potentially malicious content'
-    });
-  }
-
-  next();
-};
-
 // Rate limiting middleware
 export const createRateLimiter = (windowMs = 15 * 60 * 1000, max = 100) => {
   return rateLimit({
@@ -270,36 +218,6 @@ export const securityHeaders = helmet({
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: { policy: "cross-origin" }
 });
-
-// NoSQL injection protection
-export const noSqlInjectionProtection = (req, res, next) => {
-  const checkForNoSQLInjection = (obj) => {
-    if (typeof obj === 'object' && obj !== null) {
-      for (const [key, value] of Object.entries(obj)) {
-        // Check for MongoDB operators
-        if (key.startsWith('$') ||
-          (typeof value === 'object' && value !== null && Object.keys(value).some(k => k.startsWith('$')))) {
-          return true;
-        }
-        if (checkForNoSQLInjection(value)) {
-          return true;
-        }
-      }
-    }
-    return false;
-  };
-
-  if (checkForNoSQLInjection(req.body) ||
-    checkForNoSQLInjection(req.query) ||
-    checkForNoSQLInjection(req.params)) {
-    return res.status(400).json({
-      error: 'Invalid input detected',
-      message: 'Request contains potentially malicious content'
-    });
-  }
-
-  next();
-};
 
 // Request size limiting
 export const requestSizeLimit = (req, res, next) => {
