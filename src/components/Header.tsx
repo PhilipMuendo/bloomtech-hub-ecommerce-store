@@ -120,17 +120,71 @@ const UserMenu = () => {
   const { user } = useAuth();
   if (!user) {
     return (
-      <div className="flex items-center gap-4 ml-auto">
+      <div className="flex items-center gap-2">
         <Link to="/login">
-          <Button variant="outline" className="mx-1">Login</Button>
+          <Button variant="outline" size="sm">Login</Button>
         </Link>
         <Link to="/register">
-          <Button variant="default" className="mx-1">Register</Button>
+          <Button variant="default" size="sm">Register</Button>
         </Link>
       </div>
     );
   }
   return <UserDropdown />;
+};
+
+// Auth actions shown inside the mobile menu (top bar hides UserMenu below
+// the `md` breakpoint — there isn't room for it alongside the logo and cart).
+const MobileAuthLinks: React.FC<{ onNavigate: () => void }> = ({ onNavigate }) => {
+  const { user, logout } = useAuth();
+
+  if (!user) {
+    return (
+      <div className="flex gap-3">
+        <Link to="/login" onClick={onNavigate} className="flex-1">
+          <Button variant="outline" className="w-full">Login</Button>
+        </Link>
+        <Link to="/register" onClick={onNavigate} className="flex-1">
+          <Button className="w-full">Register</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const firstName = user.name?.split(' ')[0] || user.email?.split('@')[0] || 'User';
+  return (
+    <div className="space-y-3 border-t pt-4">
+      <p className="text-sm text-muted-foreground">Hi, {firstName}</p>
+      <Link to="/account" className="flex items-center gap-2 text-foreground" onClick={onNavigate}>
+        <User className="w-4 h-4" /> My Account
+      </Link>
+      <Link to="/orders" className="flex items-center gap-2 text-foreground" onClick={onNavigate}>
+        <List className="w-4 h-4" /> Orders
+      </Link>
+      <Link to="/wishlist" className="flex items-center gap-2 text-foreground" onClick={onNavigate}>
+        <Heart className="w-4 h-4" /> Wishlist
+      </Link>
+      <Link to="/my-quotes" className="flex items-center gap-2 text-foreground" onClick={onNavigate}>
+        <FileText className="w-4 h-4" /> My Quotes
+      </Link>
+      {(user.role === 'admin' || user.role === 'superadmin') && (
+        <Link to="/admin" className="flex items-center gap-2 text-blue-600 font-semibold" onClick={onNavigate}>
+          <Shield className="w-4 h-4" /> Admin Panel
+        </Link>
+      )}
+      {(user.role === 'warehouse' || user.role === 'superadmin') && (
+        <Link to="/warehouse" className="flex items-center gap-2 text-green-600 font-semibold" onClick={onNavigate}>
+          <Package className="w-4 h-4" /> Warehouse Panel
+        </Link>
+      )}
+      <button
+        onClick={() => { logout(); onNavigate(); }}
+        className="flex items-center gap-2 text-red-600"
+      >
+        <LogOut className="w-4 h-4" /> Logout
+      </button>
+    </div>
+  );
 };
 
 
@@ -212,15 +266,15 @@ const Header = () => {
       <header className="bg-white shadow-lg sticky top-0 z-50">
         <div className="container mx-auto px-4">
           {/* Top bar */}
-          <div className="flex items-center justify-between py-4">
+          <div className="flex items-center justify-between gap-2 py-3 sm:py-4">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2">
+            <Link to="/" className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink-0">
               {logoType === 'image' ? (
                 // Full image lockup (via admin settings override)
                 <img
                   src={logoSrc}
                   alt={branding.logo.image.alt}
-                  className="h-10 w-auto object-contain"
+                  className="h-8 sm:h-10 w-auto object-contain"
                 />
               ) : (
                 // Default: brand mark + text wordmark
@@ -228,11 +282,11 @@ const Header = () => {
                   <img
                     src={logoIconSrc}
                     alt={branding.logo.image.alt}
-                    className="w-10 h-10 object-contain"
+                    className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0"
                   />
-                  <div>
-                    <h1 className="text-2xl font-bold text-primary leading-none tracking-tight">{companyName}</h1>
-                    <p className="text-xs font-semibold tracking-[0.2em] uppercase text-muted-foreground mt-0.5">{companyTagline}</p>
+                  <div className="min-w-0">
+                    <h1 className="text-lg sm:text-2xl font-bold text-primary leading-none tracking-tight truncate">{companyName}</h1>
+                    <p className="hidden xs:block text-[10px] sm:text-xs font-semibold tracking-[0.2em] uppercase text-muted-foreground mt-0.5">{companyTagline}</p>
                   </div>
                 </>
               )}
@@ -335,60 +389,63 @@ const Header = () => {
               </div>
             </form>
 
-            {/* User Menu */}
-            <div className="flex items-center gap-4">
-              <UserMenu />
-            {/* Cart */}
-            {user && (
-              <Link to="/cart" className="relative">
-                <Button variant="outline" size="sm" className="flex items-center space-x-2">
-                  <ShoppingCart className="w-4 h-4" />
-                  <span className="hidden sm:inline">Cart</span>
-                </Button>
-                {distinctProducts > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {distinctProducts}
-                  </span>
-                )}
-              </Link>
-            )}
-            </div>
-          </div>
-
-          {/* Navigation */}
-          <nav className="border-t py-4">
-            <div className="flex items-center justify-between">
-              <div className="hidden md:flex items-center space-x-8">
-                <Link to="/" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
-                  Home
-                </Link>
-                <Link to="/shop" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
-                  Shop
-                </Link>
-                <Link to="/blog" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
-                  Blog
-                </Link>
-                
-                <Link to="/about" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
-                  About Us
-                </Link>
-                <Link to="/contact" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
-                  Contact
-                </Link>
-                <Link to="/faqs" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
-                  FAQs
-                </Link>
+            {/* User Menu — hidden on mobile; Login/Register/account links move
+                into the hamburger menu below, where there's room for them. */}
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+              <div className="hidden md:flex">
+                <UserMenu />
               </div>
-
-              {/* Mobile menu button */}
+              {/* Cart */}
+              {user && (
+                <Link to="/cart" className="relative">
+                  <Button variant="outline" size="sm" className="flex items-center space-x-2">
+                    <ShoppingCart className="w-4 h-4" />
+                    <span className="hidden sm:inline">Cart</span>
+                  </Button>
+                  {distinctProducts > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-accent text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {distinctProducts}
+                    </span>
+                  )}
+                </Link>
+              )}
+              {/* Mobile menu toggle — moved up from the nav row so it sits
+                  next to the cart instead of on its own line. */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden flex flex-col space-y-1"
+                aria-label="Toggle menu"
+                aria-expanded={isMenuOpen}
+                className="md:hidden flex flex-col justify-center gap-1 w-8 h-8 shrink-0"
               >
                 <div className="w-6 h-0.5 bg-foreground"></div>
                 <div className="w-6 h-0.5 bg-foreground"></div>
                 <div className="w-6 h-0.5 bg-foreground"></div>
               </button>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="border-t py-4">
+            <div className="hidden md:flex items-center space-x-8">
+              <Link to="/" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
+                Home
+              </Link>
+              <Link to="/shop" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
+                Shop
+              </Link>
+              <Link to="/blog" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
+                Blog
+              </Link>
+
+              <Link to="/about" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
+                About Us
+              </Link>
+              <Link to="/contact" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
+                Contact
+              </Link>
+              <Link to="/faqs" className="story-link text-foreground hover:text-primary font-medium transition-colors duration-300">
+                FAQs
+              </Link>
             </div>
 
             {/* Mobile menu */}
@@ -492,6 +549,7 @@ const Header = () => {
                   <Link to="/faqs" className="text-foreground hover:text-primary" onClick={() => setIsMenuOpen(false)}>
                     FAQs
                   </Link>
+                  <MobileAuthLinks onNavigate={() => setIsMenuOpen(false)} />
                 </div>
               </div>
             )}

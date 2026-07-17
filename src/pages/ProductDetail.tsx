@@ -354,7 +354,7 @@ const ProductDetail = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-10">
         {/* Product Image */}
         <div className="space-y-4 flex flex-col items-center">
-          <div className="relative overflow-hidden rounded-lg bg-white shadow-md flex flex-col items-center justify-center p-2" style={{ minWidth: '300px', maxWidth: '340px', margin: '0 auto' }}>
+          <div className="relative overflow-hidden rounded-lg bg-white shadow-md flex flex-col items-center justify-center p-2 w-full max-w-[340px] mx-auto">
             <img
               src={imageError ? '/placeholder.svg' : (product.imageUrl || '/placeholder.svg')}
               srcSet={
@@ -364,7 +364,7 @@ const ProductDetail = () => {
               }
               sizes="(max-width: 640px) 100vw, 340px"
               alt={product.name || 'Product image'}
-              className="w-[320px] h-[320px] sm:w-[340px] sm:h-[340px] object-contain border rounded-lg bg-white"
+              className="w-full aspect-square object-contain border rounded-lg bg-white"
               loading="lazy"
               onError={handleImageError}
             />
@@ -551,24 +551,24 @@ const ProductDetail = () => {
 
       {/* Sticky Add to Cart Bar (Mobile) */}
       {showStickyBar && (
-        <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow-lg z-50 flex items-center justify-between px-4 py-3 md:hidden">
-          <div className="flex items-center gap-2">
+        <div className="fixed bottom-0 left-0 w-full bg-white border-t shadow-lg z-50 flex items-center justify-between gap-2 px-3 py-3 md:hidden">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <input
               type="number"
               min={1}
               max={typeof product.stock === 'number' ? product.stock : 99}
               value={quantity}
               onChange={e => handleQuantityChange(Number(e.target.value))}
-              className="w-12 border rounded px-2 py-1 text-center text-sm"
+              className="w-12 shrink-0 border rounded px-2 py-1 text-center text-sm"
               disabled={!isInStock}
               aria-label="Quantity"
             />
-            <span className="font-medium">{product.name}</span>
+            <span className="font-medium truncate">{product.name}</span>
           </div>
           <Button
             onClick={handleAddToCart}
             disabled={!isInStock}
-            className="bg-accent hover:bg-accent/90 text-sm font-medium py-2 px-4 rounded-md min-w-[100px] h-[40px]"
+            className="bg-accent hover:bg-accent/90 text-sm font-medium py-2 px-4 rounded-md min-w-[100px] h-[40px] shrink-0"
             aria-label={isInStock ? 'Add to cart' : 'Out of stock'}
           >
             {isInStock ? 'Add to Cart' : 'Out of Stock'}

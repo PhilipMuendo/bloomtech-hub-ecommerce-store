@@ -238,26 +238,28 @@ const Orders = () => {
               </div>
               <div>
                 <h4 className="font-semibold mb-2">Order Items</h4>
-                <table className="w-full text-left border">
-                  <thead>
-                    <tr>
-                      <th className="py-2 px-3 border-b">Product</th>
-                      <th className="py-2 px-3 border-b">Quantity</th>
-                      <th className="py-2 px-3 border-b">Price</th>
-                      <th className="py-2 px-3 border-b">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedOrder.items.map((item, idx) => (
-                      <tr key={idx}>
-                        <td className="py-2 px-3 border-b">{item.productName}</td>
-                        <td className="py-2 px-3 border-b">{item.quantity}</td>
-                        <td className="py-2 px-3 border-b">KES {item.price.toLocaleString()}</td>
-                        <td className="py-2 px-3 border-b">KES {(item.quantity * item.price).toLocaleString()}</td>
+                <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+                  <table className="w-full min-w-[480px] text-left border">
+                    <thead>
+                      <tr>
+                        <th className="py-2 px-3 border-b">Product</th>
+                        <th className="py-2 px-3 border-b">Quantity</th>
+                        <th className="py-2 px-3 border-b">Price</th>
+                        <th className="py-2 px-3 border-b">Total</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {selectedOrder.items.map((item, idx) => (
+                        <tr key={idx}>
+                          <td className="py-2 px-3 border-b">{item.productName}</td>
+                          <td className="py-2 px-3 border-b">{item.quantity}</td>
+                          <td className="py-2 px-3 border-b">KES {item.price.toLocaleString()}</td>
+                          <td className="py-2 px-3 border-b">KES {(item.quantity * item.price).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
               {/* Shipping Info & Tracking Number */}
               <div className="border-t pt-4 bg-gray-50 rounded-lg p-3">

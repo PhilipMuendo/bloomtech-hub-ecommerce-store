@@ -92,6 +92,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Reuse the single GOOGLE_CLIENT_ID from .env — the frontend (Google
+        # Identity Services) and backend (token audience check in
+        # authController.js) must agree on the same client ID or Google
+        # sign-in fails at the backend verification step.
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
     restart: unless-stopped
     depends_on:
       - backend

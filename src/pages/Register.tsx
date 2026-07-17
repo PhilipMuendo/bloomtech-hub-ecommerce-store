@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import PasswordInput from '@/components/PasswordInput';
+import GoogleLoginButton from '@/components/GoogleLoginButton';
 
 const Register = () => {
   const [name, setName] = useState('');
@@ -150,6 +151,20 @@ const Register = () => {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Creating Account...' : 'Register'}
             </Button>
+
+            {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+              <>
+                <div className="relative my-2">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-gray-300" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 bg-white text-gray-500 font-medium">Or continue with</span>
+                  </div>
+                </div>
+                <GoogleLoginButton />
+              </>
+            )}
           </form>
         </CardContent>
       </Card>

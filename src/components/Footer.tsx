@@ -3,18 +3,16 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Clock, Mail, MapPin, Facebook, Twitter, Instagram, Linkedin } from 'lucide-react';
 import { categories } from '@/data/categories';
-import { branding, isImageLogo } from '@/config/branding';
+import { branding } from '@/config/branding';
 import { useSettings } from '@/context/SettingsContext';
 
 const Footer = () => {
   const { settings } = useSettings();
 
   // Merge settings with fallback branding
-  const logoType = settings?.logoType || branding.logo.type;
   const logoIconSrc = settings?.logoIconSrc || settings?.logoImageSrc || branding.logo.image.iconSrc;
   const companyFullName = settings?.companyFullName || branding.company.fullName;
-  const initials = settings?.logoTextInitials || branding.logo.text.initials;
-  
+
   // Social media links (use settings if available, fall back to hardcoded)
   const facebookUrl = settings?.facebookUrl || 'https://www.facebook.com/keensellventures/';
   const twitterUrl = settings?.twitterUrl || 'https://x.com/Keensell';
@@ -27,22 +25,12 @@ const Footer = () => {
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              {logoType === 'image' ? (
-                <img
-                  src={logoIconSrc}
-                  alt={branding.logo.image.alt}
-                  className="h-8 w-auto object-contain"
-                />
-              ) : (
-                <>
-                  <div className={`w-8 h-8 bg-gradient-to-br ${branding.logo.text.gradientFrom} ${branding.logo.text.gradientTo} rounded-lg flex items-center justify-center`}>
-                    <span className="text-white font-bold">{initials}</span>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold">{companyFullName}</h3>
-                  </div>
-                </>
-              )}
+              <img
+                src={logoIconSrc}
+                alt={branding.logo.image.alt}
+                className="h-8 w-8 object-contain"
+              />
+              <h3 className="text-lg font-bold">{companyFullName}</h3>
             </div>
             <p className="text-sm opacity-80">
               Your trusted supplier of quality ICT equipment and electrical materials. 
