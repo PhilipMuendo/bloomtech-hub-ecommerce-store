@@ -1,8 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Underline from '@tiptap/extension-underline';
-import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import { Toggle } from '@/components/ui/toggle';
 import {
@@ -34,15 +32,18 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, onImag
   const [uploadingImage, setUploadingImage] = React.useState(false);
 
   const editor = useEditor({
+    // StarterKit (Tiptap v3) already bundles Link and Underline — adding
+    // separate extension instances for them registers duplicate marks and
+    // corrupts the ProseMirror schema (crashes in editor.getHTML()).
+    // Configure them through StarterKit instead of adding new instances.
     extensions: [
       StarterKit.configure({
         heading: { levels: [2, 3] },
-      }),
-      Underline,
-      Link.configure({
-        openOnClick: false,
-        autolink: true,
-        HTMLAttributes: { rel: 'noopener noreferrer' },
+        link: {
+          openOnClick: false,
+          autolink: true,
+          HTMLAttributes: { rel: 'noopener noreferrer' },
+        },
       }),
       Image,
     ],
