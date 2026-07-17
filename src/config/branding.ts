@@ -29,16 +29,13 @@ export const branding = {
     
     // For image-based logos (set type to 'image' to use these)
     image: {
-      // Light mode logo
+      // Full stacked lockup (mark + wordmark) — used for OG image / large placements.
       src: '/logo.png',
-      alt: 'BLOOMTECH Hub Logo',
+      alt: 'Bloom Tech Hub Logo',
       width: 180,
       height: 40,
-      
-      // Dark mode logo (optional, falls back to light if not provided)
-      darkSrc: '/logo-dark.png',
-      
-      // Small/icon version for mobile/compact views
+
+      // Square flower mark — used in the header next to the text wordmark.
       iconSrc: '/logo-icon.png',
       iconWidth: 40,
       iconHeight: 40,
@@ -64,11 +61,10 @@ export const branding = {
     ogImage: '/og-image.png', // Place in /public/
   },
 
-  // Colors (for programmatic use)
+  // Colors (for programmatic use) — must match the tokens in src/index.css
   colors: {
-    primary: '#0ea5e9',   // Sky blue
-    accent: '#10b981',    // Green
-    secondary: '#8b5cf6', // Purple
+    primary: '#0d6fce',   // Brand blue (logo gradient deep end)
+    accent: '#0a86b9',    // Brand cyan (deepened for contrast)
   },
 };
 

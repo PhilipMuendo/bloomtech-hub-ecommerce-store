@@ -216,48 +216,24 @@ const Header = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
               {logoType === 'image' ? (
-                // Image-based logo
-                <motion.img
+                // Full image lockup (via admin settings override)
+                <img
                   src={logoSrc}
                   alt={branding.logo.image.alt}
                   className="h-10 w-auto object-contain"
-                  initial={isHomePage ? { scale: 0 } : { scale: 1 }}
-                  animate={{ scale: 1 }}
-                  transition={isHomePage ? { 
-                    type: "spring", 
-                    stiffness: 260, 
-                    damping: 20,
-                    duration: 0.8 
-                  } : { duration: 0 }}
                 />
               ) : (
-                // Text-based logo (default)
+                // Default: brand mark + text wordmark
                 <>
-                  <motion.div 
-                    className={`w-10 h-10 bg-gradient-to-br ${branding.logo.text.gradientFrom} ${branding.logo.text.gradientTo} rounded-lg flex items-center justify-center`}
-                    initial={isHomePage ? { scale: 0 } : { scale: 1 }}
-                    animate={{ scale: 1 }}
-                    transition={isHomePage ? { 
-                      type: "spring", 
-                      stiffness: 260, 
-                      damping: 20,
-                      duration: 0.8 
-                    } : { duration: 0 }}
-                  >
-                    <span className="text-white font-bold text-lg">{initials}</span>
-                  </motion.div>
-                  <motion.div
-                    initial={isHomePage ? { opacity: 0, x: -20 } : { opacity: 1, x: 0 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={isHomePage ? { 
-                      delay: 0.3, 
-                      duration: 0.6,
-                      ease: "easeOut"
-                    } : { duration: 0 }}
-                  >
-                    <h1 className="text-2xl font-bold text-primary">{companyName}</h1>
-                    <p className="text-sm text-accent -mt-1">{companyTagline}</p>
-                  </motion.div>
+                  <img
+                    src={logoIconSrc}
+                    alt={branding.logo.image.alt}
+                    className="w-10 h-10 object-contain"
+                  />
+                  <div>
+                    <h1 className="text-2xl font-bold text-primary leading-none tracking-tight">{companyName}</h1>
+                    <p className="text-xs font-semibold tracking-[0.2em] uppercase text-muted-foreground mt-0.5">{companyTagline}</p>
+                  </div>
                 </>
               )}
             </Link>
