@@ -20,7 +20,8 @@ import {
   MessageCircle,
   Building2,
   FileText,
-  Settings
+  Settings,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
@@ -130,25 +131,55 @@ const AdminLayout = () => {
     fetchContactMessageNotifications();
   }, [user]);
 
-  const menuItems = [
-    { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
-    { path: '/admin/products', icon: Package, label: 'Products' },
-    { path: '/admin/subcategories', icon: Package, label: 'Subcategories' },
-    { path: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
-    { path: '/admin/bank-transfer-orders', icon: Building2, label: 'Bank Transfer Orders' },
-    { path: '/admin/quotes', icon: Bell, label: 'Quotes' },
-    { path: '/admin/blog', icon: FileText, label: 'Blog' },
-    { path: '/admin/users', icon: Users, label: 'Users' },
-    { path: '/admin/reviews', icon: MessageSquare, label: 'Reviews' },
-    { path: '/admin/contact-messages', icon: MessageCircle, label: 'Contact Messages' },
-    { path: '/admin/settings', icon: Settings, label: 'Settings' },
-    { path: '/admin/newsletter', icon: Mail, label: 'Newsletter' },
-  
-    // Superadmin only items
-    ...(user?.role === 'superadmin' ? [
-      { path: '/admin/pesapal-transactions', icon: CreditCard, label: 'Transactions' },
-      { path: '/admin/audit-logs', icon: Activity, label: 'Audit Logs' }
-    ] : []),
+  const menuGroups = [
+    {
+      section: 'Overview',
+      items: [
+        { path: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+      ],
+    },
+    {
+      section: 'Catalog',
+      items: [
+        { path: '/admin/products', icon: Package, label: 'Products' },
+        { path: '/admin/subcategories', icon: Package, label: 'Subcategories' },
+        { path: '/admin/low-stock', icon: AlertTriangle, label: 'Low Stock' },
+      ],
+    },
+    {
+      section: 'Sales',
+      items: [
+        { path: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
+        { path: '/admin/bank-transfer-orders', icon: Building2, label: 'Bank Transfer Orders' },
+        { path: '/admin/quotes', icon: Bell, label: 'Quotes' },
+      ],
+    },
+    {
+      section: 'Content',
+      items: [
+        { path: '/admin/blog', icon: FileText, label: 'Blog' },
+      ],
+    },
+    {
+      section: 'People',
+      items: [
+        { path: '/admin/users', icon: Users, label: 'Users' },
+        { path: '/admin/reviews', icon: MessageSquare, label: 'Reviews' },
+        { path: '/admin/contact-messages', icon: MessageCircle, label: 'Contact Messages' },
+        { path: '/admin/newsletter', icon: Mail, label: 'Newsletter' },
+      ],
+    },
+    {
+      section: 'System',
+      items: [
+        { path: '/admin/settings', icon: Settings, label: 'Settings' },
+        // Superadmin only
+        ...(user?.role === 'superadmin' ? [
+          { path: '/admin/pesapal-transactions', icon: CreditCard, label: 'Transactions' },
+          { path: '/admin/audit-logs', icon: Activity, label: 'Audit Logs' },
+        ] : []),
+      ],
+    },
   ];
 
   const handleLogout = () => {
@@ -213,31 +244,38 @@ const AdminLayout = () => {
               </div>
             )}
 
-            <nav className="mt-4 flex-1 space-y-1">
-              {menuItems.map((item) => (
-                <Link
-                    key={item.path}
-                  to={item.path}
-                  className={`flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                    isActive(item.path)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                  onClick={item.path === '/admin/quotes' ? handleQuotesClick : undefined}
-                  >
-                  <item.icon className="mr-3 h-5 w-5" />
-                  <span>{item.label}</span>
-                  {item.path === '/admin/quotes' && adminQuoteNotifications > 0 && (
-                    <span className="ml-auto inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
-                      {adminQuoteNotifications}
-                    </span>
-                  )}
-                  {item.path === '/admin/contact-messages' && contactMessageNotifications > 0 && (
-                    <span className="ml-auto inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
-                      {contactMessageNotifications}
-                    </span>
-                  )}
-                </Link>
+            <nav className="mt-4 flex-1 space-y-1 overflow-y-auto">
+              {menuGroups.map((group, groupIndex) => (
+                <div key={group.section} className={groupIndex > 0 ? 'pt-4' : ''}>
+                  <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground/70">
+                    {group.section}
+                  </p>
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                        isActive(item.path)
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-muted'
+                      }`}
+                      onClick={item.path === '/admin/quotes' ? handleQuotesClick : undefined}
+                    >
+                      <item.icon className="mr-3 h-5 w-5" />
+                      <span>{item.label}</span>
+                      {item.path === '/admin/quotes' && adminQuoteNotifications > 0 && (
+                        <span className="ml-auto inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
+                          {adminQuoteNotifications}
+                        </span>
+                      )}
+                      {item.path === '/admin/contact-messages' && contactMessageNotifications > 0 && (
+                        <span className="ml-auto inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
+                          {contactMessageNotifications}
+                        </span>
+                      )}
+                    </Link>
+                  ))}
+                </div>
               ))}
             </nav>
 
@@ -279,7 +317,7 @@ const AdminLayout = () => {
                 <Menu />
               </Button>
               <h1 className="text-xl font-semibold">
-                {menuItems.find((item) => isActive(item.path))?.label || 'Admin'}
+                {menuGroups.flatMap((g) => g.items).find((item) => isActive(item.path))?.label || 'Admin'}
                 </h1>
             </div>
             <div className="flex items-center gap-4">

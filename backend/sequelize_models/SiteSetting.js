@@ -26,27 +26,11 @@ export default (sequelize) => {
       defaultValue: 'text',
       allowNull: false
     },
-    logoTextInitials: {
-      type: DataTypes.STRING(6),
-      allowNull: true
-    },
     logoImageSrc: {
       type: DataTypes.STRING(300),
       allowNull: true
     },
-    logoImageDarkSrc: {
-      type: DataTypes.STRING(300),
-      allowNull: true
-    },
     logoIconSrc: {
-      type: DataTypes.STRING(300),
-      allowNull: true
-    },
-    twitterHandle: {
-      type: DataTypes.STRING(60),
-      allowNull: true
-    },
-    ogImage: {
       type: DataTypes.STRING(300),
       allowNull: true
     },

@@ -202,152 +202,101 @@ const AdminSettings: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="logo-type">Logo Type</Label>
+                <Label htmlFor="logo-type">Header Layout</Label>
                 <Select
                   value={data.logoType || 'text'}
                   onValueChange={(value: 'text' | 'image') => setData({ ...data, logoType: value })}
                 >
                   <SelectTrigger id="logo-type">
-                    <SelectValue placeholder="Select logo type" />
+                    <SelectValue placeholder="Select header layout" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="text">Text-based Logo</SelectItem>
-                    <SelectItem value="image">Image Logo</SelectItem>
+                    <SelectItem value="text">Icon + Company Name</SelectItem>
+                    <SelectItem value="image">Full Logo Image Only</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  "Icon + Company Name" shows the Logo Icon below next to your company name and
+                  tagline. "Full Logo Image Only" shows just the Main Logo Image, with no separate
+                  text — use this only if that image already contains your full logo lockup.
+                </p>
               </div>
 
-              {data.logoType === 'text' ? (
+              <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="logo-initials">Logo Initials</Label>
-                  <Input
-                    id="logo-initials"
-                    value={data.logoTextInitials || ''}
-                    onChange={(e) => setData({ ...data, logoTextInitials: e.target.value })}
-                    placeholder="e.g., BT"
-                    maxLength={6}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    These initials will appear in the gradient logo box
-                  </p>
+                  <Label>Logo Icon (used by "Icon + Company Name")</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={data.logoIconSrc || ''}
+                      onChange={(e) => setData({ ...data, logoIconSrc: e.target.value })}
+                      placeholder="https://..."
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      disabled={uploadingField === 'logoIconSrc'}
+                      onClick={() => document.getElementById('logo-icon-upload')?.click()}
+                    >
+                      <Upload className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      id="logo-icon-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file, 'logoIconSrc');
+                      }}
+                    />
+                  </div>
+                  {data.logoIconSrc && (
+                    <img
+                      src={data.logoIconSrc}
+                      alt="Icon preview"
+                      className="mt-2 h-12 w-12 rounded border"
+                    />
+                  )}
                 </div>
-              ) : (
-                <div className="grid gap-6 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Main Logo Image</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={data.logoImageSrc || ''}
-                        onChange={(e) => setData({ ...data, logoImageSrc: e.target.value })}
-                        placeholder="https://..."
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        disabled={uploadingField === 'logoImageSrc'}
-                        onClick={() => document.getElementById('logo-image-upload')?.click()}
-                      >
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        id="logo-image-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleFileUpload(file, 'logoImageSrc');
-                        }}
-                      />
-                    </div>
-                    {data.logoImageSrc && (
-                      <img
-                        src={data.logoImageSrc}
-                        alt="Logo preview"
-                        className="mt-2 h-12 w-auto rounded border"
-                      />
-                    )}
-                  </div>
 
-                  <div className="space-y-2">
-                    <Label>Logo Icon (Small/Mobile)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={data.logoIconSrc || ''}
-                        onChange={(e) => setData({ ...data, logoIconSrc: e.target.value })}
-                        placeholder="https://..."
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        disabled={uploadingField === 'logoIconSrc'}
-                        onClick={() => document.getElementById('logo-icon-upload')?.click()}
-                      >
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        id="logo-icon-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleFileUpload(file, 'logoIconSrc');
-                        }}
-                      />
-                    </div>
-                    {data.logoIconSrc && (
-                      <img
-                        src={data.logoIconSrc}
-                        alt="Icon preview"
-                        className="mt-2 h-12 w-12 rounded border"
-                      />
-                    )}
+                <div className="space-y-2">
+                  <Label>Main Logo Image (used by "Full Logo Image Only")</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={data.logoImageSrc || ''}
+                      onChange={(e) => setData({ ...data, logoImageSrc: e.target.value })}
+                      placeholder="https://..."
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      disabled={uploadingField === 'logoImageSrc'}
+                      onClick={() => document.getElementById('logo-image-upload')?.click()}
+                    >
+                      <Upload className="h-4 w-4" />
+                    </Button>
+                    <Input
+                      id="logo-image-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file, 'logoImageSrc');
+                      }}
+                    />
                   </div>
-
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Social Sharing Image (OG Image)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={data.ogImage || ''}
-                        onChange={(e) => setData({ ...data, ogImage: e.target.value })}
-                        placeholder="https://..."
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        disabled={uploadingField === 'ogImage'}
-                        onClick={() => document.getElementById('og-image-upload')?.click()}
-                      >
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                      <Input
-                        id="og-image-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleFileUpload(file, 'ogImage');
-                        }}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Recommended: 1200x630px for social media previews
-                    </p>
-                    {data.ogImage && (
-                      <img
-                        src={data.ogImage}
-                        alt="OG image preview"
-                        className="mt-2 h-32 w-auto rounded border"
-                      />
-                    )}
-                  </div>
+                  {data.logoImageSrc && (
+                    <img
+                      src={data.logoImageSrc}
+                      alt="Logo preview"
+                      className="mt-2 h-12 w-auto rounded border"
+                    />
+                  )}
                 </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -396,18 +345,6 @@ const AdminSettings: React.FC = () => {
                   onChange={(e) => setData({ ...data, linkedinUrl: e.target.value })}
                   placeholder="https://linkedin.com/company/yourcompany"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="twitter-handle">Twitter Handle</Label>
-                <Input
-                  id="twitter-handle"
-                  value={data.twitterHandle || ''}
-                  onChange={(e) => setData({ ...data, twitterHandle: e.target.value })}
-                  placeholder="@yourhandle"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Used in meta tags for Twitter cards
-                </p>
               </div>
             </CardContent>
           </Card>

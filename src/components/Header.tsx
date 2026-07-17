@@ -211,7 +211,6 @@ const Header = () => {
   const logoIconSrc = settings?.logoIconSrc || branding.logo.image.iconSrc;
   const companyName = settings?.companyName || branding.company.name;
   const companyTagline = settings?.companyTagline || branding.company.tagline;
-  const initials = settings?.logoTextInitials || branding.logo.text.initials;
 
 
 

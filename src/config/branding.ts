@@ -17,16 +17,12 @@ export const branding = {
 
   // Logo Configuration
   logo: {
-    // Text-based logo (current setup)
+    // Discriminates Header/Footer render branch: 'text' shows the icon mark
+    // + companyName/companyTagline text side-by-side; 'image' shows only the
+    // full stacked lockup below. Not literally text-vs-image — both branches
+    // render a real logo image, just laid out differently.
     type: 'text' as 'text' | 'image',
-    
-    // For text-based logos
-    text: {
-      initials: 'BT',
-      gradientFrom: 'from-primary', // Tailwind class
-      gradientTo: 'to-accent',      // Tailwind class
-    },
-    
+
     // For image-based logos (set type to 'image' to use these)
     image: {
       // Full stacked lockup (mark + wordmark) — used for OG image / large placements.

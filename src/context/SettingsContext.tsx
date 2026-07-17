@@ -6,12 +6,8 @@ export interface SiteSettings {
   companyTagline?: string | null;
   companyFullName?: string | null;
   logoType?: 'text' | 'image';
-  logoTextInitials?: string | null;
   logoImageSrc?: string | null;
-  logoImageDarkSrc?: string | null;
   logoIconSrc?: string | null;
-  twitterHandle?: string | null;
-  ogImage?: string | null;
   facebookUrl?: string | null;
   twitterUrl?: string | null;
   instagramUrl?: string | null;

@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 import { BlogPost } from '@/types';
+import RichTextEditor from '@/components/admin/RichTextEditor';
 
 interface BlogFormState {
   title: string;
@@ -575,13 +576,22 @@ const AdminBlogManage: React.FC = () => {
 
         <div className="space-y-2">
           <Label htmlFor="blog-content">Content</Label>
-          <Textarea
-            id="blog-content"
+          <RichTextEditor
             value={form.content}
-            onChange={(e) => handleFormChange('content', e.target.value)}
-            placeholder="Write your article in HTML or Markdown converted to HTML"
-            className="min-h-[260px]"
-            required
+            onChange={(html) => handleFormChange('content', html)}
+            onImageUpload={async (file) => {
+              if (!user?.token) throw new Error('You must be logged in to upload images');
+              const formData = new FormData();
+              formData.append('image', file);
+              const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+                headers: { Authorization: `Bearer ${user.token}` },
+              });
+              if (!res.ok) throw new Error('Image upload failed');
+              const data = await res.json();
+              return data.url;
+            }}
           />
         </div>
 

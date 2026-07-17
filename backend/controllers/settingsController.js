@@ -28,7 +28,7 @@ export const getSettings = async (req, res) => {
         companyTagline: 'Hub',
         companyFullName: 'BLOOMTECH Hub',
         logoType: 'text',
-        logoTextInitials: 'BT',
+        logoIconSrc: '/logo-icon.png',
       });
     }
     res.json(settings);
@@ -55,14 +55,9 @@ export const updateSettings = async (req, res) => {
       companyTagline: cleanText(body.companyTagline, 120),
       companyFullName: cleanText(body.companyFullName, 200),
       logoType: ['text', 'image'].includes(body.logoType) ? body.logoType : settings.logoType || 'text',
-      logoTextInitials: cleanText(body.logoTextInitials, 6),
 
       logoImageSrc: sanitizeUrl(body.logoImageSrc),
-      logoImageDarkSrc: sanitizeUrl(body.logoImageDarkSrc),
       logoIconSrc: sanitizeUrl(body.logoIconSrc),
-
-      twitterHandle: cleanText(body.twitterHandle, 60),
-      ogImage: sanitizeUrl(body.ogImage),
 
       facebookUrl: sanitizeUrl(body.facebookUrl),
       twitterUrl: sanitizeUrl(body.twitterUrl),
