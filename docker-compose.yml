@@ -72,6 +72,9 @@ services:
       PESAPAL_CONSUMER_SECRET: ${PESAPAL_CONSUMER_SECRET:-}
       PESAPAL_CALLBACK_URL: ${PESAPAL_CALLBACK_URL:-}
       PESAPAL_API_ENDPOINT: ${PESAPAL_API_ENDPOINT:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
     volumes:
       # Persist uploaded product/blog images across restarts.
       - uploads:/app/public/lovable-uploads
