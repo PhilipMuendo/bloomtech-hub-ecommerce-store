@@ -24,12 +24,16 @@ export default (sequelize) => {
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM('new', 'read'),
+      type: DataTypes.ENUM('new', 'read', 'replied'),
       defaultValue: 'new',
       allowNull: false,
     },
 
     adminNotes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    replyMessage: {
       type: DataTypes.TEXT,
       allowNull: true,
     },

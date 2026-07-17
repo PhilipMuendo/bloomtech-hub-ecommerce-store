@@ -1,10 +1,11 @@
 import express from 'express';
-import { 
-  submitContactForm, 
-  getContactMessages, 
-  getContactMessage, 
-  updateMessageStatus, 
-  deleteContactMessage 
+import {
+  submitContactForm,
+  getContactMessages,
+  getContactMessage,
+  updateMessageStatus,
+  replyToMessage,
+  deleteContactMessage
 } from '../controllers/contactController.js';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireAdmin } from '../middleware/roleAuth.js';
@@ -23,6 +24,9 @@ router.get('/messages/:id', requireAuth, requireAdmin, validateId, getContactMes
 
 // Admin: update message status
 router.put('/messages/:id/status', requireAuth, requireAdmin, validateId, updateMessageStatus);
+
+// Admin: reply to a message (emails the customer)
+router.post('/messages/:id/reply', requireAuth, requireAdmin, validateId, replyToMessage);
 
 // Admin: delete contact message
 router.delete('/messages/:id', requireAuth, requireAdmin, validateId, deleteContactMessage);

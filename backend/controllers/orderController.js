@@ -4,7 +4,7 @@ import logger from '../utils/logger.js';
 import { decrementStockOrThrow, restoreStock } from '../utils/inventory.js';
 import AuditService from '../services/auditService.js';
 import { Parser } from 'json2csv';
-import { notifyOrderStatusChange, notifyCustomerOfNewOrder } from '../utils/warehouseNotifications.js';
+import { notifyOrderStatusChange, notifyCustomerOfNewOrder, notifyWarehouseStaffOfNewOrder } from '../utils/warehouseNotifications.js';
 import { sendTemplatedEmail } from '../utils/emailService.js';
 import { generateInvoicePdf } from '../utils/pdfUtils.js';
 import { generateInvoiceNumber } from '../utils/idUtils.js';
@@ -187,6 +187,15 @@ export const createOrder = async (req, res, next) => {
     });
 
     logger.info('Order created', { orderId: result.id, userId: req.user.id, total: calculatedTotal, requestId: req.id });
+
+    // Notify warehouse staff — fire-and-forget, doesn't block the response.
+    // Needs Product data on each item (bulkCreate doesn't return associations).
+    OrderItem.findAll({
+      where: { orderId: result.id },
+      include: [{ model: Product, attributes: ['name', 'price'] }]
+    }).then((itemsWithProducts) => {
+      notifyWarehouseStaffOfNewOrder({ ...result.toJSON(), User: req.user }, itemsWithProducts);
+    }).catch((err) => logger.error('Failed to notify warehouse of new order', { error: err.message }));
 
     // Dispatch real-time event for new order
     if (req.app.locals.io) {

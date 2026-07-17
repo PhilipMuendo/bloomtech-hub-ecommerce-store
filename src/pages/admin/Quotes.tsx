@@ -49,6 +49,7 @@ const Quotes = () => {
   const [sortBy, setSortBy] = useState<'newest' | 'status' | 'name'>('newest');
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [response, setResponse] = useState('');
+  const [respondPrice, setRespondPrice] = useState('');
   const [status, setStatus] = useState('responded');
   const [responding, setResponding] = useState(false);
   const [showCreateOrder, setShowCreateOrder] = useState(false);
@@ -89,21 +90,31 @@ const Quotes = () => {
       return;
     }
     if (!selectedQuote) return;
+    if (status === 'responded' && respondPrice && (isNaN(Number(respondPrice)) || Number(respondPrice) <= 0)) {
+      toast({ title: 'Invalid price', description: 'Price must be a positive number.', variant: 'destructive' });
+      return;
+    }
     setResponding(true);
     try {
-              const res = await fetch(`/api/quotes/${selectedQuote.id}`, {
+      const res = await fetch(`/api/quotes/${selectedQuote.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${user?.token}`,
         },
-        body: JSON.stringify({ adminResponse: response, status }),
+        body: JSON.stringify({
+          adminResponse: response,
+          status,
+          ...(status === 'responded' && respondPrice ? { finalPrice: Number(respondPrice) } : {}),
+        }),
       });
-      if (!res.ok) throw new Error('Failed to update quote');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to update quote');
       toast({ title: 'Quote updated' });
       setSelectedQuote(null);
       setShowRespondDialog(false);
       setResponse('');
+      setRespondPrice('');
       setStatus('responded');
       refetch(); // Update the query data
     } catch (err: any) {
@@ -129,7 +140,8 @@ const Quotes = () => {
         },
         body: JSON.stringify({ finalPrice }),
       });
-      if (!res.ok) throw new Error('Failed to create order');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Failed to create order');
       toast({ title: 'Order created successfully' });
       setShowCreateOrder(false);
       const updatedQuote = { 
@@ -298,6 +310,7 @@ const Quotes = () => {
                           e.stopPropagation();
                           setSelectedQuote(q);
                           setResponse(q.adminResponse || '');
+                          setRespondPrice(q.finalPrice ? String(q.finalPrice) : '');
                           setStatus('responded'); // Default to responded when sending a response
                           setShowRespondDialog(true);
                         }}
@@ -305,7 +318,7 @@ const Quotes = () => {
                         Respond
                       </Button>
                     )}
-                    {q.status === 'closed' && !q.orderCreated && (
+                    {((q.status === 'closed') || (q.status === 'responded' && q.finalPrice)) && !q.orderCreated && (
                       <Button
                         size="sm"
                         variant="outline"
@@ -313,6 +326,7 @@ const Quotes = () => {
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedQuote(q);
+                          setFinalPrice(q.finalPrice ? Number(q.finalPrice) : 0);
                           setShowCreateOrder(true);
                           setShowRespondDialog(false); // Ensure respond dialog doesn't open
                         }}
@@ -381,6 +395,25 @@ const Quotes = () => {
                   onChange={(e) => setResponse(e.target.value)}
                 />
               </div>
+
+              {status === 'responded' && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-muted-foreground">Quoted Price (KES)</h3>
+                  <input
+                    type="number"
+                    min={1}
+                    step="0.01"
+                    className="w-full rounded-md border p-2 text-sm bg-background"
+                    placeholder="Leave blank to respond without a price yet"
+                    value={respondPrice}
+                    onChange={(e) => setRespondPrice(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Setting a price emails the customer a 7-day-valid quote they can accept themselves
+                    from "My Quotes" — no need to create the order for them manually.
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-muted-foreground">Update Status</h3>
@@ -468,8 +501,8 @@ const Quotes = () => {
                 </div>
               </div>
 
-              {/* Final Agreed Price */}
-              {selectedQuote.orderCreated && (
+              {/* Price */}
+              {selectedQuote.orderCreated ? (
                 <div className="space-y-3">
                   <h3 className="text-xl font-semibold">Final Agreed Price</h3>
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -482,7 +515,7 @@ const Quotes = () => {
                           </span>
                         </div>
                         <p className="text-sm text-green-600 mt-2">
-                          This amount was sent to the customer via email for payment.
+                          The order has been created for this amount.
                         </p>
                       </>
                     ) : (
@@ -492,6 +525,24 @@ const Quotes = () => {
                           An order was created from this quote, but the final price was not recorded.
                         </p>
                       </div>
+                    )}
+                  </div>
+                </div>
+              ) : selectedQuote.finalPrice && (
+                <div className="space-y-3">
+                  <h3 className="text-xl font-semibold">Quoted Price</h3>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-lg font-medium text-blue-800">Waiting on customer:</span>
+                      <span className="text-2xl font-bold text-blue-800">
+                        KES {selectedQuote.finalPrice.toLocaleString()}
+                      </span>
+                    </div>
+                    {selectedQuote.expiresAt && (
+                      <p className="text-sm text-blue-600 mt-2">
+                        Valid until {new Date(selectedQuote.expiresAt).toLocaleDateString()} — the customer can
+                        accept from "My Quotes," or use "Create Order" below for a phone/in-person acceptance.
+                      </p>
                     )}
                   </div>
                 </div>
@@ -534,6 +585,7 @@ const Quotes = () => {
                     onClick={() => {
                       setShowQuoteDetails(false);
                       setResponse(selectedQuote.adminResponse || '');
+                      setRespondPrice(selectedQuote.finalPrice ? String(selectedQuote.finalPrice) : '');
                       setStatus('responded'); // Default to responded when sending a response
                       setShowRespondDialog(true);
                     }}
@@ -542,10 +594,11 @@ const Quotes = () => {
                     Respond to Quote
                   </Button>
                 )}
-                {selectedQuote.status === 'closed' && !selectedQuote.orderCreated && (
+                {((selectedQuote.status === 'closed') || (selectedQuote.status === 'responded' && selectedQuote.finalPrice)) && !selectedQuote.orderCreated && (
                   <Button
                     onClick={() => {
                       setShowQuoteDetails(false);
+                      setFinalPrice(selectedQuote.finalPrice ? Number(selectedQuote.finalPrice) : 0);
                       setShowCreateOrder(true);
                       setShowRespondDialog(false);
                     }}

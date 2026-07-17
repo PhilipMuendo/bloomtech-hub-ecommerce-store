@@ -41,6 +41,12 @@ export default (sequelize) => {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true
     },
+    // Set when admin proposes finalPrice; a sweep auto-declines quotes still
+    // 'responded' (not accepted/declined) past this date.
+    expiresAt: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
     // Audit fields
     createdBy: {
       type: DataTypes.INTEGER, // User ID who created the quote

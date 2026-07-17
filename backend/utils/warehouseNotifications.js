@@ -1,28 +1,13 @@
-import nodemailer from 'nodemailer';
 import db from '../sequelize_models/index.js';
+import { sendEmail } from './emailService.js';
 
 const { User } = db;
-
-// Configure nodemailer
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.example.com',
-    port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587,
-    secure: false,
-    auth: {
-      user: process.env.SMTP_USER || 'admin@example.com',
-      pass: process.env.SMTP_PASS || 'password',
-    },
-  });
-};
 
 // Send beautiful confirmation email to customer about new order
 export const notifyCustomerOfNewOrder = async (order, orderItems) => {
   try {
     console.log('📧 Sending customer confirmation email for order:', order.id);
-    
-    const transporter = createTransporter();
-    
+
     // Format order items for email
     const itemsList = orderItems.map(item => 
       `<tr>
@@ -141,21 +126,65 @@ export const notifyCustomerOfNewOrder = async (order, orderItems) => {
     
     // Send email to customer
     if (order.User?.email) {
-      await transporter.sendMail({
-        from: 'BLOOMTECH HUB <noreply@bloomtechub.com>',
+      await sendEmail({
         to: order.User.email,
         subject: `🎉 Order Confirmed! #${order.id} - BloomTech Hub`,
         html: emailContent
       });
-      
+
       console.log(`✅ Customer confirmation email sent to ${order.User.email}`);
     } else {
       console.log('⚠️ No customer email found for order confirmation');
     }
-    
+
   } catch (error) {
     console.error('❌ Error sending customer confirmation email:', error.message);
     // Don't throw error - notification failure shouldn't break order creation
+  }
+};
+
+// Alert warehouse staff that a new order needs fulfilling. Despite the file
+// name, nothing here previously notified warehouse staff — both existing
+// functions only emailed the customer. This is the actual warehouse alert.
+export const notifyWarehouseStaffOfNewOrder = async (order, orderItems) => {
+  try {
+    const staff = await User.findAll({
+      where: { role: 'warehouse', status: 'active' },
+      attributes: ['email'],
+    });
+    if (staff.length === 0) return; // no warehouse accounts configured yet
+
+    const itemsList = orderItems.map(item =>
+      `<tr>
+        <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.Product?.name || 'Unknown Product'}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+      </tr>`
+    ).join('');
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:8081';
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>📦 New Order to Fulfill — #${order.id}</h2>
+        <p><strong>Customer:</strong> ${order.User?.name || 'N/A'}</p>
+        <p><strong>Total:</strong> KES ${Number(order.total).toLocaleString()}</p>
+        <p><strong>Shipping Address:</strong> ${order.shippingAddress || 'N/A'}</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+          <thead><tr><th style="text-align:left; padding:8px; border-bottom:2px solid #333;">Product</th><th style="padding:8px; border-bottom:2px solid #333;">Qty</th></tr></thead>
+          <tbody>${itemsList}</tbody>
+        </table>
+        <p><a href="${frontendUrl}/warehouse" style="background:#0ea5e9; color:#fff; padding:10px 24px; border-radius:6px; text-decoration:none; display:inline-block;">Open Warehouse Panel</a></p>
+      </div>
+    `;
+
+    await Promise.all(
+      staff.map((member) =>
+        sendEmail({ to: member.email, subject: `New order #${order.id} needs fulfilling`, html })
+      )
+    );
+    console.log(`✅ Warehouse notification sent to ${staff.length} staff member(s)`);
+  } catch (error) {
+    console.error('❌ Error notifying warehouse staff:', error.message);
+    // Don't throw — notification failure shouldn't break order creation
   }
 };
 
@@ -163,9 +192,7 @@ export const notifyCustomerOfNewOrder = async (order, orderItems) => {
 export const notifyOrderStatusChange = async (order, previousStatus, newStatus, updatedBy) => {
   try {
     console.log(`📧 Sending status change notification: ${previousStatus} → ${newStatus}`);
-    
-    const transporter = createTransporter();
-    
+
     const statusColors = {
       'pending': 'orange',
       'processing': 'blue', 
@@ -187,8 +214,7 @@ export const notifyOrderStatusChange = async (order, previousStatus, newStatus, 
     
     // Send to customer
     if (order.User?.email) {
-      await transporter.sendMail({
-        from: 'BLOOMTECH HUB <noreply@bloomtechub.com>',
+      await sendEmail({
         to: order.User.email,
         subject: `📦 Order #${order.id} Status Updated to ${newStatus}`,
         html: emailContent

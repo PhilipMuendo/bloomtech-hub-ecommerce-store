@@ -1,6 +1,7 @@
 import db from '../sequelize_models/index.js';
 import { Op } from 'sequelize';
 import { decrementStockOrThrow } from '../utils/inventory.js';
+import { notifyWarehouseStaffOfNewOrder } from '../utils/warehouseNotifications.js';
 
 const { CartItem, Order, OrderItem, Product } = db;
 
@@ -154,7 +155,13 @@ export const checkout = async (req, res, next) => {
       
       return order;
     });
-    
+
+    // Notify warehouse staff — fire-and-forget, doesn't block the response.
+    notifyWarehouseStaffOfNewOrder(
+      { ...result.toJSON(), User: req.user },
+      cartItems.map(item => ({ Product: item.Product, quantity: item.quantity }))
+    ).catch((err) => console.error('Failed to notify warehouse of new order:', err.message));
+
     res.status(201).json(result);
   } catch (err) {
     if (err.code === 'INSUFFICIENT_STOCK') {
@@ -162,4 +169,4 @@ export const checkout = async (req, res, next) => {
     }
     next(err);
   }
-}; 
+};

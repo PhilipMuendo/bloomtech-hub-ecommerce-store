@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Eye, Mail, Clock, User, MessageSquare, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Search, Eye, Mail, Clock, User, MessageSquare, Trash2, CheckCircle, XCircle, Send } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 
@@ -16,9 +17,10 @@ interface ContactMessage {
   email: string;
   subject: string;
   message: string;
-  status: 'new' | 'read';
+  status: 'new' | 'read' | 'replied';
 
   adminNotes?: string;
+  replyMessage?: string;
   respondedBy?: number;
   respondedAt?: string;
   ipAddress?: string;
@@ -32,6 +34,8 @@ const ContactMessages = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +98,7 @@ const ContactMessages = () => {
     switch (status) {
       case 'new': return 'secondary';
       case 'read': return 'default';
+      case 'replied': return 'outline';
       default: return 'secondary';
     }
   };
@@ -127,6 +132,42 @@ const ContactMessages = () => {
         description: err.message || "Failed to update message status",
         variant: "destructive",
       });
+    }
+  };
+
+  const sendReply = async (messageId: string) => {
+    if (!replyText.trim()) return;
+    setSendingReply(true);
+    try {
+      const response = await fetch(`/api/contact/messages/${messageId}/reply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user?.token}`
+        },
+        body: JSON.stringify({ replyMessage: replyText })
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to send reply');
+      }
+
+      await fetchMessages();
+      toast({
+        title: "Reply sent",
+        description: "The customer has been emailed your response.",
+      });
+      setReplyText('');
+      setSelectedMessage(null);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to send reply",
+        variant: "destructive",
+      });
+    } finally {
+      setSendingReply(false);
     }
   };
 
@@ -227,6 +268,7 @@ const ContactMessages = () => {
                  <SelectItem value="all">All Status</SelectItem>
                  <SelectItem value="new">New</SelectItem>
                  <SelectItem value="read">Read</SelectItem>
+                 <SelectItem value="replied">Replied</SelectItem>
                </SelectContent>
             </Select>
             
@@ -270,7 +312,7 @@ const ContactMessages = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setSelectedMessage(message)}
+                          onClick={() => { setSelectedMessage(message); setReplyText(''); }}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -344,24 +386,59 @@ const ContactMessages = () => {
                 </div>
               )}
 
-                             <div className="flex gap-2 pt-4">
-                 {selectedMessage.status === 'new' && (
-                   <Button
-                     onClick={() => updateMessageStatus(selectedMessage.id, 'read')}
-                   >
-                     <CheckCircle className="mr-2 h-4 w-4" />
-                     Mark as Read
-                   </Button>
-                 )}
-                 {selectedMessage.status === 'read' && (
-                   <Button
-                     onClick={() => updateMessageStatus(selectedMessage.id, 'new')}
-                   >
-                     <Clock className="mr-2 h-4 w-4" />
-                     Mark as New
-                   </Button>
-                 )}
-               </div>
+              {selectedMessage.replyMessage && (
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Send className="h-4 w-4" /> Your Reply (sent to customer)
+                  </h4>
+                  <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                    <p className="whitespace-pre-wrap">{selectedMessage.replyMessage}</p>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <h4 className="font-semibold mb-2">
+                  {selectedMessage.status === 'replied' ? 'Send Another Reply' : 'Reply to Customer'}
+                </h4>
+                <Textarea
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder={`Write your response to ${selectedMessage.name}...`}
+                  className="min-h-[120px]"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  This emails {selectedMessage.email} directly and marks the ticket as replied.
+                </p>
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() => sendReply(selectedMessage.id)}
+                  disabled={!replyText.trim() || sendingReply}
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  {sendingReply ? 'Sending...' : 'Send Reply'}
+                </Button>
+                {selectedMessage.status === 'new' && (
+                  <Button
+                    variant="outline"
+                    onClick={() => updateMessageStatus(selectedMessage.id, 'read')}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Mark as Read
+                  </Button>
+                )}
+                {selectedMessage.status !== 'new' && (
+                  <Button
+                    variant="outline"
+                    onClick={() => updateMessageStatus(selectedMessage.id, 'new')}
+                  >
+                    <Clock className="mr-2 h-4 w-4" />
+                    Mark as New
+                  </Button>
+                )}
+              </div>
             </div>
           </DialogContent>
         </Dialog>

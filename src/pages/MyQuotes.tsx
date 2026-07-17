@@ -4,8 +4,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import { Clock, MailCheck, CheckCircle, XCircle, Send, MessageSquare, ShoppingCart } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Quote } from '@/types';
 
 const StatusBadge = ({ status }) => {
@@ -41,13 +42,16 @@ const StatusBadge = ({ status }) => {
 
 const MyQuotes = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
   const [reply, setReply] = useState('');
   const [replying, setReplying] = useState(false);
-  
+  const [deciding, setDeciding] = useState(false);
+
   // Clear notifications in header when visiting this page
   useEffect(() => {
     const markSeen = async () => {
@@ -131,7 +135,7 @@ const MyQuotes = () => {
       }
     };
 
-    // Fetch immediately when quote设计的 selected, then poll every 60 seconds
+    // Fetch immediately when a quote is selected, then poll every 60 seconds
     fetchQuoteDetails();
     const interval = setInterval(fetchQuoteDetails, 60000);
     return () => clearInterval(interval);
@@ -158,6 +162,48 @@ const MyQuotes = () => {
       // toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
       setReplying(false);
+    }
+  };
+
+  const handleAccept = async () => {
+    if (!selectedQuote) return;
+    setDeciding(true);
+    try {
+      const res = await fetch(`/api/quotes/${selectedQuote.id}/accept`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${user?.token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to accept quote');
+      toast({
+        title: 'Quote accepted',
+        description: 'Your order has been created — check your email for the payment link.',
+      });
+      navigate('/orders');
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setDeciding(false);
+    }
+  };
+
+  const handleDecline = async () => {
+    if (!selectedQuote) return;
+    setDeciding(true);
+    try {
+      const res = await fetch(`/api/quotes/${selectedQuote.id}/decline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${user?.token}` },
+      });
+      const updatedQuote = await res.json();
+      if (!res.ok) throw new Error(updatedQuote.error || 'Failed to decline quote');
+      setQuotes(prev => prev.map(q => (q.id === updatedQuote.id ? updatedQuote : q)));
+      setSelectedQuote(updatedQuote);
+      toast({ title: 'Quote declined' });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setDeciding(false);
     }
   };
 
@@ -200,6 +246,11 @@ const MyQuotes = () => {
                       </div>
                       <div className="text-sm text-muted-foreground">{new Date(q.createdAt).toLocaleDateString()}</div>
                       <StatusBadge status={q.status} />
+                      {q.status === 'responded' && q.finalPrice && !q.orderCreated && (
+                        <div className="text-sm font-semibold text-blue-700 mt-1">
+                          KES {Number(q.finalPrice).toLocaleString()} — action needed
+                        </div>
+                      )}
                       {q.status === 'responded' && q.messages && q.messages.length > 0 && (
                         <div className="text-xs text-muted-foreground mt-1">
                           {q.messages.filter((m: any) => m.sender === 'admin').length} response(s) from team
@@ -221,6 +272,33 @@ const MyQuotes = () => {
                         )}
                       </div>
                     </div>
+
+                    {selectedQuote.status === 'responded' && selectedQuote.finalPrice && !selectedQuote.orderCreated && (
+                      <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <div>
+                            <p className="text-sm text-blue-700">Quoted price</p>
+                            <p className="text-2xl font-bold text-blue-900">
+                              KES {Number(selectedQuote.finalPrice).toLocaleString()}
+                            </p>
+                            {selectedQuote.expiresAt && (
+                              <p className="text-xs text-blue-600 mt-1">
+                                Valid until {new Date(selectedQuote.expiresAt).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" onClick={handleDecline} disabled={deciding}>
+                              <XCircle className="mr-2 h-4 w-4" /> Decline
+                            </Button>
+                            <Button onClick={handleAccept} disabled={deciding}>
+                              <CheckCircle className="mr-2 h-4 w-4" /> Accept &amp; Create Order
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex-grow space-y-4 overflow-y-auto p-4 border rounded-lg h-96">
                       {selectedQuote.messages && selectedQuote.messages.length > 0 ? (
                         selectedQuote.messages.map((msg: any) => (

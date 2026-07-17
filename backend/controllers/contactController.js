@@ -1,5 +1,10 @@
 import db from '../sequelize_models/index.js';
 import { sendEmail } from '../utils/emailService.js';
+import sanitizeHtmlLib from 'sanitize-html';
+
+// Escape user-submitted text before embedding in an HTML email — strips all
+// tags so a customer's message/reply can't inject markup into the email.
+const sanitizeHtml = (text = '') => sanitizeHtmlLib(text, { allowedTags: [], allowedAttributes: {} });
 
 const { ContactMessage } = db;
 
@@ -425,6 +430,91 @@ export const updateMessageStatus = async (req, res) => {
   } catch (error) {
     console.error('Error updating message status:', error);
     res.status(500).json({ error: 'Failed to update message status' });
+  }
+};
+
+// POST /api/contact/messages/:id/reply - Reply to a contact message (admin only)
+// This is the only path that actually emails the customer back — previously
+// "adminNotes" was internal-only and nothing ever closed the loop with them.
+export const replyToMessage = async (req, res) => {
+  try {
+    const { replyMessage } = req.body;
+    if (!replyMessage || !replyMessage.trim()) {
+      return res.status(400).json({ error: 'Reply message is required' });
+    }
+
+    const message = await ContactMessage.findByPk(req.params.id);
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    const replyEmailContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Re: ${message.subject} - Bloomtech Hub</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
+          .email-wrapper { background-color: #f5f5f5; padding: 20px; }
+          .email-container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+          .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }
+          .header h1 { margin: 0; font-size: 26px; font-weight: 600; }
+          .content { padding: 40px 30px; }
+          .reply-box { background: #f8f9fa; border-left: 4px solid #667eea; border-radius: 8px; padding: 20px; margin: 25px 0; white-space: pre-wrap; }
+          .original-box { background: #f5f5f5; border-radius: 8px; padding: 16px 20px; margin: 25px 0; color: #666; font-size: 13px; }
+          .footer { background: #f8f9fa; padding: 30px; text-align: center; border-top: 1px solid #e0e0e0; }
+          .footer p { margin: 5px 0; color: #666; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <div class="email-wrapper">
+          <div class="email-container">
+            <div class="header">
+              <h1>💬 Reply to Your Message</h1>
+            </div>
+            <div class="content">
+              <p style="font-size: 18px; font-weight: 500;">Dear ${message.name},</p>
+              <p style="color: #555; font-size: 15px;">Thank you for contacting Bloomtech Hub (Ticket #${message.id}). Here's our response:</p>
+              <div class="reply-box">${sanitizeHtml(replyMessage).replace(/\n/g, '<br>')}</div>
+              <div class="original-box">
+                <strong>Your original message (${message.subject}):</strong><br>
+                ${sanitizeHtml(message.message).replace(/\n/g, '<br>')}
+              </div>
+              <p style="color: #555; font-size: 15px;">If you have further questions, just reply to this email or contact us again referencing Ticket #${message.id}.</p>
+              <p style="color: #333; font-size: 15px; margin-top: 25px; font-weight: 500;">
+                Best regards,<br>
+                <span style="color: #667eea; font-weight: 600;">The Bloomtech Hub Team</span>
+              </p>
+            </div>
+            <div class="footer">
+              <p>© ${new Date().getFullYear()} Bloomtech Hub. All rights reserved.</p>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await sendEmail({
+      from: 'BLOOMTECH HUB <noreply@bloomtechub.com>',
+      to: message.email,
+      subject: `Re: ${message.subject} (Ticket #${message.id})`,
+      html: replyEmailContent
+    });
+
+    await message.update({
+      status: 'replied',
+      replyMessage: replyMessage.trim(),
+      respondedBy: req.user.id,
+      respondedAt: new Date(),
+    });
+
+    res.json({ message: 'Reply sent successfully', updatedMessage: message });
+  } catch (error) {
+    console.error('Error replying to contact message:', error);
+    res.status(500).json({ error: 'Failed to send reply. Please check email configuration and try again.' });
   }
 };
 

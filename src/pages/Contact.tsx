@@ -14,6 +14,7 @@ const Contact = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [ticketId, setTicketId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,9 +34,12 @@ const Contact = () => {
 
       if (response.ok) {
         setIsSubmitted(true);
+        setTicketId(data.messageId ? String(data.messageId) : null);
         toast({
           title: "Message Sent!",
-          description: "Thank you for contacting us. We'll get back to you soon!",
+          description: data.messageId
+            ? `Thank you for contacting us — reference Ticket #${data.messageId} if you follow up. We'll get back to you soon!`
+            : "Thank you for contacting us. We'll get back to you soon!",
         });
         setFormData({ name: '', email: '', subject: '', message: '' });
       } else {
@@ -144,6 +148,15 @@ const Contact = () => {
             <CardTitle>Send us a Message</CardTitle>
           </CardHeader>
           <CardContent>
+            {isSubmitted && ticketId && (
+              <div className="mb-4 flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800">
+                <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>
+                  Message sent — your reference is <strong>Ticket #{ticketId}</strong>. Quote this
+                  if you follow up by phone or email.
+                </p>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

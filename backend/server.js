@@ -8,6 +8,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import logger from './utils/logger.js';
 import { startAbandonedOrderSweep } from './utils/orderCleanup.js';
+import { startQuoteExpirySweep } from './utils/quoteCleanup.js';
 import requestIdMiddleware from './middleware/requestId.js';
 import hpp from 'hpp';
 import {
@@ -151,6 +152,7 @@ sequelize.authenticate().then(() => {
     logger.info('==============================');
   });
   startAbandonedOrderSweep();
+  startQuoteExpirySweep();
 }).catch((err) => {
   logger.error('==============================');
   logger.error('✗ Failed to start server');

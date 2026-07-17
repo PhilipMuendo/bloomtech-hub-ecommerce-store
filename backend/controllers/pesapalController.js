@@ -2,7 +2,7 @@ import axios from 'axios';
 import crypto from 'crypto';
 import db, { sequelize } from '../sequelize_models/index.js';
 const { Order, Transaction, User, OrderItem, Product } = db;
-import { notifyCustomerOfNewOrder } from '../utils/warehouseNotifications.js';
+import { notifyCustomerOfNewOrder, notifyWarehouseStaffOfNewOrder } from '../utils/warehouseNotifications.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { generateTrackingNumber, normalizeId, toIntegerId, isTemporaryOrderId } from '../utils/idUtils.js';
@@ -650,9 +650,20 @@ export const handlePesapalCallback = async (req, res) => {
 
         console.log('✅ Actual order created successfully:', result.order.id);
 
-        // Send customer confirmation email (outside transaction to avoid blocking)
-        setTimeout(() => {
-          notifyCustomerOfNewOrder(result.order, result.orderItems);
+        // Send confirmation + warehouse notification emails (outside the
+        // transaction to avoid blocking). bulkCreate doesn't return
+        // associations, so re-fetch items with Product data first — without
+        // it, both emails would render every line as "Unknown Product".
+        setTimeout(async () => {
+          const itemsWithProducts = await OrderItem.findAll({
+            where: { orderId: result.order.id },
+            include: [{ model: Product, attributes: ['name', 'price'] }]
+          });
+          const orderWithUser = await Order.findByPk(result.order.id, {
+            include: [{ model: User, attributes: ['name', 'email'] }]
+          });
+          notifyCustomerOfNewOrder(orderWithUser, itemsWithProducts);
+          notifyWarehouseStaffOfNewOrder(orderWithUser, itemsWithProducts);
         }, 1000);
       } else {
         // Update existing order status

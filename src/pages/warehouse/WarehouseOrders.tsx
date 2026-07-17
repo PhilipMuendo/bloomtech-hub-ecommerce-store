@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Eye, Package, CheckCircle, User, Mail, Phone, MapPin, Calendar, ShoppingBag, Filter, SortAsc, SortDesc } from 'lucide-react';
+import { Search, Eye, Package, CheckCircle, User, Mail, Phone, MapPin, Calendar, ShoppingBag, Filter, SortAsc, SortDesc, Printer, AlertTriangle, Truck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Order {
@@ -24,7 +24,18 @@ interface Order {
   }>;
   shippingAddress?: string;
   deliveredAt?: string;
+  trackingNumber?: string;
 }
+
+// Orders sitting unfulfilled longer than this get a visible "overdue" flag —
+// there was previously no way to see which orders needed urgent attention,
+// only a plain date-created sort.
+const OVERDUE_DAYS = 2;
+const isOverdue = (order: Pick<Order, 'status' | 'date'>) => {
+  if (order.status === 'delivered' || order.status === 'cancelled') return false;
+  const ageMs = Date.now() - new Date(order.date).getTime();
+  return ageMs > OVERDUE_DAYS * 24 * 60 * 60 * 1000;
+};
 
 const WarehouseOrders = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,6 +47,7 @@ const WarehouseOrders = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -70,6 +82,7 @@ const WarehouseOrders = () => {
           })) || [],
           shippingAddress: o.shippingAddress,
           deliveredAt: o.deliveredAt,
+          trackingNumber: o.trackingNumber,
         }));
         
         setOrders(normalized);
@@ -129,7 +142,7 @@ const WarehouseOrders = () => {
     }
   };
 
-  const deliverOrder = async (orderId: string) => {
+  const deliverOrder = async (orderId: string, trackingNumber?: string) => {
     setProcessingOrder(orderId);
     try {
       let token = localStorage.getItem('jwt');
@@ -137,28 +150,32 @@ const WarehouseOrders = () => {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         token = user.token;
       }
-      
+
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
       };
       if (token) headers['Authorization'] = `Bearer ${token}`;
-      
+
       const res = await fetch(`/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify({ status: 'delivered' })
+        body: JSON.stringify({
+          status: 'delivered',
+          ...(trackingNumber?.trim() ? { trackingNumber: trackingNumber.trim() } : {}),
+        })
       });
-      
+
       if (!res.ok) throw new Error('Failed to update order status');
-      
+
       const updatedOrder = await res.json();
-      
-      setOrders(prev => prev.map(order => 
-        order.id === orderId 
-          ? { ...order, status: 'delivered' as const, deliveredAt: updatedOrder.deliveredAt }
+
+      setOrders(prev => prev.map(order =>
+        order.id === orderId
+          ? { ...order, status: 'delivered' as const, deliveredAt: updatedOrder.deliveredAt, trackingNumber: updatedOrder.trackingNumber }
           : order
       ));
-      
+      setTrackingInputs(prev => { const next = { ...prev }; delete next[orderId]; return next; });
+
       toast({
         title: 'Success',
         description: 'Order status updated to delivered',
@@ -179,6 +196,47 @@ const WarehouseOrders = () => {
     setIsViewDialogOpen(true);
   };
 
+  const printPackingSlip = (order: Order) => {
+    const itemsRows = order.items.map(item =>
+      `<tr><td style="padding:8px 0; border-bottom:1px solid #ddd;">${item.productName}</td>
+       <td style="padding:8px 0; border-bottom:1px solid #ddd; text-align:center;">${item.quantity}</td></tr>`
+    ).join('');
+
+    const html = `<!DOCTYPE html><html><head><title>Packing Slip - Order #${order.id}</title>
+      <style>
+        body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; color: #111; }
+        h1 { font-size: 20px; border-bottom: 2px solid #111; padding-bottom: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; border-bottom: 2px solid #111; padding: 8px 0; }
+        .meta { margin: 16px 0; }
+        .meta p { margin: 4px 0; }
+        @media print { body { margin: 0; } }
+      </style></head>
+      <body>
+        <h1>Packing Slip — Order #${order.id}</h1>
+        <div class="meta">
+          <p><strong>Customer:</strong> ${order.customerName}</p>
+          <p><strong>Phone:</strong> ${order.customerPhone}</p>
+          <p><strong>Shipping Address:</strong> ${order.shippingAddress || 'N/A'}</p>
+          <p><strong>Order Date:</strong> ${new Date(order.date).toLocaleDateString()}</p>
+          ${order.trackingNumber ? `<p><strong>Tracking #:</strong> ${order.trackingNumber}</p>` : ''}
+        </div>
+        <table>
+          <thead><tr><th>Product</th><th style="text-align:center;">Qty</th></tr></thead>
+          <tbody>${itemsRows}</tbody>
+        </table>
+      </body></html>`;
+
+    const printWindow = window.open('', '_blank', 'width=800,height=900');
+    if (!printWindow) {
+      toast({ title: 'Popup blocked', description: 'Allow popups to print packing slips.', variant: 'destructive' });
+      return;
+    }
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.onload = () => printWindow.print();
+  };
+
   const handleSort = (field: string) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -196,7 +254,8 @@ const WarehouseOrders = () => {
         String(order.id).toLowerCase().includes(searchTerm.toLowerCase());
       
       // Status filter
-      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+      const matchesStatus = statusFilter === 'all'
+        || (statusFilter === 'overdue' ? isOverdue(order) : order.status === statusFilter);
       
       return matchesSearch && matchesStatus;
     })
@@ -313,10 +372,25 @@ const WarehouseOrders = () => {
           <CardDescription>Quick overview of order statuses</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div 
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div
               className={`text-center p-3 rounded-lg cursor-pointer transition-all duration-200 hover:scale-105 shadow-sm hover:shadow-md ${
-                statusFilter === 'pending' 
+                statusFilter === 'overdue'
+                  ? 'bg-red-100 border-2 border-red-400 shadow-md'
+                  : 'bg-red-50 hover:bg-red-100'
+              }`}
+              onClick={() => setStatusFilter(statusFilter === 'overdue' ? 'all' : 'overdue')}
+            >
+              <div className="text-2xl font-bold text-red-600">
+                {orders.filter(o => isOverdue(o)).length}
+              </div>
+              <div className="text-sm text-red-700 flex items-center justify-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5" /> Overdue
+              </div>
+            </div>
+            <div
+              className={`text-center p-3 rounded-lg cursor-pointer transition-all duration-200 hover:scale-105 shadow-sm hover:shadow-md ${
+                statusFilter === 'pending'
                   ? 'bg-yellow-100 border-2 border-yellow-400 shadow-md' 
                   : 'bg-yellow-50 hover:bg-yellow-100'
               }`}
@@ -460,9 +534,16 @@ const WarehouseOrders = () => {
                         {new Date(order.date).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(order.status)}>
-                          {(order.status || 'pending').charAt(0).toUpperCase() + (order.status || 'pending').slice(1).replace('_', ' ')}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge className={getStatusColor(order.status)}>
+                            {(order.status || 'pending').charAt(0).toUpperCase() + (order.status || 'pending').slice(1).replace('_', ' ')}
+                          </Badge>
+                          {isOverdue(order) && (
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600" title={`Unfulfilled for more than ${OVERDUE_DAYS} days`}>
+                              <AlertTriangle className="w-3.5 h-3.5" /> Overdue
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {order.status === 'delivered' && order.deliveredAt ? (
@@ -482,7 +563,7 @@ const WarehouseOrders = () => {
                         KES {order.total?.toLocaleString() || '0'}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
@@ -490,6 +571,14 @@ const WarehouseOrders = () => {
                           >
                             <Eye className="w-4 h-4 mr-1" />
                             View
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => printPackingSlip(order)}
+                          >
+                            <Printer className="w-4 h-4 mr-1" />
+                            Slip
                           </Button>
                           {(order.status === 'pending' || !order.status) && (
                             <Button
@@ -506,18 +595,26 @@ const WarehouseOrders = () => {
                             </Button>
                           )}
                           {order.status === 'processing' && (
-                            <Button
-                              size="sm"
-                              onClick={() => deliverOrder(order.id)}
-                              disabled={processingOrder === order.id}
-                            >
-                              {processingOrder === order.id ? (
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
-                              ) : (
-                                <CheckCircle className="w-4 h-4 mr-1" />
-                              )}
-                              Deliver
-                            </Button>
+                            <>
+                              <Input
+                                placeholder="Tracking # (optional)"
+                                value={trackingInputs[order.id] || ''}
+                                onChange={(e) => setTrackingInputs(prev => ({ ...prev, [order.id]: e.target.value }))}
+                                className="h-9 w-40 text-xs"
+                              />
+                              <Button
+                                size="sm"
+                                onClick={() => deliverOrder(order.id, trackingInputs[order.id])}
+                                disabled={processingOrder === order.id}
+                              >
+                                {processingOrder === order.id ? (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+                                ) : (
+                                  <CheckCircle className="w-4 h-4 mr-1" />
+                                )}
+                                Deliver
+                              </Button>
+                            </>
                           )}
                         </div>
                       </TableCell>
@@ -636,6 +733,11 @@ const WarehouseOrders = () => {
                           {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1).replace('_', ' ')}
                         </Badge>
                         <span className="text-sm text-gray-500">Order Status</span>
+                        {isOverdue(selectedOrder) && (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600">
+                            <AlertTriangle className="w-3.5 h-3.5" /> Overdue
+                          </span>
+                        )}
                       </div>
                       {selectedOrder.status === 'delivered' && selectedOrder.deliveredAt && (
                         <div className="flex items-center gap-2">
@@ -648,6 +750,15 @@ const WarehouseOrders = () => {
                           </div>
                         </div>
                       )}
+                      {selectedOrder.trackingNumber && (
+                        <div className="flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-gray-500" />
+                          <div>
+                            <p className="font-medium">{selectedOrder.trackingNumber}</p>
+                            <p className="text-sm text-gray-500">Tracking Number</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold">KES {selectedOrder.total?.toLocaleString() || '0'}</p>
@@ -656,7 +767,21 @@ const WarehouseOrders = () => {
                   </div>
                   
                   {/* Action Buttons */}
+                  {selectedOrder.status === 'processing' && (
+                    <div className="mt-4 pt-4 border-t">
+                      <label className="text-sm text-gray-500 mb-1 block">Tracking Number (optional)</label>
+                      <Input
+                        placeholder="e.g. carrier tracking code"
+                        value={trackingInputs[selectedOrder.id] || ''}
+                        onChange={(e) => setTrackingInputs(prev => ({ ...prev, [selectedOrder.id]: e.target.value }))}
+                      />
+                    </div>
+                  )}
                   <div className="flex gap-2 mt-4 pt-4 border-t">
+                    <Button variant="outline" onClick={() => printPackingSlip(selectedOrder)}>
+                      <Printer className="w-4 h-4 mr-2" />
+                      Print Slip
+                    </Button>
                     {selectedOrder.status === 'pending' && (
                       <Button
                         onClick={() => {
@@ -677,7 +802,7 @@ const WarehouseOrders = () => {
                     {selectedOrder.status === 'processing' && (
                       <Button
                         onClick={() => {
-                          deliverOrder(selectedOrder.id);
+                          deliverOrder(selectedOrder.id, trackingInputs[selectedOrder.id]);
                           setIsViewDialogOpen(false);
                         }}
                         disabled={processingOrder === selectedOrder.id}

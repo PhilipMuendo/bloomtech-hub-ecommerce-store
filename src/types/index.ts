@@ -47,6 +47,7 @@ export interface Quote {
   orderCreated?: boolean;
   adminResponse?: string;
   finalPrice?: number;
+  expiresAt?: string;
   createdAt: string;
   updatedAt: string;
 }
