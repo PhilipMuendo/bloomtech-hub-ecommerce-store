@@ -261,8 +261,8 @@ node server.js
 ### 1. Start Application with PM2
 
 ```bash
-# Start the application using ecosystem.config.js
-pm2 start ecosystem.config.js
+# Start the application using ecosystem.config.cjs
+pm2 start ecosystem.config.cjs
 
 # Check status
 pm2 status

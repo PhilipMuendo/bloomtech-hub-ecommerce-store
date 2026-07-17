@@ -1,5 +1,4 @@
-export default {
-  up: async (queryInterface, Sequelize) => {
+export async function up(queryInterface, Sequelize) {
     // First, update any existing products that don't have a subcategory
     // Set a default subcategory based on their category
     await queryInterface.sequelize.query(`
@@ -22,16 +21,15 @@ export default {
         len: [2]
       }
     });
-  },
+}
 
-  down: async (queryInterface, Sequelize) => {
-    // Revert the column to allow NULL
-    await queryInterface.changeColumn('products', 'subcategory', {
-      type: Sequelize.STRING,
-      allowNull: true,
-      validate: {
-        len: [2]
-      }
-    });
-  }
-}; 
+export async function down(queryInterface, Sequelize) {
+  // Revert the column to allow NULL
+  await queryInterface.changeColumn('products', 'subcategory', {
+    type: Sequelize.STRING,
+    allowNull: true,
+    validate: {
+      len: [2]
+    }
+  });
+}
