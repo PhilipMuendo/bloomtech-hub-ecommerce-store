@@ -15,7 +15,8 @@ COPY . .
 
 # The upload directory is a mounted volume in compose; ensure it exists and is
 # owned by the non-root runtime user so the named volume inherits write access.
-RUN mkdir -p public/lovable-uploads && chown -R node:node public
+# `logs/` is where winston (utils/logger.js) writes error.log/combined.log.
+RUN mkdir -p public/lovable-uploads logs && chown -R node:node public logs
 
 ENV NODE_ENV=production
 ENV PORT=5000
