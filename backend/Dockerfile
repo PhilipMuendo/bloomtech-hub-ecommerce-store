@@ -1,5 +1,6 @@
 # Backend API — Express + Sequelize (MySQL)
-FROM node:18-alpine
+# Node 22 LTS: sharp >=0.34 requires Node >=20.9, and Node 18 is EOL.
+FROM node:22-alpine
 
 # dumb-init gives us proper signal handling (graceful shutdown) for PID 1.
 RUN apk add --no-cache dumb-init
