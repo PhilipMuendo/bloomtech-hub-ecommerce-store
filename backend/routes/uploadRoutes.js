@@ -3,28 +3,18 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import sharp from 'sharp';
 import requireAuth from '../middleware/requireAuth.js';
 import { requireRole } from '../middleware/roleAuth.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const router = express.Router();
 
-// Set up multer storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, '../public/lovable-uploads');
-    // Ensure the directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
+const UPLOAD_DIR = path.join(__dirname, '../public/uploads');
 
+// First-line filter on the declared MIME type. The sharp re-encode below is
+// the real guarantee: output is always WebP, so a spoofed Content-Type can
+// never result in a non-image (e.g. HTML) being served from this origin.
 const ALLOWED_MIME_TYPES = new Set([
   'image/jpeg',
   'image/png',
@@ -33,7 +23,7 @@ const ALLOWED_MIME_TYPES = new Set([
 ]);
 
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB
   },
@@ -49,7 +39,7 @@ router.use(requireAuth, requireRole(['admin', 'superadmin']));
 
 // POST /api/upload
 router.post('/', (req, res, next) => {
-  upload.single('image')(req, res, (err) => {
+  upload.single('image')(req, res, async (err) => {
     if (err instanceof multer.MulterError) {
       if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(413).json({ error: 'File too large. Maximum size is 5MB.' });
@@ -68,20 +58,27 @@ router.post('/', (req, res, next) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    let host = req.get('host');
-    const forwardedHost = req.get('x-forwarded-host');
-    const forwardedProto = req.get('x-forwarded-proto');
+    try {
+      fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-    if (forwardedHost && forwardedProto) {
-      host = forwardedHost;
-      const protocol = forwardedProto;
-      const fileUrl = `${protocol}://${host}/public/lovable-uploads/${req.file.filename}`;
-      return res.json({ url: fileUrl });
+      const filename = `${Date.now()}-${Math.round(Math.random() * 1e9)}.webp`;
+
+      // Normalize every upload: auto-orient from EXIF, cap the longest edge at
+      // 1600px, re-encode as WebP. Typically cuts a phone photo ~90% in size.
+      await sharp(req.file.buffer)
+        .rotate()
+        .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toFile(path.join(UPLOAD_DIR, filename));
+
+      // Relative URL — resolves against whatever domain serves the site, so
+      // stored image URLs survive domain changes (unlike absolute URLs).
+      return res.json({ url: `/public/uploads/${filename}` });
+    } catch (e) {
+      // sharp throws on anything that isn't a decodable image.
+      return res.status(400).json({ error: 'File is not a valid image.' });
     }
-
-    const fileUrl = `${req.protocol}://${host}/public/lovable-uploads/${req.file.filename}`;
-    return res.json({ url: fileUrl });
   });
 });
 
-export default router; 
+export default router;

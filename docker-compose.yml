@@ -84,7 +84,7 @@ services:
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-}
     volumes:
       # Persist uploaded product/blog images across restarts.
-      - uploads:/app/public/lovable-uploads
+      - uploads:/app/public/uploads
     expose:
       - "5000"
 

@@ -1,6 +1,5 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 import express from 'express';
@@ -80,13 +79,6 @@ app.use('/api/', apiRateLimiter); // Global API rate limiting
 // Logging
 app.use(morgan('combined')); // Enhanced logging
 app.use('/public', express.static(path.join(__dirname, 'public')));
-console.log('Static files served from:', path.join(__dirname, 'public'));
-const staticDir = path.join(__dirname, 'public/lovable-uploads');
-if (fs.existsSync(staticDir)) {
-  console.log('Files in lovable-uploads:', fs.readdirSync(staticDir));
-} else {
-  console.log('lovable-uploads directory does not exist:', staticDir);
-}
 
 // Route placeholders
 app.get('/', (req, res) => {
