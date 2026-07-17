@@ -14,7 +14,14 @@ services:
       MYSQL_DATABASE: ${DB_NAME:-bloomtech_db}
       MYSQL_USER: ${DB_USER:-bloomtech}
       MYSQL_PASSWORD: ${DB_PASS:-bloomtech123}
-    command: --default-authentication-plugin=mysql_native_password
+    # lower_case_table_names=1 matches the case-insensitive MySQL table-name
+    # behavior of Windows/macOS dev machines, where model tableName overrides
+    # (e.g. `users`) and PascalCase createTable() calls in older migrations
+    # (e.g. `Users`) can coexist. Linux MySQL defaults to case-sensitive table
+    # names, so without this the two would be treated as different tables.
+    # Must be set before the first `mysqld` initialization — cannot be changed
+    # on an existing data directory.
+    command: --default-authentication-plugin=mysql_native_password --lower-case-table-names=1
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
