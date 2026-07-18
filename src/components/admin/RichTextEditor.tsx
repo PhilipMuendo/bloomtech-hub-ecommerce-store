@@ -54,6 +54,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, onImag
       },
     },
     onUpdate: ({ editor }) => {
+      // Tiptap v3 + React can fire pending callbacks after the editor's own
+      // teardown effect has already destroyed the view — getHTML() on a
+      // destroyed editor throws (schema becomes null), crashing the tree.
+      if (editor.isDestroyed) return;
       onChange(editor.getHTML());
     },
   });
@@ -61,7 +65,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange, onImag
   // Sync external value changes (e.g. loading a post into edit mode) without
   // fighting the user's cursor while they're actively typing.
   useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
+    if (editor && !editor.isDestroyed && value !== editor.getHTML()) {
       editor.commands.setContent(value || '', { emitUpdate: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
