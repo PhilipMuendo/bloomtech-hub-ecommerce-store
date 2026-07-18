@@ -51,5 +51,3 @@ docker compose up -d --build        # rebuild after code changes
 - **TLS**: terminate HTTPS at a host-level reverse proxy (Caddy/Traefik/nginx)
   or a load balancer in front of the `frontend` container; the container itself
   serves plain HTTP on port 80.
-- The older `deployment/` folder (cPanel/PM2 assets) is kept for reference but is
-  superseded by this compose setup for container-based deploys.
