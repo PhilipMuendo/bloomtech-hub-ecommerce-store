@@ -355,7 +355,7 @@ const Dashboard = () => {
           </div>
 
           {/* Charts Section - Top Row */}
-          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-full">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 max-w-full">
             {/* Revenue Trend Chart (SuperAdmin only) */}
             {isSuperAdmin() && (
               <Card className="max-w-full">
@@ -363,8 +363,8 @@ const Dashboard = () => {
                   <CardTitle>Revenue Trend</CardTitle>
                   <CardDescription>Monthly revenue for the last 6 months</CardDescription>
                 </CardHeader>
-                <CardContent className="overflow-x-auto max-w-full">
-                  <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[320px] max-w-full">
+                <CardContent>
+                  <ChartContainer config={chartConfig} className="h-[300px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={revenueData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -402,17 +402,17 @@ const Dashboard = () => {
                 <CardTitle>User Signups</CardTitle>
                 <CardDescription>Monthly new user registrations</CardDescription>
               </CardHeader>
-              <CardContent className="overflow-x-auto max-w-full">
-                                 <ChartContainer config={chartConfig} className="h-[300px] w-full min-w-[1000px] max-w-full">
+              <CardContent>
+                <ChartContainer config={chartConfig} className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                                         <BarChart data={userSignupsData} margin={{ left: 20, right: 20, top: 20, bottom: 20 }}>
-                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                       <XAxis
-                         dataKey="month"
-                         stroke="hsl(var(--muted-foreground))"
-                         fontSize={12}
-                         interval={0}
-                       />
+                    <BarChart data={userSignupsData} margin={{ left: 20, right: 20, top: 20, bottom: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis
+                        dataKey="month"
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        interval={0}
+                      />
                       <YAxis
                         stroke="hsl(var(--muted-foreground))"
                         fontSize={12}
@@ -429,7 +429,6 @@ const Dashboard = () => {
                     </BarChart>
                   </ResponsiveContainer>
                 </ChartContainer>
-                
               </CardContent>
             </Card>
             {/* Orders by Category Chart */}
@@ -438,7 +437,7 @@ const Dashboard = () => {
                 <CardTitle>Orders by Category</CardTitle>
                 <CardDescription>Distribution of orders</CardDescription>
               </CardHeader>
-              <CardContent className="overflow-x-auto max-w-full">
+              <CardContent>
                 {ordersByCategoryData.length === 0 ? (
                   <div className="h-[300px] flex items-center justify-center text-muted-foreground">
                     <div className="text-center">
