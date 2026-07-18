@@ -209,13 +209,14 @@ const Dashboard = () => {
     },
   };
 
-  const StatCard = ({ title, value, icon: Icon, description, color, className }: {
+  const StatCard = ({ title, value, icon: Icon, description, color, className, currency }: {
     title: string;
     value: string | number;
     icon: any;
     description: string;
     color?: string;
     className?: string;
+    currency?: boolean;
   }) => (
     <Card className={`transition-all duration-200 hover:shadow-lg hover:scale-105 cursor-pointer ${className || ''}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -227,7 +228,7 @@ const Dashboard = () => {
       <CardContent>
         <div className="text-2xl font-bold">
           <AnimatedCounter value={typeof value === 'number' ? value : 0} label="" />
-          {typeof value === 'string' && value.includes('KES') && (
+          {currency && (
             <span className="text-sm font-normal ml-1">KES</span>
           )}
         </div>
@@ -336,9 +337,10 @@ const Dashboard = () => {
                   title="Revenue"
                   value={stats?.revenue || 0}
                   icon={TrendingUp}
-                  description="Total revenue (KES)"
+                  description="Total revenue"
                   color="bg-emerald-500"
                   className="min-w-[180px] max-w-[220px]"
+                  currency
                 />
               </>
             )}
