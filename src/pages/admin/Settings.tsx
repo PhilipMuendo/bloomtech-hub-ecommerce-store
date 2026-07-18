@@ -13,8 +13,10 @@ import {
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Settings2, Palette, Share2 } from 'lucide-react';
+import { Upload, Settings2, Palette, Share2, Phone, Landmark, SlidersHorizontal } from 'lucide-react';
 
 const AdminSettings: React.FC = () => {
   const { user } = useAuth();
@@ -128,7 +130,7 @@ const AdminSettings: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold">Site Settings</h1>
           <p className="text-muted-foreground mt-1">
-            Configure your site branding, logos, and social media links
+            Configure branding, contact info, payment details, and store operations
           </p>
         </div>
         <Button onClick={handleSave} disabled={saving}>
@@ -137,7 +139,7 @@ const AdminSettings: React.FC = () => {
       </div>
 
       <Tabs defaultValue="branding" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto">
           <TabsTrigger value="branding" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />
             Branding
@@ -146,9 +148,21 @@ const AdminSettings: React.FC = () => {
             <Settings2 className="h-4 w-4" />
             Logo
           </TabsTrigger>
+          <TabsTrigger value="contact" className="flex items-center gap-2">
+            <Phone className="h-4 w-4" />
+            Contact
+          </TabsTrigger>
+          <TabsTrigger value="payment" className="flex items-center gap-2">
+            <Landmark className="h-4 w-4" />
+            Payment
+          </TabsTrigger>
           <TabsTrigger value="social" className="flex items-center gap-2">
             <Share2 className="h-4 w-4" />
             Social Media
+          </TabsTrigger>
+          <TabsTrigger value="operations" className="flex items-center gap-2">
+            <SlidersHorizontal className="h-4 w-4" />
+            Operations
           </TabsTrigger>
         </TabsList>
 
@@ -301,6 +315,134 @@ const AdminSettings: React.FC = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="contact" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Contact Information</CardTitle>
+              <CardDescription>
+                Shown in the site footer and on the Contact page — editing here updates both at once
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="contact-phone">Phone</Label>
+                <Input
+                  id="contact-phone"
+                  value={data.contactPhone || ''}
+                  onChange={(e) => setData({ ...data, contactPhone: e.target.value })}
+                  placeholder="e.g., 0769 928 629"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact-whatsapp">WhatsApp Number</Label>
+                <Input
+                  id="contact-whatsapp"
+                  value={data.contactWhatsapp || ''}
+                  onChange={(e) => setData({ ...data, contactWhatsapp: e.target.value })}
+                  placeholder="e.g., 0727 717 787"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact-email">Email</Label>
+                <Input
+                  id="contact-email"
+                  type="email"
+                  value={data.contactEmail || ''}
+                  onChange={(e) => setData({ ...data, contactEmail: e.target.value })}
+                  placeholder="e.g., info@bloomtechub.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="business-hours">Business Hours</Label>
+                <Input
+                  id="business-hours"
+                  value={data.businessHours || ''}
+                  onChange={(e) => setData({ ...data, businessHours: e.target.value })}
+                  placeholder="e.g., Mon–Fri: 8:00 AM – 5:00 PM"
+                />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="contact-address">Address</Label>
+                <Textarea
+                  id="contact-address"
+                  value={data.contactAddress || ''}
+                  onChange={(e) => setData({ ...data, contactAddress: e.target.value })}
+                  placeholder="P.O. BOX 14294–00800, Kanha Building, Lower Kabete Road..."
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="payment" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Bank Transfer Details</CardTitle>
+              <CardDescription>
+                Shown to customers paying by bank transfer. Leave any field blank and bank transfer
+                will be reported as unavailable at checkout rather than showing an incomplete account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="bank-account-name">Account Name</Label>
+                <Input
+                  id="bank-account-name"
+                  value={data.bankAccountName || ''}
+                  onChange={(e) => setData({ ...data, bankAccountName: e.target.value })}
+                  placeholder="e.g., BLOOMTECH HUB LIMITED"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bank-account-number">Account Number</Label>
+                <Input
+                  id="bank-account-number"
+                  value={data.bankAccountNumber || ''}
+                  onChange={(e) => setData({ ...data, bankAccountNumber: e.target.value })}
+                  placeholder="e.g., 1234567890"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bank-name">Bank Name</Label>
+                <Input
+                  id="bank-name"
+                  value={data.bankName || ''}
+                  onChange={(e) => setData({ ...data, bankName: e.target.value })}
+                  placeholder="e.g., Equity Bank Kenya"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bank-branch">Branch</Label>
+                <Input
+                  id="bank-branch"
+                  value={data.bankBranch || ''}
+                  onChange={(e) => setData({ ...data, bankBranch: e.target.value })}
+                  placeholder="e.g., Nairobi West"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bank-swift">SWIFT Code</Label>
+                <Input
+                  id="bank-swift"
+                  value={data.bankSwiftCode || ''}
+                  onChange={(e) => setData({ ...data, bankSwiftCode: e.target.value })}
+                  placeholder="e.g., EQBLKEXX"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bank-code">Bank Code</Label>
+                <Input
+                  id="bank-code"
+                  value={data.bankCode || ''}
+                  onChange={(e) => setData({ ...data, bankCode: e.target.value })}
+                  placeholder="e.g., 068"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="social" className="space-y-6">
           <Card>
             <CardHeader>
@@ -344,6 +486,87 @@ const AdminSettings: React.FC = () => {
                   value={data.linkedinUrl || ''}
                   onChange={(e) => setData({ ...data, linkedinUrl: e.target.value })}
                   placeholder="https://linkedin.com/company/yourcompany"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="operations" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Inventory</CardTitle>
+              <CardDescription>
+                Controls the default "low stock" cutoff used by the admin low-stock list and notification badge
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="low-stock-threshold">Low Stock Threshold</Label>
+                <Input
+                  id="low-stock-threshold"
+                  type="number"
+                  min={1}
+                  value={data.lowStockThreshold ?? 10}
+                  onChange={(e) => setData({ ...data, lowStockThreshold: parseInt(e.target.value, 10) || 1 })}
+                  placeholder="10"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Products at or below this stock count are flagged as low stock.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Site Announcement</CardTitle>
+              <CardDescription>
+                An optional banner shown at the top of every storefront page — useful for promotions or notices
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="text-sm font-medium">Show Announcement Banner</p>
+                  <p className="text-xs text-muted-foreground">Displays the message below to all visitors</p>
+                </div>
+                <Switch
+                  checked={!!data.announcementEnabled}
+                  onCheckedChange={(checked) => setData({ ...data, announcementEnabled: checked })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="announcement-text">Banner Text</Label>
+                <Input
+                  id="announcement-text"
+                  value={data.announcementText || ''}
+                  onChange={(e) => setData({ ...data, announcementText: e.target.value })}
+                  placeholder="e.g., Free delivery on orders over KES 10,000 this week!"
+                  maxLength={200}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Maintenance Mode</CardTitle>
+              <CardDescription>
+                Takes the storefront offline with a "back shortly" page while you make changes. Admin pages stay accessible.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="text-sm font-medium">Enable Maintenance Mode</p>
+                  <p className="text-xs text-muted-foreground">
+                    Customers won't be able to browse or check out until this is turned off
+                  </p>
+                </div>
+                <Switch
+                  checked={!!data.maintenanceMode}
+                  onCheckedChange={(checked) => setData({ ...data, maintenanceMode: checked })}
                 />
               </div>
             </CardContent>

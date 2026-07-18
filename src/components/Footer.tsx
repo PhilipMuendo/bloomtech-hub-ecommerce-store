@@ -18,6 +18,13 @@ const Footer = () => {
   const twitterUrl = settings?.twitterUrl || 'https://x.com/Keensell';
   const instagramUrl = settings?.instagramUrl || 'https://www.instagram.com/keensellventures/?hl=en';
   const linkedinUrl = settings?.linkedinUrl || 'https://ke.linkedin.com/company/keensell-ventures';
+
+  // Contact info (use settings if available, fall back to hardcoded)
+  const contactPhone = settings?.contactPhone || '0769 928 629';
+  const contactWhatsapp = settings?.contactWhatsapp || '0727 717 787';
+  const contactEmail = settings?.contactEmail || 'info@bloomtechub.com';
+  const businessHours = settings?.businessHours || 'Mon–Fri: 8:00 AM – 5:00 PM';
+  const contactAddress = settings?.contactAddress || 'P.O. BOX 14294–00800\nKanha Building, Lower Kabete Road,\nOpposite Sarit Centre, 3rd Floor, Nairobi';
   return (
     <footer className="bg-primary text-primary-foreground">
       <div className="container mx-auto px-4 py-12">
@@ -76,26 +83,26 @@ const Footer = () => {
             <div className="space-y-3 text-sm opacity-80">
               <div className="flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
-                <span>0769 928 629</span>
+                <span>{contactPhone}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Phone className="w-4 h-4" />
-                <span>0727 717 787 (WhatsApp)</span>
+                <span>{contactWhatsapp} (WhatsApp)</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Clock className="w-4 h-4" />
-                <span>Mon–Fri: 8:00 AM – 5:00 PM</span>
+                <span>{businessHours}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Mail className="w-4 h-4" />
-                <span>info@bloomtechub.com</span>
+                <span>{contactEmail}</span>
               </div>
               <div className="flex items-start space-x-2">
                 <MapPin className="w-4 h-4 mt-0.5" />
                 <div>
-                  <p>P.O. BOX 14294–00800</p>
-                  <p>Kanha Building, Lower Kabete Road,</p>
-                  <p>Opposite Sarit Centre, 3rd Floor, Nairobi</p>
+                  {contactAddress.split('\n').map((line, i) => (
+                    <p key={i}>{line}</p>
+                  ))}
                 </div>
               </div>
             </div>

@@ -50,6 +50,69 @@ export default (sequelize) => {
       type: DataTypes.STRING(300),
       allowNull: true
     },
+    contactPhone: {
+      type: DataTypes.STRING(30),
+      allowNull: true
+    },
+    contactWhatsapp: {
+      type: DataTypes.STRING(30),
+      allowNull: true
+    },
+    contactEmail: {
+      type: DataTypes.STRING(120),
+      allowNull: true
+    },
+    contactAddress: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    businessHours: {
+      type: DataTypes.STRING(120),
+      allowNull: true
+    },
+    bankAccountName: {
+      type: DataTypes.STRING(120),
+      allowNull: true
+    },
+    bankAccountNumber: {
+      type: DataTypes.STRING(60),
+      allowNull: true
+    },
+    bankName: {
+      type: DataTypes.STRING(120),
+      allowNull: true
+    },
+    bankBranch: {
+      type: DataTypes.STRING(120),
+      allowNull: true
+    },
+    bankSwiftCode: {
+      type: DataTypes.STRING(30),
+      allowNull: true
+    },
+    bankCode: {
+      type: DataTypes.STRING(30),
+      allowNull: true
+    },
+    lowStockThreshold: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 10
+    },
+    maintenanceMode: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
+    announcementEnabled: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    },
+    announcementText: {
+      type: DataTypes.STRING(200),
+      allowNull: true
+    },
     updatedBy: {
       type: DataTypes.INTEGER,
       allowNull: true

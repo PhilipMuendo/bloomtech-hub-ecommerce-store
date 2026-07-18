@@ -4,8 +4,21 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Phone, Clock, Mail, MapPin, Facebook, Twitter, Instagram, Linkedin, Send, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useSettings } from '@/context/SettingsContext';
 
 const Contact = () => {
+  const { settings } = useSettings();
+
+  const contactPhone = settings?.contactPhone || '0769 928 629';
+  const contactWhatsapp = settings?.contactWhatsapp || '0727 717 787';
+  const contactEmail = settings?.contactEmail || 'info@bloomtechub.com';
+  const businessHours = settings?.businessHours || 'Mon–Fri: 8:00 AM – 5:00 PM';
+  const contactAddress = settings?.contactAddress || 'P.O. BOX 14294–00800\nKanha Building, Lower Kabete Road,\nOpposite Sarit Centre, 3rd Floor, Nairobi';
+  const facebookUrl = settings?.facebookUrl || 'https://www.facebook.com/keensellventures/';
+  const twitterUrl = settings?.twitterUrl || 'https://x.com/Keensell';
+  const instagramUrl = settings?.instagramUrl || 'https://www.instagram.com/keensellventures/?hl=en';
+  const linkedinUrl = settings?.linkedinUrl || 'https://ke.linkedin.com/company/keensell-ventures';
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -84,15 +97,15 @@ const Contact = () => {
                 <Phone className="w-5 h-5 text-accent" />
                 <div>
                   <p className="font-medium">Call Us</p>
-                  <p className="text-muted-foreground">0769 928 629</p>
+                  <p className="text-muted-foreground">{contactPhone}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center space-x-3">
                 <Phone className="w-5 h-5 text-accent" />
                 <div>
                   <p className="font-medium">Call/WhatsApp</p>
-                  <p className="text-muted-foreground">0727 717 787</p>
+                  <p className="text-muted-foreground">{contactWhatsapp}</p>
                 </div>
               </div>
 
@@ -100,7 +113,7 @@ const Contact = () => {
                 <Clock className="w-5 h-5 text-accent" />
                 <div>
                   <p className="font-medium">Working Hours</p>
-                  <p className="text-muted-foreground">Mon–Fri: 8:00 AM – 5:00 PM</p>
+                  <p className="text-muted-foreground">{businessHours}</p>
                 </div>
               </div>
 
@@ -108,7 +121,7 @@ const Contact = () => {
                 <Mail className="w-5 h-5 text-accent" />
                 <div>
                   <p className="font-medium">Email</p>
-                  <p className="text-muted-foreground">info@bloomtechub.com</p>
+                  <p className="text-muted-foreground">{contactEmail}</p>
                 </div>
               </div>
 
@@ -117,24 +130,27 @@ const Contact = () => {
                 <div>
                   <p className="font-medium">Address</p>
                   <p className="text-muted-foreground">
-                    P.O. BOX 14294–00800<br />
-                    Kanha Building, Lower Kabete Road,<br />
-                    Opposite Sarit Centre, 3rd Floor, Nairobi
+                    {contactAddress.split('\n').map((line, i) => (
+                      <React.Fragment key={i}>
+                        {line}
+                        <br />
+                      </React.Fragment>
+                    ))}
                   </p>
                 </div>
               </div>
               {/* Social Media Icons */}
               <div className="flex items-center space-x-4 pt-4">
-                <a href="https://www.facebook.com/keensellventures/" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+                <a href={facebookUrl} target="_blank" rel="noopener noreferrer" aria-label="Facebook">
                   <Facebook className="w-6 h-6 text-accent hover:text-blue-600 transition-colors" />
                 </a>
-                <a href="https://x.com/Keensell" target="_blank" rel="noopener noreferrer" aria-label="Twitter">
+                <a href={twitterUrl} target="_blank" rel="noopener noreferrer" aria-label="Twitter">
                   <Twitter className="w-6 h-6 text-accent hover:text-blue-400 transition-colors" />
                 </a>
-                <a href="https://www.instagram.com/keensellventures/?hl=en" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                <a href={instagramUrl} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
                   <Instagram className="w-6 h-6 text-accent hover:text-pink-500 transition-colors" />
                 </a>
-                <a href="https://ke.linkedin.com/company/keensell-ventures" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                <a href={linkedinUrl} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
                   <Linkedin className="w-6 h-6 text-accent hover:text-blue-700 transition-colors" />
                 </a>
               </div>

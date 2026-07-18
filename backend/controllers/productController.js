@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const { Product } = db;
+const { Product, SiteSetting } = db;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = path.join(__dirname, '../public/uploads');
@@ -442,7 +442,11 @@ export const exportProducts = async (req, res, next) => {
 // GET /api/products/low-stock
 export const getLowStockProducts = async (req, res, next) => {
   try {
-    const { threshold = 10 } = req.query;
+    let threshold = req.query.threshold;
+    if (threshold === undefined) {
+      const settings = await SiteSetting.findByPk(1);
+      threshold = settings?.lowStockThreshold ?? 10;
+    }
     const products = await Product.findAll({
       where: {
         stock: { [Op.lte]: parseInt(threshold) }

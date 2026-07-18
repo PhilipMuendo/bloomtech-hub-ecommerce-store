@@ -6,6 +6,10 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { CartProvider } from "@/context/CartContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
+import MaintenancePage from "@/components/MaintenancePage";
+import { useAuth } from "@/context/AuthContext";
+import { useSettings } from "@/context/SettingsContext";
 import { Suspense, lazy } from "react";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminLayout from "./components/AdminLayout";
@@ -171,11 +175,27 @@ const App = () => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
   const isWarehouseRoute = location.pathname.startsWith("/warehouse");
+  const isAppRoute = isAdminRoute || isWarehouseRoute;
+  const { settings } = useSettings();
+  const { user } = useAuth();
+  const isStaff = user?.role === 'admin' || user?.role === 'superadmin' || user?.role === 'warehouse';
 
   // Scroll to top on route change
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
+
+  // Maintenance mode takes the storefront offline for everyone except staff,
+  // who still need /admin and /warehouse to turn it back off.
+  if (settings?.maintenanceMode && !isAppRoute && !isStaff) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <Toaster />
+        <Sonner />
+        <MaintenancePage />
+      </QueryClientProvider>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -184,11 +204,12 @@ const App = () => {
           <Toaster />
           <Sonner />
           <div className="min-h-screen flex flex-col">
-            {!isAdminRoute && !isWarehouseRoute && <Header />}
+            {!isAppRoute && <AnnouncementBanner />}
+            {!isAppRoute && <Header />}
             <main className="flex-1">
               <AnimatedRoutes />
             </main>
-            {!isAdminRoute && !isWarehouseRoute && <Footer />}
+            {!isAppRoute && <Footer />}
           </div>
         </CartProvider>
       </TooltipProvider>

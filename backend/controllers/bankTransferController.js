@@ -4,17 +4,25 @@ import { sendTemplatedEmail } from '../utils/emailService.js';
 import AuditService from '../services/auditService.js';
 import { generateInvoicePdf } from '../utils/pdfUtils.js';
 
-const { Order, User, OrderItem, Product } = db;
+const { Order, User, OrderItem, Product, SiteSetting } = db;
 
-// Bank account details (should be moved to environment variables)
-const BANK_DETAILS = {
-  accountName: 'BLOOMTECH HUB LIMITED',
-  accountNumber: '1234567890',
-  bankName: 'EQUITY BANK KENYA',
-  branch: 'NAIROBI WEST',
-  swiftCode: 'EQBLKEXX',
-  bankCode: '068'
+// Bank account details are admin-editable via Settings > Payment — pulled from
+// the DB rather than hardcoded so the real account can be entered post-launch
+// without a redeploy, and so a misconfigured value doesn't silently look valid.
+const resolveBankDetails = async () => {
+  const settings = await SiteSetting.findByPk(1);
+  return {
+    accountName: settings?.bankAccountName || null,
+    accountNumber: settings?.bankAccountNumber || null,
+    bankName: settings?.bankName || null,
+    branch: settings?.bankBranch || null,
+    swiftCode: settings?.bankSwiftCode || null,
+    bankCode: settings?.bankCode || null,
+  };
 };
+
+const isBankDetailsConfigured = (bankDetails) =>
+  Boolean(bankDetails.accountName && bankDetails.accountNumber && bankDetails.bankName);
 
 // Generate proforma invoice for bank transfer orders
 export const generateProformaInvoice = async (req, res, next) => {
@@ -139,7 +147,8 @@ export const generateProformaInvoice = async (req, res, next) => {
 
     // Generate invoice number
     const invoiceNumber = generateInvoiceNumber();
-    
+    const bankDetails = await resolveBankDetails();
+
     // Create invoice data
     const invoiceData = {
       invoiceNumber,
@@ -161,7 +170,7 @@ export const generateProformaInvoice = async (req, res, next) => {
       subtotal: order.total,
       tax: 0, // VAT if applicable
       total: order.total,
-      bankDetails: BANK_DETAILS,
+      bankDetails,
       paymentInstructions: [
         'Please transfer the exact amount to the bank account details above',
         'Include your order number in the payment reference',
@@ -368,8 +377,16 @@ export const getBankTransferOrders = async (req, res, next) => {
 // Get bank account details (public endpoint)
 export const getBankDetails = async (req, res, next) => {
   try {
+    const bankDetails = await resolveBankDetails();
+
+    if (!isBankDetailsConfigured(bankDetails)) {
+      return res.status(503).json({
+        error: 'Bank transfer is not yet available. Please contact us to arrange payment.',
+      });
+    }
+
     res.json({
-      bankDetails: BANK_DETAILS,
+      bankDetails,
       instructions: [
         'Transfer the exact order amount to the account above',
         'Include your order number in the payment reference',

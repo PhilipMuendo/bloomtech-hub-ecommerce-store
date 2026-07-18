@@ -50,17 +50,17 @@ const BankTransferPaymentModal: React.FC<BankTransferPaymentModalProps> = ({
   const fetchBankDetails = async () => {
     try {
       const response = await fetch('/api/bank-transfer/bank-details');
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
         setBankDetails(data.bankDetails);
       } else {
-        throw new Error('Failed to fetch bank details');
+        throw new Error(data.error || 'Failed to fetch bank details');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching bank details:', error);
       toast({
-        title: "Error",
-        description: "Failed to load bank details. Please try again.",
+        title: "Bank transfer unavailable",
+        description: error.message || "Failed to load bank details. Please try again.",
         variant: "destructive"
       });
     }
