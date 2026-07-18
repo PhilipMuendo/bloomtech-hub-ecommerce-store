@@ -1,23 +1,25 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
 
 interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   value?: string;
   onChange?: React.ChangeEventHandler<HTMLInputElement>;
 }
 
-const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(({ value, onChange, ...props }, ref) => {
+const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(({ value, onChange, className, ...props }, ref) => {
   const [show, setShow] = useState(false);
 
   return (
-    <div className="relative">
-      <input
+    <div className="relative w-full">
+      <Input
         ref={ref}
         type={show ? 'text' : 'password'}
         value={value}
         onChange={onChange}
         {...props}
-        className={"pr-10 " + (props.className || "")}
+        className={cn("pr-10", className)}
       />
       <button
         type="button"
