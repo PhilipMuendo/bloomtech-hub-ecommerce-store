@@ -16,7 +16,7 @@ export interface Subcategory {
   isActive: boolean;
 }
 
-import securitySystemsImg from '@/assets/security-systems.jpg';
+import securitySystemsImg from '@/assets/house-security-system.jpg';
 import ictEquipmentImg from '@/assets/ict-equipment.jpg';
 import electricalMaterialsImg from '@/assets/electrical-materials.jpg';
 import powerSolutionsImg from '@/assets/power-solutions.jpg';
