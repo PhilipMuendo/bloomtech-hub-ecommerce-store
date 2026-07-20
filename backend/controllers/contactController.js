@@ -339,6 +339,7 @@ export const submitContactForm = async (req, res) => {
       await sendEmail({
         from: 'BLOOMTECH HUB <noreply@bloomtechub.com>',
         to: email,
+        replyTo: process.env.SUPPORT_EMAIL || 'support@bloomtechub.com',
         subject: 'We received your message - Bloomtech Hub',
         html: customerEmailContent
       });
@@ -500,6 +501,7 @@ export const replyToMessage = async (req, res) => {
     await sendEmail({
       from: 'BLOOMTECH HUB <noreply@bloomtechub.com>',
       to: message.email,
+      replyTo: process.env.SUPPORT_EMAIL || 'support@bloomtechub.com',
       subject: `Re: ${message.subject} (Ticket #${message.id})`,
       html: replyEmailContent
     });

@@ -4,7 +4,7 @@ import AuditService from '../services/auditService.js';
 
 const { Quote, QuoteItem, Message, Product, Order, OrderItem, User } = db;
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@bloomtechub.com';
 const QUOTE_EXPIRY_DAYS = 7;
 
 // POST /api/quotes - Customer submits a quote request
