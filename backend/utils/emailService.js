@@ -37,6 +37,7 @@ const createTransporter = () => {
  * @param {string} options.html - HTML content
  * @param {string} options.text - Plain text content (optional)
  * @param {string} options.from - Sender email (optional)
+ * @param {string} options.replyTo - Reply-To email (optional, defaults to SUPPORT_EMAIL)
  * @param {Array}  options.attachments - Nodemailer attachments array (optional)
  */
 export const sendEmail = async (options) => {
@@ -62,8 +63,9 @@ export const sendEmail = async (options) => {
     }
     
     const mailOptions = {
-      from: options.from || process.env.EMAIL_FROM || 'BLOOMTECH HUB <noreply@bloomtechub.com>',
+      from: options.from || process.env.SMTP_FROM || 'BLOOMTECH HUB <noreply@bloomtechub.com>',
       to: options.to,
+      replyTo: options.replyTo || process.env.SUPPORT_EMAIL,
       subject: options.subject,
       html: options.html,
       text: options.text || options.html.replace(/<[^>]*>/g, ''), // Strip HTML tags
@@ -382,6 +384,7 @@ function generateOrderDeliveredTemplate(data) {
  * @param {string} options.subject - Email subject
  * @param {string} options.template - Template name
  * @param {Object} options.data - Template data
+ * @param {string} options.replyTo - Reply-To email (optional, defaults to SUPPORT_EMAIL)
  * @param {Array}  options.attachments - Nodemailer attachments array (optional)
  */
 export const sendTemplatedEmail = async (options) => {
@@ -389,6 +392,7 @@ export const sendTemplatedEmail = async (options) => {
   return sendEmail({
     to: options.to,
     subject: options.subject,
+    replyTo: options.replyTo,
     html,
     attachments: options.attachments || []
   });

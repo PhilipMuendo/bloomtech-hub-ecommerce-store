@@ -128,6 +128,7 @@ export const notifyCustomerOfNewOrder = async (order, orderItems) => {
     if (order.User?.email) {
       await sendEmail({
         to: order.User.email,
+        replyTo: process.env.SUPPORT_EMAIL || 'support@bloomtechub.com',
         subject: `🎉 Order Confirmed! #${order.id} - BloomTech Hub`,
         html: emailContent
       });
@@ -216,6 +217,7 @@ export const notifyOrderStatusChange = async (order, previousStatus, newStatus, 
     if (order.User?.email) {
       await sendEmail({
         to: order.User.email,
+        replyTo: process.env.SUPPORT_EMAIL || 'support@bloomtechub.com',
         subject: `📦 Order #${order.id} Status Updated to ${newStatus}`,
         html: emailContent
       });
