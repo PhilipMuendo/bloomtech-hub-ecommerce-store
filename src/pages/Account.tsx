@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 const Account = () => {
-  const { user, login, updateUser } = useAuth();
+  const { user, updateUser } = useAuth();
   const { toast } = useToast();
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');

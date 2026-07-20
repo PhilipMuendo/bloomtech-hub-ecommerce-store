@@ -15,7 +15,6 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
   googleLogin: (idToken: string) => Promise<void>;
   logout: () => void;
   isAdmin: () => boolean;
@@ -81,28 +80,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     return () => clearInterval(interval);
   }, [state.user?.token]);
-
-  const login = async (email: string, password: string) => {
-    dispatch({ type: 'LOGIN_START' });
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        localStorage.setItem('user', JSON.stringify(data));
-        dispatch({ type: 'LOGIN_SUCCESS', payload: data });
-      } else {
-        throw new Error(data.error || data.message || 'Login failed');
-      }
-    } catch (error) {
-      dispatch({ type: 'LOGIN_FAILURE' });
-      throw error;
-    }
-  };
 
   const googleLogin = async (idToken: string) => {
     dispatch({ type: 'LOGIN_START' });
@@ -183,7 +160,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <AuthContext.Provider value={{
       ...state,
-      login,
       googleLogin,
       logout,
       isAdmin,

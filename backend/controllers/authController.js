@@ -5,7 +5,7 @@ import nodemailer from 'nodemailer';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { OAuth2Client } from 'google-auth-library';
-import { checkAccountLockout, updateFailedLoginAttempts } from '../middleware/enhancedAuth.js';
+import { checkAccountLockout } from '../middleware/enhancedAuth.js';
 
 const { User } = db;
 
@@ -201,91 +201,12 @@ export const resendVerification = async (req, res, next) => {
   }
 };
 
-export const login = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
-    const maskedEmail = maskEmail(email);
-    
-    // Get user and check account lockout
-    const user = await User.findOne({ where: { email } });
-    
-    if (user && (user.failedLoginAttempts || 0) >= 5) {
-      const lockoutTime = 15 * 60 * 1000; // 15 minutes
-      if (user.lastFailedLogin) {
-        const timeSinceLastAttempt = Date.now() - new Date(user.lastFailedLogin).getTime();
-        
-        if (timeSinceLastAttempt < lockoutTime) {
-          const remainingTime = Math.ceil((lockoutTime - timeSinceLastAttempt) / 1000 / 60);
-          return res.status(429).json({
-            error: 'Account temporarily locked',
-            message: `Too many failed login attempts. Try again in ${remainingTime} minutes.`
-          });
-        } else {
-          // Reset failed attempts after lockout period
-          user.failedLoginAttempts = 0;
-          await user.save();
-        }
-      }
-    }
-    
-    if (!user) {
-      console.warn('Failed login attempt (user not found)', { email: maskedEmail });
-      await updateFailedLoginAttempts(email, false);
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-    
-    const isPasswordValid = await user.matchPassword(password);
-    if (!isPasswordValid) {
-      console.warn('Failed login attempt (invalid password)', { email: maskedEmail });
-      await updateFailedLoginAttempts(email, false);
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
-    
-    // Successful login - reset failed attempts
-    await updateFailedLoginAttempts(email, true);
-    
-    if (user.status !== 'active') {
-      let errorMessage = '';
-      if (user.status === 'suspended') {
-        errorMessage = 'Your account has been suspended. Please contact our support team at support@bloomtechub.com or call +254-XXX-XXX-XXX for assistance.';
-      } else {
-        errorMessage = `Your account is currently '${user.status}'. Please contact support if you believe this is a mistake.`;
-      }
-      
-      return res.status(403).json({
-        error: errorMessage
-      });
-    }
-    
-    // Check email verification
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    
-    if (!user.verified && user.role !== 'superadmin' && !isDevelopment) {
-      return res.status(403).json({ 
-        error: 'Please verify your email before logging in. Check your inbox for a verification link.' 
-      });
-    }
-    
-    // Auto-verify users in development mode
-    if (!user.verified && isDevelopment) {
-      await user.update({ verified: true });
-    }
-    
-    const token = generateToken(user.id, user.role);
-    
-    res.json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      verified: user.verified,
-      token
-    });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Login failed. Please try again.' });
-  }
+// Password login is disabled — all sign-in goes through googleAuth below.
+// Existing accounts still work there: googleAuth matches by email even for
+// accounts originally created with a password, so no one is locked out as
+// long as their email can sign in with Google.
+export const login = async (req, res) => {
+  res.status(403).json({ error: 'Password login is disabled. Please sign in with Google.' });
 };
 
 export const forgotPassword = async (req, res, next) => {
