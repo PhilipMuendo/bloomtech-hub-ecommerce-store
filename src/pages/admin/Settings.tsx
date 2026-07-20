@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Settings2, Palette, Share2, Phone, Landmark, SlidersHorizontal } from 'lucide-react';
+import { Upload, Settings2, Share2, Phone, Landmark, SlidersHorizontal } from 'lucide-react';
 
 const AdminSettings: React.FC = () => {
   const { user } = useAuth();
@@ -130,7 +130,7 @@ const AdminSettings: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold">Site Settings</h1>
           <p className="text-muted-foreground mt-1">
-            Configure branding, contact info, payment details, and store operations
+            Configure your logo, contact info, payment details, and store operations
           </p>
         </div>
         <Button onClick={handleSave} disabled={saving}>
@@ -138,12 +138,8 @@ const AdminSettings: React.FC = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="branding" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto">
-          <TabsTrigger value="branding" className="flex items-center gap-2">
-            <Palette className="h-4 w-4" />
-            Branding
-          </TabsTrigger>
+      <Tabs defaultValue="logo" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto">
           <TabsTrigger value="logo" className="flex items-center gap-2">
             <Settings2 className="h-4 w-4" />
             Logo
@@ -165,46 +161,6 @@ const AdminSettings: React.FC = () => {
             Operations
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="branding" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Company Information</CardTitle>
-              <CardDescription>
-                Update your company name and branding details
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="company-name">Company Name</Label>
-                <Input
-                  id="company-name"
-                  value={data.companyName || ''}
-                  onChange={(e) => setData({ ...data, companyName: e.target.value })}
-                  placeholder="e.g., BLOOMTECH"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="company-tagline">Tagline</Label>
-                <Input
-                  id="company-tagline"
-                  value={data.companyTagline || ''}
-                  onChange={(e) => setData({ ...data, companyTagline: e.target.value })}
-                  placeholder="e.g., Hub"
-                />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="company-full">Full Company Name</Label>
-                <Input
-                  id="company-full"
-                  value={data.companyFullName || ''}
-                  onChange={(e) => setData({ ...data, companyFullName: e.target.value })}
-                  placeholder="e.g., BLOOMTECH Hub"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="logo" className="space-y-6">
           <Card>
