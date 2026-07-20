@@ -156,70 +156,11 @@ export const sendVerificationEmail = async (user, req) => {
   }
 };
 
-export const register = async (req, res, next) => {
-  try {
-    const { name, email, password, phone } = req.body;
-    
-    // Validate input
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email, and password are required' });
-    }
-    
-    // Check if user already exists
-    const userExists = await User.findOne({ where: { email } });
-    if (userExists) {
-      console.warn('Registration failed - user already exists:', email);
-      return res.status(400).json({ error: 'User already exists with this email' });
-    }
-    
-    // Generate verification token
-    const verificationToken = generateVerificationToken();
-    const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-    
-    // In development mode, auto-verify users to avoid email issues
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    
-    // Create user
-    const user = await User.create({
-      name,
-      email,
-      password,
-      phone: phone || null,
-      role: 'user',
-      verified: isDevelopment, // Auto-verify in development
-      verificationToken: isDevelopment ? null : verificationToken,
-      verificationTokenExpires: isDevelopment ? null : verificationTokenExpires,
-      status: 'active'
-    });
-    
-    // Try to send verification email, but don't fail registration if email fails
-    if (!isDevelopment) {
-      try {
-        await sendVerificationEmail(user, req);
-      } catch (emailError) {
-        console.error('Failed to send verification email:', emailError);
-        // Don't delete the user, just log the error
-        // User can request resend later
-      }
-    }
-    
-    res.status(201).json({
-      message: isDevelopment 
-        ? 'Registration successful! You can now log in.' 
-        : 'Registration successful! Please check your email to verify your account.',
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        verified: user.verified
-      }
-    });
-  } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ error: 'Registration failed. Please try again.' });
-  }
+// New accounts can only be created via Google sign-in (see googleAuth below).
+// Existing email/password accounts are unaffected and still work via login,
+// forgotPassword, resetPassword, and changePassword.
+export const register = async (req, res) => {
+  res.status(403).json({ error: 'Email/password sign-up is disabled. Please create an account with Google.' });
 };
 
 export const verifyEmail = async (req, res, next) => {
