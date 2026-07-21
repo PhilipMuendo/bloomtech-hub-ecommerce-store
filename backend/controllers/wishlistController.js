@@ -2,30 +2,22 @@ import db from '../sequelize_models/index.js';
 
 const { Wishlist, Product } = db;
 
-// Utility function to fix image URLs for ngrok
+// Local uploads are stored and returned as relative /public/uploads/... paths
+// on purpose — see the matching comment in productController.js for why
+// making them absolute here caused mixed-content image failures.
 const fixImageUrl = (imageUrl, req) => {
   if (!imageUrl) return imageUrl;
-  
-  // If it's already a full URL, check if it needs to be updated for ngrok
+
   if (imageUrl.startsWith('http://localhost') || imageUrl.startsWith('https://localhost')) {
     const forwardedHost = req.get('x-forwarded-host');
     const forwardedProto = req.get('x-forwarded-proto');
-    
+
     if (forwardedHost && forwardedProto) {
-      // Replace localhost with ngrok URL
       const ngrokUrl = `${forwardedProto}://${forwardedHost}`;
-      const fixedUrl = imageUrl.replace(/https?:\/\/localhost:\d+/, ngrokUrl);
-      return fixedUrl;
+      return imageUrl.replace(/https?:\/\/localhost:\d+/, ngrokUrl);
     }
   }
-  
-  // If it's a relative path, make it absolute
-  if (imageUrl.startsWith('/')) {
-    const host = req.get('x-forwarded-host') || req.get('host');
-    const protocol = req.get('x-forwarded-proto') || req.protocol;
-    return `${protocol}://${host}${imageUrl}`;
-  }
-  
+
   return imageUrl;
 };
 

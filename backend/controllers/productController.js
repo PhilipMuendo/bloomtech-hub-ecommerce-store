@@ -22,30 +22,28 @@ const deleteLocalUpload = (imageUrl) => {
   fs.unlink(path.join(UPLOADS_DIR, filename), () => {});
 };
 
-// Utility function to fix image URLs for ngrok
+// Local uploads are stored and returned as relative /public/uploads/... paths
+// on purpose — the frontend proxies /public to the backend on the same
+// origin (see docker/nginx.conf), so they resolve correctly regardless of
+// protocol/host. Making them absolute here previously baked in whatever
+// X-Forwarded-Proto this container's own nginx sent, which is always "http"
+// since it never terminates TLS itself — producing http:// image URLs on an
+// https:// page (mixed content, blocked inconsistently by browser/settings).
+// Only remaining job: rewrite a stale absolute http://localhost:PORT URL
+// (from local dev/ngrok) to the current request's forwarded host, if any.
 const fixImageUrl = (imageUrl, req) => {
   if (!imageUrl) return imageUrl;
-  
-  // If it's already a full URL, check if it needs to be updated for ngrok
+
   if (imageUrl.startsWith('http://localhost') || imageUrl.startsWith('https://localhost')) {
     const forwardedHost = req.get('x-forwarded-host');
     const forwardedProto = req.get('x-forwarded-proto');
-    
+
     if (forwardedHost && forwardedProto) {
-      // Replace localhost with ngrok URL
       const ngrokUrl = `${forwardedProto}://${forwardedHost}`;
-      const fixedUrl = imageUrl.replace(/https?:\/\/localhost:\d+/, ngrokUrl);
-      return fixedUrl;
+      return imageUrl.replace(/https?:\/\/localhost:\d+/, ngrokUrl);
     }
   }
-  
-  // If it's a relative path, make it absolute
-  if (imageUrl.startsWith('/')) {
-    const host = req.get('x-forwarded-host') || req.get('host');
-    const protocol = req.get('x-forwarded-proto') || req.protocol;
-    return `${protocol}://${host}${imageUrl}`;
-  }
-  
+
   return imageUrl;
 };
 
