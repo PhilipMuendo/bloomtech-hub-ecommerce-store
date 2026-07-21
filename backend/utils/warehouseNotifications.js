@@ -1,12 +1,16 @@
 import db from '../sequelize_models/index.js';
 import { sendEmail } from './emailService.js';
 
-const { User } = db;
+const { User, SiteSetting } = db;
 
 // Send beautiful confirmation email to customer about new order
 export const notifyCustomerOfNewOrder = async (order, orderItems) => {
   try {
     console.log('📧 Sending customer confirmation email for order:', order.id);
+
+    const settings = await SiteSetting.findByPk(1);
+    const contactPhone = settings?.contactPhone || '0769 928 629';
+    const businessHours = settings?.businessHours || 'Mon–Fri: 8:00 AM – 5:00 PM';
 
     // Format order items for email
     const itemsList = orderItems.map(item => 
@@ -25,7 +29,7 @@ export const notifyCustomerOfNewOrder = async (order, orderItems) => {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Order Confirmation - BloomTech Hub</title>
+        <title>Order Confirmation - BLOOMTECH HUB</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
           .container { max-width: 600px; margin: 0 auto; background: #fff; }
@@ -50,7 +54,7 @@ export const notifyCustomerOfNewOrder = async (order, orderItems) => {
         <div class="container">
           <div class="header">
             <h1>🎉 Order Confirmed!</h1>
-            <p>Thank you for your purchase from BloomTech Hub</p>
+            <p>Thank you for your purchase from BLOOMTECH HUB</p>
           </div>
           
           <div class="content">
@@ -106,8 +110,8 @@ export const notifyCustomerOfNewOrder = async (order, orderItems) => {
             <h3>📞 Need Help?</h3>
             <p>If you have any questions about your order, please don't hesitate to contact us:</p>
             <p>📧 Email: support@bloomtechub.com<br>
-            📱 Phone: +254 700 000 000<br>
-            🕒 Hours: Monday - Friday, 8:00 AM - 6:00 PM</p>
+            📱 Phone: ${contactPhone}<br>
+            🕒 Hours: ${businessHours}</p>
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/orders" class="btn">View My Orders</a>
@@ -116,8 +120,8 @@ export const notifyCustomerOfNewOrder = async (order, orderItems) => {
           </div>
           
           <div class="footer">
-            <p>Thank you for choosing BloomTech Hub!</p>
-            <p>© 2024 BloomTech Hub. All rights reserved.</p>
+            <p>Thank you for choosing BLOOMTECH HUB!</p>
+            <p>© ${new Date().getFullYear()} BLOOMTECH HUB. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -129,7 +133,7 @@ export const notifyCustomerOfNewOrder = async (order, orderItems) => {
       await sendEmail({
         to: order.User.email,
         replyTo: process.env.SUPPORT_EMAIL || 'support@bloomtechub.com',
-        subject: `🎉 Order Confirmed! #${order.id} - BloomTech Hub`,
+        subject: `🎉 Order Confirmed! #${order.id} - BLOOMTECH HUB`,
         html: emailContent
       });
 
@@ -210,7 +214,7 @@ export const notifyOrderStatusChange = async (order, previousStatus, newStatus, 
       <p><strong>Updated By:</strong> ${updatedBy?.name || 'System'}</p>
       <p><strong>Updated At:</strong> ${new Date().toLocaleString()}</p>
       
-      <p>Best regards,<br>BloomTech Hub System</p>
+      <p>Best regards,<br>BLOOMTECH HUB System</p>
     `;
     
     // Send to customer

@@ -6,7 +6,7 @@ import sanitizeHtmlLib from 'sanitize-html';
 // tags so a customer's message/reply can't inject markup into the email.
 const sanitizeHtml = (text = '') => sanitizeHtmlLib(text, { allowedTags: [], allowedAttributes: {} });
 
-const { ContactMessage } = db;
+const { ContactMessage, SiteSetting } = db;
 
 // POST /api/contact - Submit contact form
 export const submitContactForm = async (req, res) => {
@@ -64,13 +64,15 @@ export const submitContactForm = async (req, res) => {
     }
 
     // Send confirmation email to customer with beautiful template
+    const contactSettings = await SiteSetting.findByPk(1);
+    const contactPhone = contactSettings?.contactPhone || '0769 928 629';
     const customerEmailContent = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Thank You for Contacting Us - Bloomtech Hub</title>
+        <title>Thank You for Contacting Us - BLOOMTECH HUB</title>
         <style>
           body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -259,7 +261,7 @@ export const submitContactForm = async (req, res) => {
           <div class="email-container">
             <div class="header">
               <h1>✉️ Message Received!</h1>
-              <p>Thank you for reaching out to Bloomtech Hub</p>
+              <p>Thank you for reaching out to BLOOMTECH HUB</p>
             </div>
             
             <div class="content">
@@ -286,7 +288,7 @@ export const submitContactForm = async (req, res) => {
                 <p>
                   <span class="icon">⏱️</span>
                   <strong>Response Time:</strong> We typically respond within 24 hours during business days 
-                  (Monday - Friday, 8:00 AM - 6:00 PM EAT). For urgent matters, please call us directly.
+                  (Monday - Friday, 8:00 AM - 5:00 PM EAT). For urgent matters, please call us directly.
                 </p>
               </div>
               
@@ -303,17 +305,17 @@ export const submitContactForm = async (req, res) => {
               <div class="contact-info">
                 <h3>Need Immediate Assistance?</h3>
                 <p>📧 Email: <a href="mailto:support@bloomtechub.com">support@bloomtechub.com</a></p>
-                <p>📱 Phone: +254 700 000 000</p>
-                <p>🕒 Hours: Monday - Friday, 8:00 AM - 6:00 PM EAT</p>
+                <p>📱 Phone: ${contactPhone}</p>
+                <p>🕒 Hours: Monday - Friday, 8:00 AM - 5:00 PM EAT</p>
               </div>
               
               <p style="color: #555; font-size: 15px; margin-top: 30px;">
-                Thank you for choosing Bloomtech Hub. We appreciate your interest and look forward to assisting you!
+                Thank you for choosing BLOOMTECH HUB. We appreciate your interest and look forward to assisting you!
               </p>
               
               <p style="color: #333; font-size: 15px; margin-top: 25px; font-weight: 500;">
                 Best regards,<br>
-                <span style="color: #667eea; font-weight: 600;">The Bloomtech Hub Team</span>
+                <span style="color: #667eea; font-weight: 600;">The BLOOMTECH HUB Team</span>
               </p>
             </div>
             
@@ -324,7 +326,7 @@ export const submitContactForm = async (req, res) => {
                 <a href="https://www.instagram.com/bloomtechhub" target="_blank">Instagram</a> | 
                 <a href="https://www.linkedin.com/company/bloomtechhub" target="_blank">LinkedIn</a>
               </div>
-              <p>© ${new Date().getFullYear()} Bloomtech Hub. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} BLOOMTECH HUB. All rights reserved.</p>
               <p style="margin-top: 10px;">
                 <a href="${process.env.FRONTEND_URL || 'http://localhost:8081'}" style="color: #667eea; text-decoration: none;">Visit Our Website</a>
               </p>
@@ -340,7 +342,7 @@ export const submitContactForm = async (req, res) => {
         from: 'BLOOMTECH HUB <noreply@bloomtechub.com>',
         to: email,
         replyTo: process.env.SUPPORT_EMAIL || 'support@bloomtechub.com',
-        subject: 'We received your message - Bloomtech Hub',
+        subject: 'We received your message - BLOOMTECH HUB',
         html: customerEmailContent
       });
     } catch (emailError) {
@@ -455,7 +457,7 @@ export const replyToMessage = async (req, res) => {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Re: ${message.subject} - Bloomtech Hub</title>
+        <title>Re: ${message.subject} - BLOOMTECH HUB</title>
         <style>
           body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
           .email-wrapper { background-color: #f5f5f5; padding: 20px; }
@@ -477,7 +479,7 @@ export const replyToMessage = async (req, res) => {
             </div>
             <div class="content">
               <p style="font-size: 18px; font-weight: 500;">Dear ${message.name},</p>
-              <p style="color: #555; font-size: 15px;">Thank you for contacting Bloomtech Hub (Ticket #${message.id}). Here's our response:</p>
+              <p style="color: #555; font-size: 15px;">Thank you for contacting BLOOMTECH HUB (Ticket #${message.id}). Here's our response:</p>
               <div class="reply-box">${sanitizeHtml(replyMessage).replace(/\n/g, '<br>')}</div>
               <div class="original-box">
                 <strong>Your original message (${message.subject}):</strong><br>
@@ -486,11 +488,11 @@ export const replyToMessage = async (req, res) => {
               <p style="color: #555; font-size: 15px;">If you have further questions, just reply to this email or contact us again referencing Ticket #${message.id}.</p>
               <p style="color: #333; font-size: 15px; margin-top: 25px; font-weight: 500;">
                 Best regards,<br>
-                <span style="color: #667eea; font-weight: 600;">The Bloomtech Hub Team</span>
+                <span style="color: #667eea; font-weight: 600;">The BLOOMTECH HUB Team</span>
               </p>
             </div>
             <div class="footer">
-              <p>© ${new Date().getFullYear()} Bloomtech Hub. All rights reserved.</p>
+              <p>© ${new Date().getFullYear()} BLOOMTECH HUB. All rights reserved.</p>
             </div>
           </div>
         </div>
