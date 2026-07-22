@@ -483,7 +483,12 @@ export const initiatePayment = async (req, res) => {
         });
       }
     } else {
-      throw new Error(`Payment initiation failed: ${response.data.message || 'Unknown error'}`);
+      // Pesapal v3 error responses nest the real reason under `error.message`
+      // (e.g. { error: { error_type, code, message } }), not a flat
+      // `message` field — check both so customers see the actual reason
+      // (e.g. "Transaction amount exceeds limit") instead of "Unknown error".
+      const pesapalMessage = response.data.error?.message || response.data.message || 'Unknown error';
+      throw new Error(`Payment initiation failed: ${pesapalMessage}`);
     }
   } catch (error) {
     console.error('❌ Payment initiation error:', error.message);
